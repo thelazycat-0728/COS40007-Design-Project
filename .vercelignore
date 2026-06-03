@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.DS_Store
+.vercel/
+
+*.docx
+*.pdf
+*.xlsx
+*.zip
+
+/air_pollution.csv
+/electricity_consumption.csv
+/ipi.csv
+/COS40007-Design-Project-main/
