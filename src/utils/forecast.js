@@ -89,11 +89,57 @@ export const generatePrototypeForecast = (rows, pollutantKey, horizonMonths) => 
   };
 };
 
+export const generateModelOutputForecast = (rows, pollutantKey, forecastRows) => {
+  const actualRows = rows
+    .filter((row) => Number.isFinite(row[pollutantKey]))
+    .map((row) => ({
+      date: row.date,
+      month: row.month,
+      actual: row[pollutantKey],
+      forecast: null,
+      type: 'Historical',
+    }));
+
+  if (!actualRows.length || !forecastRows.length) {
+    return null;
+  }
+
+  const lastActualRow = actualRows[actualRows.length - 1];
+  const lastActual = lastActualRow.actual;
+  const modelForecastRows = forecastRows.map((row) => ({
+    date: row.date,
+    month: row.month,
+    actual: null,
+    forecast: safeRound(row.forecast),
+    lowerBound: safeRound(row.lowerBound),
+    upperBound: safeRound(row.upperBound),
+    type: 'Final model output',
+  }));
+  const lastForecast = modelForecastRows[modelForecastRows.length - 1]?.forecast ?? lastActual;
+  const directionThreshold = Math.max(Math.abs(lastActual) * 0.02, 0.001);
+  const change = lastForecast - lastActual;
+  const trendDirection =
+    Math.abs(change) <= directionThreshold ? 'stable' : change > 0 ? 'increasing' : 'decreasing';
+  const bridgeRow = {
+    ...lastActualRow,
+    forecast: lastActual,
+  };
+
+  return {
+    chartRows: [...actualRows.slice(0, -1), bridgeRow, ...modelForecastRows],
+    forecastRows: modelForecastRows,
+    trendDirection,
+    lastActual: safeRound(lastActual),
+    lastForecast: safeRound(lastForecast),
+  };
+};
+
 export const createForecastInterpretation = ({
   pollutantLabel,
   modelLabel,
   horizonLabel,
   trendDirection,
+  isFinalOutput = false,
 }) => {
   const directionText =
     trendDirection === 'stable'
@@ -106,6 +152,10 @@ export const createForecastInterpretation = ({
       : trendDirection === 'decreasing'
         ? 'This suggests a potential easing of pollutant concentration under the current observed trend pattern.'
         : 'This suggests no major short-term shift in the selected pollutant under the current observed trend pattern.';
+
+  if (isFinalOutput) {
+    return `The model forecast displayed under the ${modelLabel} option suggests that ${directionText} over the next ${horizonLabel}. ${implication} This interpretation is generated from final model output values connected to the dashboard.`;
+  }
 
   return `The prototype forecast displayed under the ${modelLabel} option suggests that ${directionText} over the next ${horizonLabel}. ${implication} This interpretation is generated from dampened prototype forecast values and should be replaced with final trained model outputs after model integration.`;
 };

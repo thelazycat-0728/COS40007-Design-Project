@@ -1,0 +1,18 @@
+{
+  "metrics": [
+    {
+      "model": "XGBoost",
+      "pollutant": "PM2.5",
+      "mae": 1.82,
+      "rmse": 2.41,
+      "mape": 8.6
+    },
+    {
+      "model": "SARIMA",
+      "pollutant": "PM2.5",
+      "mae": 2.16,
+      "rmse": 2.94,
+      "mape": 10.4
+    }
+  ]
+}

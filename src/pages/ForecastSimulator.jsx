@@ -19,8 +19,10 @@ import {
 import { compactNumber } from '../utils/data';
 import {
   createForecastInterpretation,
+  generateModelOutputForecast,
   generatePrototypeForecast,
 } from '../utils/forecast';
+import { getMatchingForecastRows } from '../utils/modelOutputs';
 
 export default function ForecastSimulator({
   rows,
@@ -32,30 +34,51 @@ export default function ForecastSimulator({
   setSelectedModel,
   selectedHorizon,
   setSelectedHorizon,
+  modelOutputs,
 }) {
   const pollutantLabel = labelFor(pollutantOptions, selectedPollutant);
   const modelLabel = labelFor(modelOptions, selectedModel);
   const horizonLabel = labelFor(horizonOptions, Number(selectedHorizon));
   const unit = unitForPollutant(selectedPollutant);
-  const forecast = generatePrototypeForecast(rows, selectedPollutant, Number(selectedHorizon));
+  const matchingModelRows = getMatchingForecastRows({
+    modelOutputs,
+    selectedModel,
+    selectedCountry,
+    selectedPollutant,
+    horizonMonths: Number(selectedHorizon),
+  });
+  const modelForecast = generateModelOutputForecast(rows, selectedPollutant, matchingModelRows);
+  const isFinalOutput = Boolean(modelForecast);
+  const forecast =
+    modelForecast ?? generatePrototypeForecast(rows, selectedPollutant, Number(selectedHorizon));
+  const hasBounds = forecast.forecastRows.some(
+    (row) => Number.isFinite(row.lowerBound) || Number.isFinite(row.upperBound),
+  );
   const interpretation = createForecastInterpretation({
     pollutantLabel,
     modelLabel,
     horizonLabel,
     trendDirection: forecast.trendDirection,
+    isFinalOutput,
   });
+  const forecastKind = isFinalOutput ? 'model forecast' : 'prototype forecast';
 
   return (
     <section className="page-section">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Forecast Simulator</p>
-          <h1>Prototype forecast output</h1>
+          <h1>{isFinalOutput ? 'Model forecast output' : 'Prototype forecast output'}</h1>
           <p>
-            Forecast values are prototype/demo values generated from recent pollutant trend logic
-            until final trained model outputs are integrated.
+            {isFinalOutput
+              ? 'Forecast values are loaded from the matching final model output file in public/model_outputs.'
+              : 'Forecast values are prototype/demo values generated from recent pollutant trend logic until final trained model outputs are integrated.'}
           </p>
         </div>
+      </div>
+
+      <div className="status-note">
+        {isFinalOutput ? 'Using final model output' : 'Using prototype forecast fallback'}
       </div>
 
       <div className="control-grid">
@@ -91,8 +114,8 @@ export default function ForecastSimulator({
 
       <div className="chart-panel">
         <div className="panel-heading">
-          <h2>Historical and prototype forecasted {pollutantLabel}</h2>
-          <span>Actual values and demo forecast values</span>
+          <h2>Historical and {forecastKind} {pollutantLabel}</h2>
+          <span>{isFinalOutput ? 'Actual values and final model output' : 'Actual values and demo forecast values'}</span>
         </div>
         <ResponsiveContainer width="100%" height={340}>
           <LineChart data={forecast.chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
@@ -112,7 +135,7 @@ export default function ForecastSimulator({
             <Line
               type="monotone"
               dataKey="forecast"
-              name={`Prototype forecast ${pollutantLabel}`}
+              name={`${isFinalOutput ? 'Model forecast' : 'Prototype forecast'} ${pollutantLabel}`}
               stroke="#16a34a"
               strokeWidth={3}
               strokeDasharray="6 4"
@@ -127,7 +150,7 @@ export default function ForecastSimulator({
         <div className="table-panel forecast-table">
           <div className="panel-heading">
             <h2>Forecast table</h2>
-            <span>Demo values by month</span>
+            <span>{isFinalOutput ? 'Final values by month' : 'Demo values by month'}</span>
           </div>
           <div className="table-scroll">
             <table>
@@ -135,6 +158,8 @@ export default function ForecastSimulator({
                 <tr>
                   <th>Month</th>
                   <th>Forecasted {pollutantLabel}</th>
+                  {hasBounds ? <th>Lower bound</th> : null}
+                  {hasBounds ? <th>Upper bound</th> : null}
                   <th>Unit</th>
                 </tr>
               </thead>
@@ -143,6 +168,8 @@ export default function ForecastSimulator({
                   <tr key={row.date}>
                     <td>{row.month}</td>
                     <td>{compactNumber(row.forecast)}</td>
+                    {hasBounds ? <td>{compactNumber(row.lowerBound)}</td> : null}
+                    {hasBounds ? <td>{compactNumber(row.upperBound)}</td> : null}
                     <td>{unit}</td>
                   </tr>
                 ))}

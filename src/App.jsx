@@ -7,6 +7,7 @@ import Overview from './pages/Overview';
 import PolicyInsight from './pages/PolicyInsight';
 import RegionalComparison from './pages/RegionalComparison';
 import { loadMalaysiaData } from './utils/data';
+import { defaultModelOutputs, loadModelOutputs } from './utils/modelOutputs';
 
 const sectionTitles = {
   overview: 'Overview',
@@ -21,6 +22,7 @@ export default function App() {
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [modelOutputs, setModelOutputs] = useState(defaultModelOutputs);
   const [activeSection, setActiveSection] = useState('overview');
   const [selectedCountry, setSelectedCountry] = useState('malaysia');
   const [selectedPollutant, setSelectedPollutant] = useState('air_pm_25');
@@ -40,6 +42,12 @@ export default function App() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  useEffect(() => {
+    loadModelOutputs()
+      .then((outputs) => setModelOutputs(outputs))
+      .catch(() => setModelOutputs(defaultModelOutputs));
+  }, []);
+
   const sharedProps = useMemo(
     () => ({
       rows,
@@ -53,8 +61,17 @@ export default function App() {
       setSelectedModel,
       selectedHorizon,
       setSelectedHorizon,
+      modelOutputs,
     }),
-    [rows, selectedCountry, selectedPollutant, selectedPredictor, selectedModel, selectedHorizon],
+    [
+      rows,
+      selectedCountry,
+      selectedPollutant,
+      selectedPredictor,
+      selectedModel,
+      selectedHorizon,
+      modelOutputs,
+    ],
   );
 
   const renderSection = () => {
@@ -72,7 +89,7 @@ export default function App() {
       case 'forecast-simulator':
         return <ForecastSimulator {...sharedProps} />;
       case 'model-comparison':
-        return <ModelComparison />;
+        return <ModelComparison {...sharedProps} />;
       case 'regional-comparison':
         return <RegionalComparison />;
       case 'policy-insight':

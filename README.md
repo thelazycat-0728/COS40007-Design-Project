@@ -57,3 +57,54 @@ trend logic until final trained model outputs are integrated.
 
 Model comparison metric values are placeholders until final model evaluation result files are
 integrated.
+
+## Final Model Output Integration
+
+The dashboard can automatically switch from prototype outputs to final model outputs when files are
+added under:
+
+```text
+public/model_outputs/
+```
+
+Supported optional forecast files:
+
+- `xgboost_forecast.csv`
+- `sarima_forecast.csv`
+- `var_forecast.csv`
+- `prophet_forecast.csv`
+
+Forecast CSV format:
+
+```text
+date,country,pollutant,model,forecast_value,lower_bound,upper_bound
+```
+
+`lower_bound` and `upper_bound` are optional. If they are present and numeric, the Forecast Simulator
+shows them in the forecast table. If a selected model output file is missing or invalid, the dashboard
+keeps using the prototype forecast fallback.
+
+Supported optional metrics file:
+
+```text
+public/model_outputs/model_metrics.json
+```
+
+Expected structure:
+
+```json
+{
+  "metrics": [
+    {
+      "model": "XGBoost",
+      "pollutant": "PM2.5",
+      "mae": 1.82,
+      "rmse": 2.41,
+      "mape": 8.6
+    }
+  ]
+}
+```
+
+If `model_metrics.json` is missing or invalid, the dashboard keeps using placeholder evaluation
+metrics. Template files are provided in `public/model_outputs/` for the modelling team.

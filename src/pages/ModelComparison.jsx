@@ -7,15 +7,24 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { bestModelByRmse, modelMetrics } from '../utils/modelMetrics';
+import ModelIntegrationStatus from '../components/ModelIntegrationStatus';
+import { getBestModelByRmse, placeholderModelMetrics } from '../utils/modelMetrics';
 
-export default function ModelComparison() {
+export default function ModelComparison({ modelOutputs }) {
+  const hasFinalMetrics = Boolean(modelOutputs?.metrics?.connected);
+  const metrics = hasFinalMetrics ? modelOutputs.metrics.rows : placeholderModelMetrics;
+  const bestModelByRmse = getBestModelByRmse(metrics);
+  const chartRows = metrics.map((metric) => ({
+    ...metric,
+    chartLabel: metric.pollutant ? `${metric.model} ${metric.pollutant}` : metric.model,
+  }));
+
   return (
     <section className="page-section">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Model Comparison</p>
-          <h1>Forecast model evaluation placeholder</h1>
+          <h1>{hasFinalMetrics ? 'Forecast model evaluation results' : 'Forecast model evaluation placeholder'}</h1>
           <p>
             The comparison table is structured for MAE, RMSE, and MAPE outputs from XGBoost,
             SARIMA, VAR, and Prophet.
@@ -24,8 +33,12 @@ export default function ModelComparison() {
       </div>
 
       <div className="status-note">
-        Metric values are placeholders until final model evaluation results are integrated.
+        {hasFinalMetrics
+          ? 'Using final model evaluation results'
+          : 'Using placeholder evaluation metrics'}
       </div>
+
+      <ModelIntegrationStatus modelOutputs={modelOutputs} />
 
       <div className="split-grid">
         <div className="table-panel">
@@ -38,6 +51,7 @@ export default function ModelComparison() {
               <thead>
                 <tr>
                   <th>Model</th>
+                  {hasFinalMetrics ? <th>Pollutant</th> : null}
                   <th>MAE</th>
                   <th>RMSE</th>
                   <th>MAPE</th>
@@ -45,16 +59,17 @@ export default function ModelComparison() {
                 </tr>
               </thead>
               <tbody>
-                {modelMetrics.map((metric) => (
+                {metrics.map((metric) => (
                   <tr
-                    key={metric.model}
-                    className={metric.model === bestModelByRmse.model ? 'best-row' : ''}
+                    key={`${metric.model}-${metric.pollutant ?? 'placeholder'}`}
+                    className={metric === bestModelByRmse ? 'best-row' : ''}
                   >
                     <td>{metric.model}</td>
+                    {hasFinalMetrics ? <td>{metric.pollutant}</td> : null}
                     <td>{metric.mae.toFixed(2)}</td>
                     <td>{metric.rmse.toFixed(2)}</td>
-                    <td>{metric.mape.toFixed(1)}%</td>
-                    <td>{metric.model === bestModelByRmse.model ? 'Current best model' : '-'}</td>
+                    <td>{Number.isFinite(metric.mape) ? `${metric.mape.toFixed(1)}%` : '-'}</td>
+                    <td>{metric === bestModelByRmse ? 'Current best model' : '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -68,9 +83,9 @@ export default function ModelComparison() {
             <span>Lower values indicate lower forecast error</span>
           </div>
           <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={modelMetrics} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+            <BarChart data={chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
-              <XAxis dataKey="model" stroke="#5c7080" />
+              <XAxis dataKey="chartLabel" stroke="#5c7080" />
               <YAxis stroke="#5c7080" />
               <Tooltip />
               <Bar dataKey="rmse" name="RMSE" fill="#0891b2" radius={[6, 6, 0, 0]} />
