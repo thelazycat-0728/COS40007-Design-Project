@@ -4,8 +4,8 @@ export const pollutantOptions = [
   { key: 'air_co', label: 'CO', unit: 'ppm' },
   { key: 'air_no2', label: 'NO2', unit: 'ppm' },
   { key: 'air_o3', label: 'O3', unit: 'ppm' },
-  { key: 'air_pm_10', label: 'PM10', unit: 'ug/m3' },
-  { key: 'air_pm_25', label: 'PM2.5', unit: 'ug/m3' },
+  { key: 'air_pm_10', label: 'PM10', unit: 'µg/m³' },
+  { key: 'air_pm_25', label: 'PM2.5', unit: 'µg/m³' },
   { key: 'air_so2', label: 'SO2', unit: 'ppm' },
 ];
 

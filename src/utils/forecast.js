@@ -12,6 +12,15 @@ const safeRound = (value) => {
   return Number(value.toFixed(Math.abs(value) < 1 ? 4 : 2));
 };
 
+const dampenForecastStep = ({ trendStep, fallbackStep, lastActual, horizonMonths }) => {
+  const rawStep = Number.isFinite(trendStep) && trendStep !== 0 ? trendStep : fallbackStep;
+  const dampedStep = rawStep * 0.35;
+  const maxTotalChange = Math.max(Math.abs(lastActual) * 0.18, 0.002);
+  const maxMonthlyStep = maxTotalChange / Math.max(horizonMonths, 1);
+
+  return Math.min(Math.max(dampedStep, -maxMonthlyStep), maxMonthlyStep);
+};
+
 export const generatePrototypeForecast = (rows, pollutantKey, horizonMonths) => {
   const actualRows = rows
     .filter((row) => Number.isFinite(row[pollutantKey]))
@@ -40,7 +49,12 @@ export const generatePrototypeForecast = (rows, pollutantKey, horizonMonths) => 
   const recentSteps = Math.max(recentRows.length - 1, 1);
   const trendStep = (lastActual - firstRecent) / recentSteps;
   const fallbackStep = lastActual * 0.01;
-  const monthlyStep = Number.isFinite(trendStep) && trendStep !== 0 ? trendStep : fallbackStep;
+  const monthlyStep = dampenForecastStep({
+    trendStep,
+    fallbackStep,
+    lastActual,
+    horizonMonths,
+  });
 
   const forecastRows = Array.from({ length: horizonMonths }, (_, index) => {
     const date = addMonths(lastActualRow.date, index + 1);
@@ -93,5 +107,5 @@ export const createForecastInterpretation = ({
         ? 'This suggests a potential easing of pollutant concentration under the current observed trend pattern.'
         : 'This suggests no major short-term shift in the selected pollutant under the current observed trend pattern.';
 
-  return `The ${modelLabel} prototype forecast suggests that ${directionText} over the next ${horizonLabel}. ${implication} This interpretation is generated from prototype forecast values and should be replaced with final trained model outputs after model integration.`;
+  return `The prototype forecast displayed under the ${modelLabel} option suggests that ${directionText} over the next ${horizonLabel}. ${implication} This interpretation is generated from dampened prototype forecast values and should be replaced with final trained model outputs after model integration.`;
 };

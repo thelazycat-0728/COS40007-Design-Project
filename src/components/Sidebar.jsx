@@ -23,7 +23,7 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         <span className="brand-mark">AI</span>
         <div>
           <strong>COS40007</strong>
-          <small>Forecast Dashboard</small>
+          <small>Design Project</small>
         </div>
       </div>
       <nav className="sidebar-nav" aria-label="Dashboard sections">
