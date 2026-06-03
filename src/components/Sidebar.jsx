@@ -1,0 +1,50 @@
+import {
+  BarChart3,
+  Building2,
+  Factory,
+  Gauge,
+  Globe2,
+  LineChart,
+  UploadCloud,
+} from 'lucide-react';
+
+const navItems = [
+  { id: 'overview', label: 'Overview', icon: Gauge },
+  { id: 'data-explorer', label: 'Data Explorer', icon: LineChart },
+  { id: 'forecast-simulator', label: 'Forecast Simulator', icon: BarChart3 },
+  { id: 'model-comparison', label: 'Model Comparison', icon: Factory },
+  { id: 'regional-comparison', label: 'Regional Comparison', icon: Globe2 },
+  { id: 'upload-regional-dataset', label: 'Upload Regional Dataset', icon: UploadCloud },
+  { id: 'policy-insight', label: 'Policy Insight', icon: Building2 },
+];
+
+export default function Sidebar({ activeSection, onSectionChange }) {
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-brand">
+        <span className="brand-mark">AI</span>
+        <div>
+          <strong>COS40007</strong>
+          <small>Design Project</small>
+        </div>
+      </div>
+      <nav className="sidebar-nav" aria-label="Dashboard sections">
+        {navItems.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            className={activeSection === id ? 'active' : ''}
+            onClick={() => onSectionChange(id)}
+          >
+            <Icon size={18} aria-hidden="true" />
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+      <div className="sidebar-note">
+        <span>Malaysia dataset</span>
+        <strong>Monthly time series</strong>
+      </div>
+    </aside>
+  );
+}

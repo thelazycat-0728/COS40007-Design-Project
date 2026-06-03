@@ -1,0 +1,4 @@
+date,country,pollutant,model,forecast_value,lower_bound,upper_bound
+2023-01-01,Malaysia,PM2.5,XGBoost,10.40,9.80,11.10
+2023-02-01,Malaysia,PM2.5,XGBoost,10.20,9.60,10.90
+2023-03-01,Malaysia,PM2.5,XGBoost,10.05,9.40,10.75
