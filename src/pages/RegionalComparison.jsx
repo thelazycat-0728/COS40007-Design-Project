@@ -22,7 +22,7 @@ const countries = [
 const regionalSupportNote =
   'Regional comparison is supported where compatible pollution, electricity, and industrial activity datasets are available.';
 
-export default function RegionalComparison() {
+export default function RegionalComparison({ uploadedDataset }) {
   return (
     <section className="page-section">
       <div className="section-heading">
@@ -41,6 +41,17 @@ export default function RegionalComparison() {
             <p>{country.detail}</p>
           </article>
         ))}
+        {uploadedDataset ? (
+          <article className="country-card active uploaded-region-card">
+            <span>Uploaded regional dataset available</span>
+            <h2>{uploadedDataset.countryName}</h2>
+            <p>
+              This uploaded regional dataset is available for the current browser session. Any
+              uploaded regional forecasts are prototype trend forecasts, not final trained model
+              results.
+            </p>
+          </article>
+        ) : null}
       </div>
 
       <div className="text-panel">

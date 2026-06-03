@@ -205,7 +205,9 @@ select {
 .table-panel,
 .interpretation-panel,
 .risk-card,
-.integration-status-card {
+.integration-status-card,
+.upload-panel,
+.upload-message {
   border: 1px solid #d9e8ec;
   border-radius: 8px;
   background: #ffffff;
@@ -261,7 +263,8 @@ select {
 
 .kpi-grid,
 .country-grid,
-.policy-grid {
+.policy-grid,
+.summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(160px, 1fr));
   gap: 14px;
@@ -270,19 +273,22 @@ select {
 .kpi-card,
 .insight-card,
 .country-card,
-.policy-card {
+.policy-card,
+.summary-card {
   border: 1px solid #d9e8ec;
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
 }
 
-.kpi-card {
+.kpi-card,
+.summary-card {
   min-height: 126px;
   padding: 18px;
 }
 
 .kpi-card span,
+.summary-card span,
 .insight-card span,
 .country-card span,
 .policy-card span,
@@ -302,6 +308,14 @@ select {
   font-size: 2rem;
 }
 
+.summary-card strong {
+  display: block;
+  margin-top: 16px;
+  color: #0d2736;
+  font-size: 1.35rem;
+  line-height: 1.3;
+}
+
 .kpi-card small,
 .insight-card small {
   display: block;
@@ -313,6 +327,81 @@ select {
 .table-panel,
 .integration-status-card {
   padding: 18px;
+}
+
+.upload-panel {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 20px;
+}
+
+.upload-panel h2 {
+  margin: 0;
+  color: #0d2736;
+  font-size: 1.12rem;
+}
+
+.upload-panel p {
+  margin: 10px 0 0;
+  color: #526779;
+  line-height: 1.6;
+}
+
+.upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.template-button,
+.file-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #0891b2;
+  border-radius: 8px;
+  color: #075985;
+  background: #dff7fb;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.file-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.upload-message {
+  padding: 16px 18px;
+}
+
+.upload-message strong {
+  color: #0d2736;
+}
+
+.upload-message ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: #526779;
+}
+
+.upload-message.success {
+  border-color: #22c55e;
+  background: #ecfdf5;
+}
+
+.upload-message.error {
+  border-color: #f97316;
+  background: #fff7ed;
 }
 
 .panel-heading {
@@ -524,7 +613,8 @@ td {
   .control-grid,
   .kpi-grid,
   .policy-grid,
-  .integration-status-grid {
+  .integration-status-grid,
+  .summary-grid {
     grid-template-columns: repeat(2, minmax(160px, 1fr));
   }
 
@@ -532,6 +622,14 @@ td {
   .insight-row,
   .country-grid {
     grid-template-columns: 1fr;
+  }
+
+  .upload-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .upload-actions {
+    justify-content: flex-start;
   }
 }
 
@@ -552,7 +650,8 @@ td {
   .control-grid.single-control,
   .kpi-grid,
   .policy-grid,
-  .integration-status-grid {
+  .integration-status-grid,
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 

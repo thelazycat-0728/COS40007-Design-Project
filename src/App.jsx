@@ -6,6 +6,7 @@ import ModelComparison from './pages/ModelComparison';
 import Overview from './pages/Overview';
 import PolicyInsight from './pages/PolicyInsight';
 import RegionalComparison from './pages/RegionalComparison';
+import UploadRegionalDataset from './pages/UploadRegionalDataset';
 import { loadMalaysiaData } from './utils/data';
 import { defaultModelOutputs, loadModelOutputs } from './utils/modelOutputs';
 
@@ -15,6 +16,7 @@ const sectionTitles = {
   'forecast-simulator': 'Forecast Simulator',
   'model-comparison': 'Model Comparison',
   'regional-comparison': 'Regional Comparison',
+  'upload-regional-dataset': 'Upload Regional Dataset',
   'policy-insight': 'Policy Insight',
 };
 
@@ -29,6 +31,7 @@ export default function App() {
   const [selectedPredictor, setSelectedPredictor] = useState('electricity_total');
   const [selectedModel, setSelectedModel] = useState('xgboost');
   const [selectedHorizon, setSelectedHorizon] = useState(6);
+  const [uploadedDataset, setUploadedDataset] = useState(null);
 
   useEffect(() => {
     loadMalaysiaData()
@@ -62,6 +65,8 @@ export default function App() {
       selectedHorizon,
       setSelectedHorizon,
       modelOutputs,
+      uploadedDataset,
+      setUploadedDataset,
     }),
     [
       rows,
@@ -71,6 +76,7 @@ export default function App() {
       selectedModel,
       selectedHorizon,
       modelOutputs,
+      uploadedDataset,
     ],
   );
 
@@ -91,7 +97,9 @@ export default function App() {
       case 'model-comparison':
         return <ModelComparison {...sharedProps} />;
       case 'regional-comparison':
-        return <RegionalComparison />;
+        return <RegionalComparison {...sharedProps} />;
+      case 'upload-regional-dataset':
+        return <UploadRegionalDataset {...sharedProps} />;
       case 'policy-insight':
         return <PolicyInsight {...sharedProps} />;
       case 'overview':

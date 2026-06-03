@@ -108,3 +108,47 @@ Expected structure:
 
 If `model_metrics.json` is missing or invalid, the dashboard keeps using placeholder evaluation
 metrics. Template files are provided in `public/model_outputs/` for the modelling team.
+
+## Upload Regional Dataset
+
+The dashboard includes an **Upload Regional Dataset** page for browser-only CSV testing. Uploaded
+files are parsed in the current browser session with PapaParse and are not saved permanently.
+
+The upload feature supports previewing, validating, charting, correlation analysis, and prototype
+trend forecasting for compatible regional datasets. It does not train XGBoost, SARIMA, VAR, or
+Prophet in the browser.
+
+Required uploaded CSV columns:
+
+- `date`
+- `country`
+- at least one supported pollutant column
+- at least one supported predictor column
+
+Supported pollutant columns:
+
+- `air_pm_25`
+- `air_pm_10`
+- `air_no2`
+- `air_o3`
+- `air_co`
+- `air_so2`
+
+Supported predictor columns:
+
+- `electricity_total`
+- `electricity_local`
+- `electricity_local_commercial`
+- `electricity_local_domestic`
+- `industrial_index`
+- `ipi_abs_index`
+- `ipi_growth_yoy_index`
+
+Template file:
+
+```text
+public/templates/regional_dataset_template.csv
+```
+
+Uploaded dataset forecasts use prototype trend logic only. Final trained model forecasts should be
+integrated separately through the `public/model_outputs/` files described above.

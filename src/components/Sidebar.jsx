@@ -5,6 +5,7 @@ import {
   Gauge,
   Globe2,
   LineChart,
+  UploadCloud,
 } from 'lucide-react';
 
 const navItems = [
@@ -13,6 +14,7 @@ const navItems = [
   { id: 'forecast-simulator', label: 'Forecast Simulator', icon: BarChart3 },
   { id: 'model-comparison', label: 'Model Comparison', icon: Factory },
   { id: 'regional-comparison', label: 'Regional Comparison', icon: Globe2 },
+  { id: 'upload-regional-dataset', label: 'Upload Regional Dataset', icon: UploadCloud },
   { id: 'policy-insight', label: 'Policy Insight', icon: Building2 },
 ];
 
