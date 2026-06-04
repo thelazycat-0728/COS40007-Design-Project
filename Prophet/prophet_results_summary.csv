@@ -1,0 +1,2 @@
+Model,Train RMSE,Test RMSE,Train MAE,Test MAE,Train R2,Test R2
+Prophet,4.7e-05,6.5e-05,3.8e-05,4.9e-05,0.683,-0.7249
