@@ -38,8 +38,8 @@ dates = [datetime.fromtimestamp(ts / 1000).strftime('%Y-%m') for ts in timestamp
 
 # Create DataFrame
 df = pd.DataFrame({
-    'Date': dates,
-    'Car_Registrations': car_timeseries
+    'date': dates,
+    'car_registration': car_timeseries
 })
 
 # Save to CSV
@@ -52,7 +52,7 @@ print(df.head())
 
 # Create a presentable line graph
 plt.figure(figsize=(14, 6))
-plt.plot(range(len(df)), df['Car_Registrations'], linewidth=2, color='#2E86AB', marker='o', markersize=3)
+plt.plot(range(len(df)), df['car_registration'], linewidth=2, color='#2E86AB', marker='o', markersize=3)
 plt.title('Monthly Car Registrations in Malaysia', fontsize=16, fontweight='bold')
 plt.xlabel('Month', fontsize=12)
 plt.ylabel('Number of Car Registrations', fontsize=12)
@@ -60,7 +60,7 @@ plt.grid(True, alpha=0.3)
 
 # Format x-axis to show dates periodically
 tick_positions = range(0, len(df), max(1, len(df)//10))
-tick_labels = [df['Date'].iloc[i] for i in tick_positions]
+tick_labels = [df['date'].iloc[i] for i in tick_positions]
 plt.xticks(tick_positions, tick_labels, rotation=45, ha='right')
 
 # Format y-axis with commas for readability
