@@ -1,2 +1,0 @@
-Model,Train RMSE,Test RMSE,Train MAE,Test MAE,Train R2,Test R2,N_LAGS,Best Params
-XGBoost,2.5e-05,6.9e-05,1.8e-05,5.6e-05,0.9148,-0.9672,3,"{'colsample_bytree': 1.0, 'learning_rate': 0.08, 'max_depth': 3, 'min_child_weight': 7, 'n_estimators': 100, 'reg_lambda': 2, 'subsample': 0.9}"

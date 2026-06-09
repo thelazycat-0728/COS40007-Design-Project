@@ -1,2 +1,0 @@
-Model,Train RMSE,Test RMSE,Train MAE,Test MAE,Train R2,Test R2,Best Params
-Prophet,4.6e-05,6.7e-05,3.7e-05,5.2e-05,0.6967,-0.8454,"{'changepoint_prior_scale': 0.1, 'seasonality_prior_scale': 1, 'seasonality_mode': 'additive'}"
