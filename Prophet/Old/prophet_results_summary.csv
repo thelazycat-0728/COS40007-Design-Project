@@ -1,0 +1,2 @@
+Model,Split,Train RMSE,Test RMSE,Train MAE,Test MAE,Train R2,Test R2
+Prophet,40 train / 20 test,7.3e-05,5.3e-05,5.8e-05,4.2e-05,0.2419,0.3495
