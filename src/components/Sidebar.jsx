@@ -22,10 +22,10 @@ export default function Sidebar({ activeSection, onSectionChange }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <span className="brand-mark">AI</span>
+        <span className="brand-mark">TS</span>
         <div>
           <strong>COS40007</strong>
-          <small>Design Project</small>
+          <small>Forecasting Dashboard</small>
         </div>
       </div>
       <nav className="sidebar-nav" aria-label="Dashboard sections">
@@ -42,8 +42,8 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         ))}
       </nav>
       <div className="sidebar-note">
-        <span>Malaysia dataset</span>
-        <strong>Monthly time series</strong>
+        <span>Built-in dataset</span>
+        <strong>Malaysia monthly time series</strong>
       </div>
     </aside>
   );

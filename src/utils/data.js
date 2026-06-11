@@ -20,6 +20,12 @@ const numericColumns = new Set([
   'ipi_abs_index_sa',
   'ipi_growth_mom_index_sa',
   'ipi_growth_yoy_index_sa',
+  'industrial_index',
+  'vehicle_registrations',
+  'car_sales',
+  'traffic_volume',
+  'vehicle_production',
+  'transport_index',
 ]);
 
 const toNumberOrNull = (value) => {
@@ -104,6 +110,9 @@ export const tableColumns = [
   'air_so2',
   'electricity_total',
   'electricity_local',
+  'electricity_local_commercial',
+  'electricity_local_domestic',
   'ipi_abs_index',
   'ipi_growth_yoy_index',
+  'ipi_abs_index_sa',
 ];

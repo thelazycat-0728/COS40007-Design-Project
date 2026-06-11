@@ -1,21 +1,21 @@
 import Papa from 'papaparse';
-import { labelFor, pollutantOptions } from './constants';
+import {
+  getPredictorDefinition,
+  getTargetDefinition,
+  labelFor,
+  predictorOptions,
+  scenarioOptions,
+  targetOptions,
+  vehiclePredictorKeys,
+} from './constants';
 
-export const uploadedPredictorOptions = [
-  { key: 'electricity_total', label: 'Total electricity consumption' },
-  { key: 'electricity_local', label: 'Local electricity consumption' },
-  { key: 'electricity_local_commercial', label: 'Commercial electricity consumption' },
-  { key: 'electricity_local_domestic', label: 'Domestic electricity consumption' },
-  { key: 'industrial_index', label: 'Industrial activity index' },
-  { key: 'ipi_abs_index', label: 'Industrial Production Index' },
-  { key: 'ipi_growth_yoy_index', label: 'IPI year-on-year growth' },
-];
-
+export const uploadedTargetOptions = targetOptions;
+export const uploadedPredictorOptions = predictorOptions;
 export const uploadedTemplatePath = '/templates/regional_dataset_template.csv';
 
-const pollutantKeys = pollutantOptions.map((option) => option.key);
+const targetKeys = uploadedTargetOptions.map((option) => option.key);
 const predictorKeys = uploadedPredictorOptions.map((option) => option.key);
-const numericKeys = [...pollutantKeys, ...predictorKeys];
+const numericKeys = [...new Set([...targetKeys, ...predictorKeys])];
 
 const toNumberOrNull = (value) => {
   if (value === null || value === undefined || String(value).trim() === '') {
@@ -50,7 +50,7 @@ const getDetectedColumns = (fields, allowedKeys) => allowedKeys.filter((key) => 
 const buildMissingSummary = (rows, columns) =>
   columns.map((column) => ({
     column,
-    label: labelFor([...pollutantOptions, ...uploadedPredictorOptions], column),
+    label: getUploadedColumnLabel(column),
     missing: rows.filter((row) => row[column] === null || row[column] === undefined || row[column] === '').length,
     total: rows.length,
   }));
@@ -64,6 +64,17 @@ const getInvalidNumericEntries = (rawRows, columns) =>
 
     return count + invalidValues.length;
   }, 0);
+
+const getScenarioCompatibility = (detectedTargets, detectedPredictors) => ({
+  vehicle_to_pm25:
+    detectedTargets.includes('air_pm_25') &&
+    vehiclePredictorKeys.some((key) => detectedPredictors.includes(key)),
+  electricity_so2_to_ipi:
+    detectedTargets.includes('ipi_abs_index') &&
+    detectedPredictors.includes('electricity_total') &&
+    detectedPredictors.includes('air_so2'),
+  custom: detectedTargets.length > 0 && detectedPredictors.length > 0,
+});
 
 export const parseUploadedCsvFile = (file) =>
   new Promise((resolve, reject) => {
@@ -85,26 +96,26 @@ export const parseUploadedCsvFile = (file) =>
 export const validateAndNormalizeUploadedDataset = (parseResult) => {
   const fields = (parseResult.meta?.fields ?? []).map((field) => field.trim()).filter(Boolean);
   const rawRows = parseResult.data.filter((row) => Object.values(row).some((value) => String(value ?? '').trim()));
-  const detectedPollutants = getDetectedColumns(fields, pollutantKeys);
+  const detectedTargets = getDetectedColumns(fields, targetKeys);
   const detectedPredictors = getDetectedColumns(fields, predictorKeys);
   const errors = [];
 
   if (!fields.includes('date')) errors.push('CSV must include a date column.');
   if (!fields.includes('country')) errors.push('CSV must include a country column.');
-  if (!detectedPollutants.length) {
-    errors.push('CSV must include at least one supported pollutant column.');
+  if (!detectedTargets.length) {
+    errors.push('CSV must include at least one supported forecast target column.');
   }
   if (!detectedPredictors.length) {
     errors.push('CSV must include at least one supported predictor column.');
   }
 
   const invalidNumericEntries = getInvalidNumericEntries(rawRows, [
-    ...detectedPollutants,
+    ...detectedTargets,
     ...detectedPredictors,
   ]);
 
   if (invalidNumericEntries > 0) {
-    errors.push(`CSV contains ${invalidNumericEntries} non-numeric value(s) in pollutant or predictor columns.`);
+    errors.push(`CSV contains ${invalidNumericEntries} non-numeric value(s) in target or predictor columns.`);
   }
 
   const normalizedRows = rawRows
@@ -128,11 +139,11 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
     .sort((a, b) => parseDateValue(a.date).getTime() - parseDateValue(b.date).getTime());
 
   const validTimeRows = normalizedRows.filter((row) =>
-    detectedPollutants.some((pollutant) => Number.isFinite(row[pollutant])),
+    detectedTargets.some((target) => Number.isFinite(row[target])),
   );
 
   if (validTimeRows.length < 6) {
-    errors.push('CSV must include at least 6 valid time rows with numeric pollutant values.');
+    errors.push('CSV must include at least 6 valid chronological rows with numeric target values.');
   }
 
   if (errors.length) {
@@ -146,7 +157,8 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
   const dateValues = normalizedRows.map((row) => parseDateValue(row.date)).filter(Boolean);
   const firstDate = dateValues[0];
   const lastDate = dateValues[dateValues.length - 1];
-  const summaryColumns = ['date', 'country', ...detectedPollutants, ...detectedPredictors];
+  const summaryColumns = ['date', 'country', ...detectedTargets, ...detectedPredictors];
+  const scenarioCompatibility = getScenarioCompatibility(detectedTargets, detectedPredictors);
 
   return {
     ok: true,
@@ -154,14 +166,28 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
       countryName,
       rowCount: normalizedRows.length,
       dateRange: `${formatDate(firstDate)} to ${formatDate(lastDate)}`,
-      detectedPollutants,
+      detectedTargets,
+      detectedPollutants: detectedTargets.filter((key) => getTargetDefinition(key).category === 'pollution'),
       detectedPredictors,
       rows: normalizedRows,
       previewColumns: summaryColumns,
       missingSummary: buildMissingSummary(normalizedRows, summaryColumns),
+      scenarioCompatibility,
     },
   };
 };
 
-export const getUploadedColumnLabel = (key) =>
-  labelFor([...pollutantOptions, ...uploadedPredictorOptions], key);
+export const getUploadedColumnLabel = (key) => {
+  const target = targetOptions.find((option) => option.key === key);
+  if (target) return target.label;
+
+  const predictor = predictorOptions.find((option) => option.key === key);
+  if (predictor) return predictor.label;
+
+  return key;
+};
+
+export const getUploadedScenarioLabel = (scenarioId) => labelFor(scenarioOptions, scenarioId);
+
+export const getUploadedTargetDefinition = getTargetDefinition;
+export const getUploadedPredictorDefinition = getPredictorDefinition;

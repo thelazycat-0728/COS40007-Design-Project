@@ -11,29 +11,75 @@ import KpiCard from '../components/KpiCard';
 import Selector from '../components/Selector';
 import {
   countryOptions,
+  getAvailableTargetOptions,
+  getScenarioDefinition,
+  getTargetDefinition,
   labelFor,
   modelOptions,
-  pollutantOptions,
-  unitForPollutant,
+  scenarioOptions,
+  unitForTarget,
 } from '../utils/constants';
+import { getModelIntegrationStatuses } from '../utils/modelOutputs';
 import { calculateKpis } from '../utils/stats';
+
+const builtInScenarioCards = [
+  {
+    id: 'vehicle_to_pm25',
+    title: 'Vehicle activity → PM2.5',
+    status: 'Requires compatible vehicle dataset',
+    body: 'The built-in Malaysia dataset has PM2.5 but does not include vehicle registrations, car sales, traffic volume, production, or transport activity indicators.',
+  },
+  {
+    id: 'electricity_so2_to_ipi',
+    title: 'Electricity + SO2 → IPI',
+    status: 'Supported by current Malaysia cleaned dataset',
+    body: 'The built-in Malaysia dataset includes Industrial Production Index, total electricity consumption, and SO2. Final trained model output is still pending unless a matching model-output file is connected.',
+  },
+];
+
+const buildCountryOptions = (uploadedDataset) =>
+  uploadedDataset
+    ? [
+        ...countryOptions,
+        {
+          key: 'uploaded',
+          label: uploadedDataset.countryName,
+          status: 'Uploaded browser-session dataset',
+          disabled: false,
+        },
+      ]
+    : countryOptions;
 
 export default function Overview({
   rows,
   selectedCountry,
   setSelectedCountry,
-  selectedPollutant,
-  setSelectedPollutant,
+  selectedScenario,
+  setSelectedScenario,
+  selectedTarget,
+  setSelectedTarget,
   selectedModel,
   setSelectedModel,
+  modelOutputs,
+  uploadedDataset,
 }) {
-  const pollutantLabel = labelFor(pollutantOptions, selectedPollutant);
-  const kpis = calculateKpis(rows, selectedPollutant);
-  const unit = unitForPollutant(selectedPollutant);
+  const activeRows = selectedCountry === 'uploaded' && uploadedDataset ? uploadedDataset.rows : rows;
+  const availableTargets = getAvailableTargetOptions(activeRows);
+  const targetDefinition = getTargetDefinition(selectedTarget);
+  const kpis = calculateKpis(activeRows, selectedTarget);
+  const unit = unitForTarget(selectedTarget);
+  const scenario = getScenarioDefinition(selectedScenario);
+  const integrationStatuses = getModelIntegrationStatuses({
+    modelOutputs,
+    selectedTarget,
+    selectedScenario,
+    selectedCountry,
+  });
+  const hasMatchingFinalOutput = integrationStatuses.some((status) => status.connected);
 
-  const chartRows = rows.map((row) => ({
+  const chartRows = activeRows.map((row) => ({
     month: row.month,
-    value: row[selectedPollutant],
+    value: row[selectedTarget],
   }));
 
   return (
@@ -41,18 +87,28 @@ export default function Overview({
       <div className="section-heading">
         <div>
           <p className="eyebrow">Overview</p>
-          <h1>Regional Air Pollution Forecasting Dashboard</h1>
+          <h1>Regional Time-Series Forecasting Dashboard</h1>
           <p>
-            Forecasting air pollution trends using electricity consumption and industrial activity
-            indicators.
+            Forecasting environmental and industrial indicators using transport, electricity,
+            pollution, and industrial data.
           </p>
         </div>
       </div>
 
       <div className="description-band">
-        This prototype investigates whether electricity consumption and Industrial Production Index
-        indicators can help forecast air pollution trends in Malaysia and selected regional
-        countries when compatible datasets are added.
+        This prototype is scoped to time-series forecasting. It separates the forecast target, intended
+        predictors, scenario, model, horizon, and output source so PM2.5 and IPI tasks are not treated
+        as the same target type.
+      </div>
+
+      <div className="country-grid scenario-card-grid">
+        {builtInScenarioCards.map((card) => (
+          <article className={`country-card ${card.id === selectedScenario ? 'active' : ''}`} key={card.id}>
+            <span>{card.status}</span>
+            <h2>{card.title}</h2>
+            <p>{card.body}</p>
+          </article>
+        ))}
       </div>
 
       <div className="control-grid">
@@ -60,15 +116,22 @@ export default function Overview({
           id="overview-country"
           label="Country"
           value={selectedCountry}
-          options={countryOptions}
+          options={buildCountryOptions(uploadedDataset)}
           onChange={setSelectedCountry}
         />
         <Selector
-          id="overview-pollutant"
-          label="Pollutant"
-          value={selectedPollutant}
-          options={pollutantOptions}
-          onChange={setSelectedPollutant}
+          id="overview-scenario"
+          label="Forecast scenario"
+          value={selectedScenario}
+          options={scenarioOptions}
+          onChange={setSelectedScenario}
+        />
+        <Selector
+          id="overview-target"
+          label="Target variable"
+          value={selectedTarget}
+          options={scenario.id === 'custom' ? availableTargets : [targetDefinition]}
+          onChange={setSelectedTarget}
         />
         <Selector
           id="overview-model"
@@ -79,17 +142,25 @@ export default function Overview({
         />
       </div>
 
+      <div className="status-note">
+        {hasMatchingFinalOutput
+          ? 'A matching final model output is connected for the selected target and scenario.'
+          : 'Final trained model output is pending for the selected target and scenario. Prototype pages use frontend fallback logic where allowed.'}
+      </div>
+
       <div className="kpi-grid">
-        <KpiCard label={`Latest ${pollutantLabel}`} value={kpis.latest} unit={unit} />
-        <KpiCard label={`Average ${pollutantLabel}`} value={kpis.average} unit={unit} />
-        <KpiCard label={`Highest ${pollutantLabel}`} value={kpis.highest} unit={unit} />
-        <KpiCard label={`Lowest ${pollutantLabel}`} value={kpis.lowest} unit={unit} />
+        <KpiCard label={`Latest ${targetDefinition.shortLabel ?? targetDefinition.label}`} value={kpis.latest} unit={unit} />
+        <KpiCard label={`Average ${targetDefinition.shortLabel ?? targetDefinition.label}`} value={kpis.average} unit={unit} />
+        <KpiCard label={`Highest ${targetDefinition.shortLabel ?? targetDefinition.label}`} value={kpis.highest} unit={unit} />
+        <KpiCard label={`Lowest ${targetDefinition.shortLabel ?? targetDefinition.label}`} value={kpis.lowest} unit={unit} />
       </div>
 
       <div className="chart-panel">
         <div className="panel-heading">
-          <h2>{pollutantLabel} trend over time</h2>
-          <span>Malaysia monthly cleaned dataset</span>
+          <h2>{targetDefinition.label} trend over time</h2>
+          <span>
+            {labelFor(buildCountryOptions(uploadedDataset), selectedCountry)} monthly dataset, unit: {unit || 'not specified'}
+          </span>
         </div>
         <ResponsiveContainer width="100%" height={330}>
           <LineChart data={chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
@@ -100,7 +171,7 @@ export default function Overview({
             <Line
               type="monotone"
               dataKey="value"
-              name={pollutantLabel}
+              name={targetDefinition.label}
               stroke="#0891b2"
               strokeWidth={3}
               dot={false}

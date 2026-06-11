@@ -8,15 +8,50 @@ import {
   YAxis,
 } from 'recharts';
 import ModelIntegrationStatus from '../components/ModelIntegrationStatus';
-import { getBestModelByRmse, placeholderModelMetrics } from '../utils/modelMetrics';
+import {
+  countryOptions,
+  getScenarioDefinition,
+  getTargetDefinition,
+  labelFor,
+  scenarioOptions,
+} from '../utils/constants';
+import { getBestModelByRmse } from '../utils/modelMetrics';
+import { getMatchingMetricRows } from '../utils/modelOutputs';
 
-export default function ModelComparison({ modelOutputs }) {
-  const hasFinalMetrics = Boolean(modelOutputs?.metrics?.connected);
-  const metrics = hasFinalMetrics ? modelOutputs.metrics.rows : placeholderModelMetrics;
+const buildCountryOptions = (uploadedDataset) =>
+  uploadedDataset
+    ? [
+        ...countryOptions,
+        {
+          key: 'uploaded',
+          label: uploadedDataset.countryName,
+          status: 'Uploaded browser-session dataset',
+          disabled: false,
+        },
+      ]
+    : countryOptions;
+
+export default function ModelComparison({
+  modelOutputs,
+  selectedTarget,
+  selectedScenario,
+  selectedCountry,
+  uploadedDataset,
+}) {
+  const targetDefinition = getTargetDefinition(selectedTarget);
+  const scenario = getScenarioDefinition(selectedScenario);
+  const countryLabel = labelFor(buildCountryOptions(uploadedDataset), selectedCountry);
+  const metrics = getMatchingMetricRows({
+    modelOutputs,
+    selectedTarget,
+    selectedScenario,
+    selectedCountry: selectedCountry === 'uploaded' && uploadedDataset ? uploadedDataset.countryName : selectedCountry,
+  });
+  const hasFinalMetrics = metrics.length > 0;
   const bestModelByRmse = getBestModelByRmse(metrics);
   const chartRows = metrics.map((metric) => ({
     ...metric,
-    chartLabel: metric.pollutant ? `${metric.model} ${metric.pollutant}` : metric.model,
+    chartLabel: metric.scenarioLabel ? `${metric.model} ${metric.scenarioLabel}` : metric.model,
   }));
 
   return (
@@ -24,75 +59,97 @@ export default function ModelComparison({ modelOutputs }) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">Model Comparison</p>
-          <h1>{hasFinalMetrics ? 'Forecast model evaluation results' : 'Forecast model evaluation placeholder'}</h1>
+          <h1>{hasFinalMetrics ? 'Forecast model evaluation results' : 'No final metrics connected'}</h1>
           <p>
-            The comparison table is structured for MAE, RMSE, and MAPE outputs from XGBoost,
-            SARIMA, VAR, and Prophet.
+            Metrics are filtered by country, target, and scenario so different forecasting tasks are
+            not compared as though they share the same target.
           </p>
         </div>
       </div>
 
       <div className="status-note">
-        {hasFinalMetrics
-          ? 'Using final model evaluation results'
-          : 'Using placeholder evaluation metrics'}
+        Selected task: {countryLabel}, {targetDefinition.label}, {scenario.label}.
       </div>
 
-      <ModelIntegrationStatus modelOutputs={modelOutputs} />
+      <ModelIntegrationStatus
+        modelOutputs={modelOutputs}
+        selectedTarget={selectedTarget}
+        selectedScenario={selectedScenario}
+        selectedCountry={selectedCountry === 'uploaded' && uploadedDataset ? uploadedDataset.countryName : selectedCountry}
+      />
 
-      <div className="split-grid">
-        <div className="table-panel">
-          <div className="panel-heading">
-            <h2>Evaluation metrics</h2>
-            <span>Lowest RMSE highlighted</span>
-          </div>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Model</th>
-                  {hasFinalMetrics ? <th>Pollutant</th> : null}
-                  <th>MAE</th>
-                  <th>RMSE</th>
-                  <th>MAPE</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.map((metric) => (
-                  <tr
-                    key={`${metric.model}-${metric.pollutant ?? 'placeholder'}`}
-                    className={metric === bestModelByRmse ? 'best-row' : ''}
-                  >
-                    <td>{metric.model}</td>
-                    {hasFinalMetrics ? <td>{metric.pollutant}</td> : null}
-                    <td>{metric.mae.toFixed(2)}</td>
-                    <td>{metric.rmse.toFixed(2)}</td>
-                    <td>{Number.isFinite(metric.mape) ? `${metric.mape.toFixed(1)}%` : '-'}</td>
-                    <td>{metric === bestModelByRmse ? 'Current best model' : '-'}</td>
+      {!hasFinalMetrics ? (
+        <div className="text-panel">
+          <h2>Evaluation pending</h2>
+          <p>
+            No production `model_metrics.json` entries match the selected target and scenario. This
+            page will populate after final model evaluation outputs are added using the generic target
+            schema.
+          </p>
+        </div>
+      ) : (
+        <div className="split-grid">
+          <div className="table-panel">
+            <div className="panel-heading">
+              <h2>Evaluation metrics</h2>
+              <span>Lowest RMSE highlighted within this task only</span>
+            </div>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Country</th>
+                    <th>Target</th>
+                    <th>Scenario</th>
+                    <th>Predictors</th>
+                    <th>MAE</th>
+                    <th>RMSE</th>
+                    <th>MAPE</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {metrics.map((metric) => (
+                    <tr
+                      key={`${metric.model}-${metric.country}-${metric.targetKey}-${metric.scenarioId || 'legacy'}`}
+                      className={metric === bestModelByRmse ? 'best-row' : ''}
+                    >
+                      <td>{metric.model}</td>
+                      <td>{metric.country}</td>
+                      <td>{metric.target}</td>
+                      <td>{metric.scenarioLabel || 'Not specified'}</td>
+                      <td>{metric.predictorLabels.length ? metric.predictorLabels.join(', ') : 'Not specified'}</td>
+                      <td>{metric.mae.toFixed(2)}</td>
+                      <td>{metric.rmse.toFixed(2)}</td>
+                      <td>{Number.isFinite(metric.mape) ? `${metric.mape.toFixed(1)}%` : '-'}</td>
+                      <td>
+                        {metric === bestModelByRmse ? 'Current best model' : metric.legacySource ? 'Legacy schema' : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        <div className="chart-panel compact-chart">
-          <div className="panel-heading">
-            <h2>RMSE comparison</h2>
-            <span>Lower values indicate lower forecast error</span>
+          <div className="chart-panel compact-chart">
+            <div className="panel-heading">
+              <h2>RMSE comparison</h2>
+              <span>Same target and scenario only</span>
+            </div>
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart data={chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
+                <XAxis dataKey="chartLabel" stroke="#5c7080" />
+                <YAxis stroke="#5c7080" />
+                <Tooltip />
+                <Bar dataKey="rmse" name="RMSE" fill="#0891b2" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
-              <XAxis dataKey="chartLabel" stroke="#5c7080" />
-              <YAxis stroke="#5c7080" />
-              <Tooltip />
-              <Bar dataKey="rmse" name="RMSE" fill="#0891b2" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
         </div>
-      </div>
+      )}
     </section>
   );
 }

@@ -23,6 +23,10 @@ select {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
@@ -234,6 +238,10 @@ select {
   grid-template-columns: minmax(220px, 360px);
 }
 
+.forecast-control-grid {
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+}
+
 .field {
   display: grid;
   gap: 8px;
@@ -259,6 +267,48 @@ select {
   padding: 0 12px;
   color: #10212c;
   background: #f8fbfc;
+}
+
+.checkbox-field {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.checkbox-field legend {
+  padding: 0;
+  color: #526779;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.checkbox-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.checkbox-grid p {
+  margin: 0;
+  color: #6b7f8d;
+  line-height: 1.5;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #243b4a;
+  font-size: 0.94rem;
+}
+
+.checkbox-option.disabled {
+  color: #6b7f8d;
 }
 
 .kpi-grid,
@@ -317,7 +367,9 @@ select {
 }
 
 .kpi-card small,
-.insight-card small {
+.insight-card small,
+.summary-card small,
+.integration-status-grid small {
   display: block;
   margin-top: 4px;
   color: #6b7f8d;
@@ -392,6 +444,13 @@ select {
   margin: 10px 0 0;
   padding-left: 20px;
   color: #526779;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .upload-message.success {
@@ -513,6 +572,10 @@ td {
   grid-template-columns: repeat(3, minmax(180px, 1fr));
 }
 
+.scenario-card-grid {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+}
+
 .country-card.active {
   border-color: #22c55e;
 }
@@ -520,6 +583,16 @@ td {
 .country-card.disabled {
   color: #6b7f8d;
   background: #f8fbfc;
+}
+
+.summary-card.compatible {
+  border-color: #22c55e;
+  background: #ecfdf5;
+}
+
+.summary-card.incompatible {
+  border-color: #f97316;
+  background: #fff7ed;
 }
 
 .policy-grid {
@@ -611,6 +684,7 @@ td {
   }
 
   .control-grid,
+  .forecast-control-grid,
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,
@@ -648,6 +722,7 @@ td {
   .control-grid,
   .control-grid.two-column,
   .control-grid.single-control,
+  .forecast-control-grid,
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,

@@ -1,8 +1,8 @@
 # Model Output Integration Files
 
 Drop final trained model outputs into this folder when they are ready. The dashboard checks these
-files at runtime and falls back to prototype forecasts or placeholder metrics when the files are
-missing or invalid.
+files at runtime and falls back to prototype target-trend forecasts or pending metric states when the
+files are missing or invalid.
 
 ## Forecast Files
 
@@ -13,17 +13,28 @@ Supported forecast file names:
 - `var_forecast.csv`
 - `prophet_forecast.csv`
 
-Required CSV columns:
+Preferred CSV columns:
 
 ```text
-date,country,pollutant,model,forecast_value,lower_bound,upper_bound
+date,country,target,model,forecast_value,lower_bound,upper_bound,scenario_id,predictors,unit
 ```
 
-`lower_bound` and `upper_bound` are optional. If they contain values, the Forecast Simulator table
-shows them. If they are blank or missing, the bound columns stay hidden.
+Required fields are `date`, `target`, `model`, and numeric `forecast_value`. `country` defaults to
+Malaysia when blank. `lower_bound`, `upper_bound`, `scenario_id`, `predictors`, and `unit` are
+optional. Use semicolon-separated predictor keys in `predictors`.
 
-Accepted pollutant examples include `PM2.5`, `PM10`, `NO2`, `O3`, `CO`, `SO2`, or the dataset column
-names such as `air_pm_25`.
+Example:
+
+```text
+2023-01-01,Malaysia,ipi_abs_index,XGBoost,118.4,116.1,120.6,electricity_so2_to_ipi,electricity_total;air_so2,index points
+```
+
+Supported target examples include `air_pm_25` for PM2.5 and `ipi_abs_index` for Industrial
+Production Index. The loader also accepts recognized labels such as `PM2.5` and `Industrial
+Production Index`.
+
+Legacy compatibility: older files using a `pollutant` column are still accepted and mapped to the
+generic target system. New files should use `target`.
 
 ## Metrics File
 
@@ -34,7 +45,10 @@ Use `model_metrics.json` for final evaluation metrics:
   "metrics": [
     {
       "model": "XGBoost",
-      "pollutant": "PM2.5",
+      "country": "Malaysia",
+      "target": "ipi_abs_index",
+      "scenario_id": "electricity_so2_to_ipi",
+      "predictors": ["electricity_total", "air_so2"],
       "mae": 1.82,
       "rmse": 2.41,
       "mape": 8.6
@@ -43,5 +57,11 @@ Use `model_metrics.json` for final evaluation metrics:
 }
 ```
 
-Use the sample files in this folder as templates. Do not rename the sample files to the production
-file names until the values are final model outputs.
+The dashboard filters metrics by country, target, and scenario before comparing models. Do not mix
+PM2.5 and IPI metrics in one comparison row set unless the selected target and scenario match.
+
+Legacy compatibility: metrics using `pollutant` instead of `target` are accepted and labeled as
+legacy data after parsing. New metrics should use `target`.
+
+Use the sample files in this folder as schema templates. Do not rename sample files to production
+file names until the values are final trained model outputs.

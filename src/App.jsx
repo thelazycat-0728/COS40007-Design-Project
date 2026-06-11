@@ -7,6 +7,12 @@ import Overview from './pages/Overview';
 import PolicyInsight from './pages/PolicyInsight';
 import RegionalComparison from './pages/RegionalComparison';
 import UploadRegionalDataset from './pages/UploadRegionalDataset';
+import {
+  defaultPredictorKeys,
+  defaultScenarioId,
+  defaultTargetKey,
+  getScenarioDefinition,
+} from './utils/constants';
 import { loadMalaysiaData } from './utils/data';
 import { defaultModelOutputs, loadModelOutputs } from './utils/modelOutputs';
 
@@ -20,6 +26,17 @@ const sectionTitles = {
   'policy-insight': 'Policy Insight',
 };
 
+const scenarioDefaults = {
+  vehicle_to_pm25: {
+    target: 'air_pm_25',
+    predictors: [],
+  },
+  electricity_so2_to_ipi: {
+    target: defaultTargetKey,
+    predictors: defaultPredictorKeys,
+  },
+};
+
 export default function App() {
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,10 +44,11 @@ export default function App() {
   const [modelOutputs, setModelOutputs] = useState(defaultModelOutputs);
   const [activeSection, setActiveSection] = useState('overview');
   const [selectedCountry, setSelectedCountry] = useState('malaysia');
-  const [selectedPollutant, setSelectedPollutant] = useState('air_pm_25');
-  const [selectedPredictor, setSelectedPredictor] = useState('electricity_total');
+  const [selectedScenario, setSelectedScenario] = useState(defaultScenarioId);
+  const [selectedTarget, setSelectedTarget] = useState(defaultTargetKey);
+  const [selectedPredictors, setSelectedPredictors] = useState(defaultPredictorKeys);
   const [selectedModel, setSelectedModel] = useState('xgboost');
-  const [selectedHorizon, setSelectedHorizon] = useState(6);
+  const [forecastHorizon, setForecastHorizon] = useState(6);
   const [uploadedDataset, setUploadedDataset] = useState(null);
 
   useEffect(() => {
@@ -51,30 +69,51 @@ export default function App() {
       .catch(() => setModelOutputs(defaultModelOutputs));
   }, []);
 
+  const handleScenarioChange = (scenarioId) => {
+    setSelectedScenario(scenarioId);
+
+    const scenario = getScenarioDefinition(scenarioId);
+    if (scenario.id === 'custom') {
+      return;
+    }
+
+    const defaults = scenarioDefaults[scenarioId] ?? {
+      target: scenario.target,
+      predictors: scenario.requiredPredictors,
+    };
+
+    setSelectedTarget(defaults.target);
+    setSelectedPredictors(defaults.predictors);
+  };
+
   const sharedProps = useMemo(
     () => ({
       rows,
       selectedCountry,
       setSelectedCountry,
-      selectedPollutant,
-      setSelectedPollutant,
-      selectedPredictor,
-      setSelectedPredictor,
+      selectedScenario,
+      setSelectedScenario: handleScenarioChange,
+      selectedTarget,
+      setSelectedTarget,
+      selectedPredictors,
+      setSelectedPredictors,
       selectedModel,
       setSelectedModel,
-      selectedHorizon,
-      setSelectedHorizon,
+      forecastHorizon,
+      setForecastHorizon,
       modelOutputs,
       uploadedDataset,
       setUploadedDataset,
+      setActiveSection,
     }),
     [
       rows,
       selectedCountry,
-      selectedPollutant,
-      selectedPredictor,
+      selectedScenario,
+      selectedTarget,
+      selectedPredictors,
       selectedModel,
-      selectedHorizon,
+      forecastHorizon,
       modelOutputs,
       uploadedDataset,
     ],
@@ -114,10 +153,10 @@ export default function App() {
       <main className="main-content">
         <header className="topbar">
           <div>
-            <span>Regional forecasting prototype</span>
+            <span>Regional time-series forecasting prototype</span>
             <strong>{sectionTitles[activeSection]}</strong>
           </div>
-          <div className="dataset-pill">OpenDOSM Malaysia cleaned dataset</div>
+          <div className="dataset-pill">OpenDOSM Malaysia monthly dataset</div>
         </header>
         {renderSection()}
       </main>

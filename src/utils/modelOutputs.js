@@ -1,5 +1,12 @@
 import Papa from 'papaparse';
-import { labelFor, modelOptions, pollutantOptions } from './constants';
+import {
+  getPredictorDefinition,
+  getScenarioDefinition,
+  getTargetDefinition,
+  labelFor,
+  modelOptions,
+  targetAliases,
+} from './constants';
 
 export const MODEL_OUTPUT_BASE_PATH = '/model_outputs';
 
@@ -19,25 +26,6 @@ export const defaultModelOutputs = {
     rows: [],
   },
   loadErrors: [],
-};
-
-const pollutantAliases = {
-  air_co: 'air_co',
-  co: 'air_co',
-  air_no2: 'air_no2',
-  no2: 'air_no2',
-  air_o3: 'air_o3',
-  o3: 'air_o3',
-  air_pm_10: 'air_pm_10',
-  pm10: 'air_pm_10',
-  'pm 10': 'air_pm_10',
-  air_pm_25: 'air_pm_25',
-  pm25: 'air_pm_25',
-  pm2_5: 'air_pm_25',
-  'pm2.5': 'air_pm_25',
-  'pm 2.5': 'air_pm_25',
-  air_so2: 'air_so2',
-  so2: 'air_so2',
 };
 
 const modelAliases = {
@@ -68,11 +56,13 @@ const normalizeToken = (value) =>
 
 export const normalizeCountryKey = (value) => normalizeToken(value).replace(/_/g, '');
 
-export const normalizePollutantKey = (value) => {
+export const normalizeTargetKey = (value) => {
   const direct = normalizeToken(value);
   const compact = direct.replace(/[_.\s]/g, '');
-  return pollutantAliases[direct] ?? pollutantAliases[compact] ?? direct;
+  return targetAliases[direct] ?? targetAliases[compact] ?? direct;
 };
+
+export const normalizePollutantKey = normalizeTargetKey;
 
 export const normalizeModelKey = (value) => {
   const direct = normalizeToken(value);
@@ -108,8 +98,20 @@ const fetchOptionalText = async (path) => {
   return text;
 };
 
+const parsePredictorList = (value) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeTargetKey(item)).filter(Boolean);
+  }
+
+  return String(value ?? '')
+    .split(/[;,]/)
+    .map((item) => normalizeTargetKey(item))
+    .filter(Boolean);
+};
+
 const parseForecastRows = (csvText, modelKey) => {
-  if (!csvText.split(/\r?\n/, 1)[0]?.includes('forecast_value')) {
+  const header = csvText.split(/\r?\n/, 1)[0] ?? '';
+  if (!header.includes('forecast_value')) {
     return [];
   }
 
@@ -126,10 +128,12 @@ const parseForecastRows = (csvText, modelKey) => {
     .map((row) => {
       const forecast = toNumberOrNull(row.forecast_value);
       const date = row.date;
-      const pollutantKey = normalizePollutantKey(row.pollutant);
+      const rawTarget = row.target || row.pollutant;
+      const targetKey = normalizeTargetKey(rawTarget);
+      const targetDefinition = getTargetDefinition(targetKey);
       const outputModelKey = normalizeModelKey(row.model || modelKey);
 
-      if (!date || !Number.isFinite(forecast) || outputModelKey !== modelKey) {
+      if (!date || !Number.isFinite(forecast) || outputModelKey !== modelKey || !targetKey) {
         return null;
       }
 
@@ -138,13 +142,20 @@ const parseForecastRows = (csvText, modelKey) => {
         month: formatMonth(date),
         country: row.country || 'Malaysia',
         countryKey: normalizeCountryKey(row.country || 'Malaysia'),
-        pollutant: row.pollutant || pollutantKey,
-        pollutantKey,
+        target: row.target || row.pollutant || targetKey,
+        targetKey,
+        targetLabel: targetDefinition.label,
+        pollutant: row.pollutant || '',
+        pollutantKey: row.pollutant ? normalizeTargetKey(row.pollutant) : '',
         model: row.model || labelFor(modelOptions, modelKey),
         modelKey: outputModelKey,
         forecast,
         lowerBound: toNumberOrNull(row.lower_bound),
         upperBound: toNumberOrNull(row.upper_bound),
+        scenarioId: row.scenario_id || '',
+        predictors: parsePredictorList(row.predictors),
+        unit: row.unit || targetDefinition.unit || '',
+        legacySource: Boolean(row.pollutant && !row.target),
         type: 'Final model output',
       };
     })
@@ -178,24 +189,33 @@ const parseMetrics = (text) => {
     .map((metric) => {
       const modelKey = normalizeModelKey(metric.model);
       const modelLabel = labelFor(modelOptions, modelKey);
-      const pollutantKey = normalizePollutantKey(metric.pollutant);
-      const pollutantLabel = labelFor(pollutantOptions, pollutantKey);
+      const targetKey = normalizeTargetKey(metric.target || metric.pollutant);
+      const targetDefinition = getTargetDefinition(targetKey);
       const mae = toNumberOrNull(metric.mae);
       const rmse = toNumberOrNull(metric.rmse);
       const mape = toNumberOrNull(metric.mape);
 
-      if (!modelKey || !modelLabel || !Number.isFinite(mae) || !Number.isFinite(rmse)) {
+      if (!modelKey || !modelLabel || !targetKey || !Number.isFinite(mae) || !Number.isFinite(rmse)) {
         return null;
       }
+
+      const predictors = parsePredictorList(metric.predictors);
 
       return {
         model: modelLabel,
         modelKey,
-        pollutant: pollutantLabel,
-        pollutantKey,
+        country: metric.country || 'Malaysia',
+        countryKey: normalizeCountryKey(metric.country || 'Malaysia'),
+        target: targetDefinition.label,
+        targetKey,
+        scenarioId: metric.scenario_id || '',
+        scenarioLabel: metric.scenario_id ? getScenarioDefinition(metric.scenario_id).label : '',
+        predictors,
+        predictorLabels: predictors.map((key) => getPredictorDefinition(key).label),
         mae,
         rmse,
         mape,
+        legacySource: Boolean(metric.pollutant && !metric.target),
       };
     })
     .filter(Boolean);
@@ -245,28 +265,75 @@ export const loadModelOutputs = async () => {
   };
 };
 
-export const getModelIntegrationStatuses = (modelOutputs = defaultModelOutputs) =>
-  modelOptions.map((model) => ({
-    ...model,
-    connected: Boolean(modelOutputs.forecasts?.[model.key]?.connected),
-  }));
+const matchesScenario = (rowScenarioId, selectedScenario) =>
+  !rowScenarioId || !selectedScenario || selectedScenario === 'custom' || rowScenarioId === selectedScenario;
+
+export const getModelIntegrationStatuses = ({
+  modelOutputs = defaultModelOutputs,
+  selectedTarget,
+  selectedScenario,
+  selectedCountry,
+} = {}) => {
+  const countryKey = normalizeCountryKey(selectedCountry || 'Malaysia');
+
+  return modelOptions.map((model) => {
+    const matchingRows = (modelOutputs.forecasts?.[model.key]?.rows ?? []).filter(
+      (row) =>
+        row.modelKey === model.key &&
+        (!selectedTarget || row.targetKey === selectedTarget) &&
+        matchesScenario(row.scenarioId, selectedScenario) &&
+        row.countryKey === countryKey,
+    );
+    const firstRow = matchingRows[0];
+
+    return {
+      ...model,
+      connected: matchingRows.length > 0,
+      targetLabel: firstRow?.targetLabel ?? (selectedTarget ? getTargetDefinition(selectedTarget).label : 'Selected target'),
+      scenarioLabel: firstRow?.scenarioId
+        ? getScenarioDefinition(firstRow.scenarioId).label
+        : selectedScenario
+          ? getScenarioDefinition(selectedScenario).label
+          : 'Any scenario',
+      legacySource: Boolean(firstRow?.legacySource),
+    };
+  });
+};
 
 export const getMatchingForecastRows = ({
   modelOutputs = defaultModelOutputs,
   selectedModel,
   selectedCountry,
-  selectedPollutant,
+  selectedTarget,
+  selectedScenario,
   horizonMonths,
 }) => {
   const rows = modelOutputs.forecasts?.[selectedModel]?.rows ?? [];
-  const countryKey = normalizeCountryKey(selectedCountry);
+  const countryKey = normalizeCountryKey(selectedCountry || 'Malaysia');
 
   return rows
     .filter(
       (row) =>
         row.modelKey === selectedModel &&
-        row.pollutantKey === selectedPollutant &&
+        row.targetKey === selectedTarget &&
+        matchesScenario(row.scenarioId, selectedScenario) &&
         row.countryKey === countryKey,
     )
     .slice(0, Number(horizonMonths));
+};
+
+export const getMatchingMetricRows = ({
+  modelOutputs = defaultModelOutputs,
+  selectedTarget,
+  selectedScenario,
+  selectedCountry,
+} = {}) => {
+  const countryKey = normalizeCountryKey(selectedCountry || 'Malaysia');
+
+  return (modelOutputs.metrics?.rows ?? []).filter(
+    (row) =>
+      (!selectedTarget || row.targetKey === selectedTarget) &&
+      matchesScenario(row.scenarioId, selectedScenario) &&
+      row.countryKey === countryKey,
+  );
 };
