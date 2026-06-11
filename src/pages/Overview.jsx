@@ -74,8 +74,15 @@ export default function Overview({
   const availableTargets = getAvailableTargetOptions(activeRows);
   const targetDefinition = getTargetDefinition(selectedTarget);
   const kpis = calculateKpis(activeRows, selectedTarget);
-  const unit = unitForTarget(selectedTarget);
+  const genericUnit = unitForTarget(selectedTarget);
   const scenario = getScenarioDefinition(selectedScenario);
+  const connectedSelectedModelRow = (modelOutputs.forecasts?.[selectedModel]?.rows ?? []).find(
+    (row) =>
+      row.targetKey === selectedTarget &&
+      row.scenarioId === selectedScenario &&
+      row.countryKey === selectedCountry,
+  );
+  const unit = connectedSelectedModelRow?.unit || genericUnit;
   const integrationStatuses = getModelIntegrationStatuses({
     modelOutputs,
     selectedTarget,
@@ -83,6 +90,7 @@ export default function Overview({
     selectedCountry,
   });
   const hasMatchingFinalOutput = integrationStatuses.some((status) => status.connected);
+  const verifiedXgboostOutputs = modelOutputs.forecasts?.xgboost?.rows?.length ?? 0;
 
   const chartRows = activeRows.map((row) => ({
     month: row.month,
@@ -157,6 +165,9 @@ export default function Overview({
         {hasMatchingFinalOutput
           ? 'A matching final model output is connected for the selected target and scenario.'
           : 'Final trained model output is pending for the selected target and scenario. Prototype pages use frontend fallback logic where allowed.'}
+        {verifiedXgboostOutputs
+          ? ` Verified XGBoost rows connected: ${verifiedXgboostOutputs} held-out SO2 test predictions.`
+          : ''}
       </div>
 
       <div className="table-panel">

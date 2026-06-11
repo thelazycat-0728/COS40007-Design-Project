@@ -95,6 +95,57 @@ export const generatePrototypeForecast = (rows, targetKey, horizonMonths) => {
 };
 
 export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
+  const hasActualOutputRows = forecastRows.some((row) => Number.isFinite(row.actualValue));
+
+  if (hasActualOutputRows) {
+    const modelForecastRows = forecastRows.map((row) => ({
+      date: row.date,
+      month: row.month,
+      actual: safeRound(row.actualValue),
+      forecast: safeRound(row.forecast),
+      lowerBound: safeRound(row.lowerBound),
+      upperBound: safeRound(row.upperBound),
+      unit: row.unit,
+      type: row.type,
+      resultType: row.resultType,
+      resultTypeLabel: row.resultTypeLabel,
+      sourceNotebook: row.sourceNotebook,
+      scenarioVariant: row.scenarioVariant,
+      scenarioVariantLabel: row.scenarioVariantLabel,
+      predictors: row.predictors,
+      engineeredFeatures: row.engineeredFeatures,
+      evaluationStart: row.evaluationStart,
+      evaluationEnd: row.evaluationEnd,
+      frequency: row.frequency,
+    }));
+    const firstActual = modelForecastRows.find((row) => Number.isFinite(row.actual))?.actual ?? null;
+    const lastForecast = modelForecastRows[modelForecastRows.length - 1]?.forecast ?? null;
+    const change =
+      Number.isFinite(firstActual) && Number.isFinite(lastForecast) ? lastForecast - firstActual : 0;
+    const directionThreshold = Number.isFinite(firstActual) ? Math.max(Math.abs(firstActual) * 0.02, 0.000001) : 0;
+    const trendDirection =
+      Math.abs(change) <= directionThreshold ? 'stable' : change > 0 ? 'increasing' : 'decreasing';
+
+    return {
+      chartRows: modelForecastRows,
+      forecastRows: modelForecastRows,
+      trendDirection,
+      lastActual: modelForecastRows[modelForecastRows.length - 1]?.actual ?? null,
+      lastForecast: safeRound(lastForecast),
+      resultType: modelForecastRows[0]?.resultType ?? '',
+      resultTypeLabel: modelForecastRows[0]?.resultTypeLabel ?? '',
+      sourceNotebook: modelForecastRows[0]?.sourceNotebook ?? '',
+      scenarioVariant: modelForecastRows[0]?.scenarioVariant ?? '',
+      scenarioVariantLabel: modelForecastRows[0]?.scenarioVariantLabel ?? '',
+      predictors: modelForecastRows[0]?.predictors ?? [],
+      engineeredFeatures: modelForecastRows[0]?.engineeredFeatures ?? [],
+      evaluationStart: modelForecastRows[0]?.evaluationStart ?? '',
+      evaluationEnd: modelForecastRows[0]?.evaluationEnd ?? '',
+      frequency: modelForecastRows[0]?.frequency ?? '',
+      unit: modelForecastRows[0]?.unit ?? '',
+    };
+  }
+
   const actualRows = rows
     .filter((row) => Number.isFinite(row[targetKey]))
     .map((row) => ({
@@ -192,6 +243,10 @@ export const createForecastInterpretation = ({
   const trendText = directionPhrase(trendDirection, targetLabel);
 
   if (isFinalOutput) {
+    if (scenarioId === 'ipi_electricity_to_so2') {
+      return `The connected ${modelLabel} output reproduces ${targetLabel} values over the held-out test period. It is not a projection beyond the fixed evaluation period.`;
+    }
+
     return `The ${modelLabel} output indicates ${trendText} over the next ${horizonLabel} for the ${scenario.label} scenario. These values are loaded from final model output files connected to the dashboard.`;
   }
 

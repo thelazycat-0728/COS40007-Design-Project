@@ -20,15 +20,33 @@ export default function ModelIntegrationStatus({
         <span>Matching forecast output files</span>
       </div>
       <div className="integration-status-grid">
-        {statuses.map((status) => (
-          <article className={status.connected ? 'connected' : 'pending'} key={status.key}>
-            <span>{status.label}</span>
-            <strong>{status.connected ? 'Final output connected' : 'Pending for selected task'}</strong>
-            <small>{status.targetLabel}</small>
-            <small>{status.scenarioLabel}</small>
-            {status.legacySource ? <small>Legacy pollutant schema</small> : null}
-          </article>
-        ))}
+        {statuses.map((status) => {
+          const statusText = status.connected
+            ? 'Connected forecast output'
+            : status.metricsOnly
+              ? 'Metrics reported by team'
+              : status.key === 'xgboost'
+                ? 'Pending team export'
+                : 'Pending for selected task';
+
+          return (
+            <article className={status.connected ? 'connected' : 'pending'} key={status.key}>
+              <span>{status.label}</span>
+              <strong>{statusText}</strong>
+              <small>{status.targetLabel}</small>
+              <small>{status.scenarioVariantLabel || status.scenarioLabel}</small>
+              {status.resultTypeLabel ? <small>{status.resultTypeLabel}</small> : null}
+              {status.unit ? <small>Unit: {status.unit}</small> : null}
+              {status.evaluationStart && status.evaluationEnd ? (
+                <small>
+                  Period: {status.evaluationStart} to {status.evaluationEnd}
+                </small>
+              ) : null}
+              {status.sourceNotebook ? <small>Source: {status.sourceNotebook}</small> : null}
+              {status.legacySource ? <small>Legacy pollutant schema</small> : null}
+            </article>
+          );
+        })}
       </div>
     </div>
   );

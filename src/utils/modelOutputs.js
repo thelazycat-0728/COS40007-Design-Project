@@ -2,6 +2,7 @@ import Papa from 'papaparse';
 import {
   getPredictorDefinition,
   getScenarioDefinition,
+  getScenarioVariantLabel,
   getTargetDefinition,
   labelFor,
   modelOptions,
@@ -111,6 +112,18 @@ const parsePredictorList = (value) => {
     .filter(Boolean);
 };
 
+const parseMetadataList = (value) =>
+  String(value ?? '')
+    .split(/[;,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+export const resultTypeLabels = {
+  test_prediction: 'Held-out test predictions',
+  validation_prediction: 'Validation predictions',
+  future_forecast: 'Future forecast',
+};
+
 const parseForecastRows = (csvText, modelKey) => {
   const header = csvText.split(/\r?\n/, 1)[0] ?? '';
   if (!header.includes('forecast_value')) {
@@ -129,11 +142,14 @@ const parseForecastRows = (csvText, modelKey) => {
   return parsed.data
     .map((row) => {
       const forecast = toNumberOrNull(row.forecast_value);
+      const actualValue = toNumberOrNull(row.actual_value);
       const date = row.date;
       const rawTarget = row.target || row.pollutant;
       const targetKey = normalizeTargetKey(rawTarget);
       const targetDefinition = getTargetDefinition(targetKey);
       const outputModelKey = normalizeModelKey(row.model || modelKey);
+      const resultType = normalizeToken(row.result_type || 'future_forecast');
+      const scenarioVariant = row.scenario_variant || '';
 
       if (!date || !Number.isFinite(forecast) || outputModelKey !== modelKey || !targetKey) {
         return null;
@@ -152,13 +168,23 @@ const parseForecastRows = (csvText, modelKey) => {
         model: row.model || labelFor(modelOptions, modelKey),
         modelKey: outputModelKey,
         forecast,
+        actualValue,
         lowerBound: toNumberOrNull(row.lower_bound),
         upperBound: toNumberOrNull(row.upper_bound),
         scenarioId: row.scenario_id || '',
+        scenarioVariant,
+        scenarioVariantLabel: row.scenario_variant_label || getScenarioVariantLabel(scenarioVariant),
         predictors: parsePredictorList(row.predictors),
+        engineeredFeatures: parseMetadataList(row.engineered_features),
         unit: row.unit || targetDefinition.unit || '',
+        resultType,
+        resultTypeLabel: row.result_type_label || resultTypeLabels[resultType] || row.result_type || 'Model output',
+        sourceNotebook: row.source_notebook || '',
+        evaluationStart: row.evaluation_start || '',
+        evaluationEnd: row.evaluation_end || '',
+        frequency: row.frequency || '',
         legacySource: Boolean(row.pollutant && !row.target),
-        type: 'Final model output',
+        type: resultTypeLabels[resultType] || 'Model output',
       };
     })
     .filter(Boolean)
@@ -196,12 +222,17 @@ const parseMetrics = (text) => {
       const mae = toNumberOrNull(metric.mae);
       const rmse = toNumberOrNull(metric.rmse);
       const mape = toNumberOrNull(metric.mape);
+      const r2 = toNumberOrNull(metric.r2);
+      const integrationStatus = metric.integration_status || 'connected_metric';
+      const hasAnyMetric =
+        Number.isFinite(mae) || Number.isFinite(rmse) || Number.isFinite(mape) || Number.isFinite(r2);
 
-      if (!modelKey || !modelLabel || !targetKey || !Number.isFinite(mae) || !Number.isFinite(rmse)) {
+      if (!modelKey || !modelLabel || !targetKey || !hasAnyMetric) {
         return null;
       }
 
       const predictors = parsePredictorList(metric.predictors);
+      const scenarioVariant = metric.scenario_variant || '';
 
       return {
         model: modelLabel,
@@ -212,11 +243,29 @@ const parseMetrics = (text) => {
         targetKey,
         scenarioId: metric.scenario_id || '',
         scenarioLabel: metric.scenario_id ? getScenarioDefinition(metric.scenario_id).label : '',
+        scenarioVariant,
+        scenarioVariantLabel: metric.scenario_variant_label || getScenarioVariantLabel(scenarioVariant),
         predictors,
         predictorLabels: predictors.map((key) => getPredictorDefinition(key).label),
+        engineeredFeatures: Array.isArray(metric.engineered_features)
+          ? metric.engineered_features
+          : parseMetadataList(metric.engineered_features),
         mae,
         rmse,
         mape,
+        r2,
+        resultType: normalizeToken(metric.result_type || ''),
+        resultTypeLabel:
+          metric.result_type_label || resultTypeLabels[normalizeToken(metric.result_type || '')] || metric.result_type || '',
+        evaluationStart: metric.evaluation_start || '',
+        evaluationEnd: metric.evaluation_end || '',
+        frequency: metric.frequency || '',
+        unit: metric.unit || targetDefinition.unit || '',
+        integrationStatus,
+        rowLevelOutputAvailable: Boolean(metric.row_level_output_available),
+        sourceNotebook: metric.source_notebook || '',
+        caveat: metric.caveat || '',
+        metricNote: metric.metric_note || '',
         legacySource: Boolean(metric.pollutant && !metric.target),
       };
     })
@@ -287,20 +336,64 @@ export const getModelIntegrationStatuses = ({
         row.countryKey === countryKey,
     );
     const firstRow = matchingRows[0];
+    const matchingMetrics = (modelOutputs.metrics?.rows ?? []).filter(
+      (row) =>
+        row.modelKey === model.key &&
+        (!selectedTarget || row.targetKey === selectedTarget) &&
+        matchesScenario(row.scenarioId, selectedScenario) &&
+        row.countryKey === countryKey,
+    );
+    const firstMetric = matchingMetrics[0];
+    const hasMetricsOnly = matchingMetrics.some((row) => row.integrationStatus === 'metrics_only');
 
     return {
       ...model,
       connected: matchingRows.length > 0,
-      targetLabel: firstRow?.targetLabel ?? (selectedTarget ? getTargetDefinition(selectedTarget).label : 'Selected target'),
+      metricsOnly: !matchingRows.length && hasMetricsOnly,
+      targetLabel:
+        firstRow?.targetLabel ??
+        firstMetric?.target ??
+        (selectedTarget ? getTargetDefinition(selectedTarget).label : 'Selected target'),
       scenarioLabel: firstRow?.scenarioId
         ? getScenarioDefinition(firstRow.scenarioId).label
-        : selectedScenario
-          ? getScenarioDefinition(selectedScenario).label
-          : 'Any scenario',
-      legacySource: Boolean(firstRow?.legacySource),
+        : firstMetric?.scenarioLabel ||
+          (selectedScenario
+            ? getScenarioDefinition(selectedScenario).label
+            : 'Any scenario'),
+      scenarioVariantLabel: firstRow?.scenarioVariantLabel || firstMetric?.scenarioVariantLabel || '',
+      resultTypeLabel: firstRow?.resultTypeLabel || firstMetric?.resultTypeLabel || '',
+      integrationStatus: firstRow
+        ? 'connected_forecast'
+        : hasMetricsOnly
+          ? 'metrics_only'
+          : 'pending',
+      sourceNotebook: firstRow?.sourceNotebook || firstMetric?.sourceNotebook || '',
+      unit: firstRow?.unit || firstMetric?.unit || '',
+      evaluationStart: firstRow?.evaluationStart || firstMetric?.evaluationStart || '',
+      evaluationEnd: firstRow?.evaluationEnd || firstMetric?.evaluationEnd || '',
+      legacySource: Boolean(firstRow?.legacySource || firstMetric?.legacySource),
     };
   });
 };
+
+export const getMatchingMetricsOnlyRows = ({
+  modelOutputs = defaultModelOutputs,
+  selectedCountry,
+} = {}) => {
+  const countryKey = normalizeCountryKey(selectedCountry || 'Malaysia');
+
+  return (modelOutputs.metrics?.rows ?? []).filter(
+    (row) => row.countryKey === countryKey && row.integrationStatus === 'metrics_only',
+  );
+};
+
+export const getConnectedComparableMetricRows = (metrics) =>
+  metrics.filter(
+    (metric) =>
+      metric.integrationStatus !== 'metrics_only' &&
+      metric.rowLevelOutputAvailable &&
+      Number.isFinite(metric.rmse),
+  );
 
 export const getMatchingForecastRows = ({
   modelOutputs = defaultModelOutputs,
@@ -313,15 +406,19 @@ export const getMatchingForecastRows = ({
   const rows = modelOutputs.forecasts?.[selectedModel]?.rows ?? [];
   const countryKey = normalizeCountryKey(selectedCountry || 'Malaysia');
 
-  return rows
-    .filter(
-      (row) =>
-        row.modelKey === selectedModel &&
-        row.targetKey === selectedTarget &&
-        matchesScenario(row.scenarioId, selectedScenario) &&
-        row.countryKey === countryKey,
-    )
-    .slice(0, Number(horizonMonths));
+  const matchingRows = rows.filter(
+    (row) =>
+      row.modelKey === selectedModel &&
+      row.targetKey === selectedTarget &&
+      matchesScenario(row.scenarioId, selectedScenario) &&
+      row.countryKey === countryKey,
+  );
+
+  if (matchingRows.some((row) => row.resultType === 'test_prediction')) {
+    return matchingRows;
+  }
+
+  return matchingRows.slice(0, Number(horizonMonths));
 };
 
 export const getMatchingMetricRows = ({

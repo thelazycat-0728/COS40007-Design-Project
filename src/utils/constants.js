@@ -29,6 +29,13 @@ export const targetOptions = [
     unit: '%',
   },
   {
+    key: 'ipi_growth_yoy_index_sa',
+    label: 'Seasonally adjusted IPI year-on-year growth',
+    shortLabel: 'IPI YoY growth SA',
+    category: 'industrial',
+    unit: '%',
+  },
+  {
     key: 'electricity_local',
     label: 'Local electricity consumption',
     shortLabel: 'Local electricity',
@@ -109,6 +116,12 @@ export const predictorOptions = [
     unit: '%',
   },
   {
+    key: 'ipi_growth_yoy_index_sa',
+    label: 'Seasonally adjusted IPI year-on-year growth',
+    category: 'industrial',
+    unit: '%',
+  },
+  {
     key: 'industrial_index',
     label: 'Industrial activity index',
     category: 'industrial',
@@ -170,6 +183,11 @@ export const scenarioOptions = [
     description: 'Select a numeric target and one or more numeric predictors from the active dataset.',
   },
 ];
+
+export const scenarioVariantLabels = {
+  ipi_growth_yoy_sa_electricity_local_so2_lags:
+    'IPI YoY growth SA + local electricity + historical SO2 features → SO2',
+};
 
 export const modelOptions = [
   { key: 'sarima', label: 'SARIMA' },
@@ -356,4 +374,9 @@ export const targetAliases = {
   vehicle_registrations: 'vehicle_registrations',
   industrial_index: 'industrial_index',
   ipi_growth_yoy_index: 'ipi_growth_yoy_index',
+  ipi_growth_yoy_index_sa: 'ipi_growth_yoy_index_sa',
+  ipi_yoy_growth_sa: 'ipi_growth_yoy_index_sa',
+  seasonally_adjusted_ipi_year_on_year_growth: 'ipi_growth_yoy_index_sa',
 };
+
+export const getScenarioVariantLabel = (key) => scenarioVariantLabels[key] ?? key;

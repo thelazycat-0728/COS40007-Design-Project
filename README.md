@@ -25,6 +25,8 @@ Meeting-demo scenarios under confirmation:
    - Fallback predictors: `ipi_abs_index`, `electricity_total`
    - Current status: supported by the current cleaned Malaysia dataset. The GUI clearly labels
      whether it is using configured predictors or fallback predictors.
+   - Verified XGBoost variant connected for review: `ipi_growth_yoy_index_sa`,
+     `electricity_local`, and historical SO2 lag/rolling features → SO2.
 
 3. **NO2 → PM2.5**
    - Target: `air_pm_25`
@@ -80,6 +82,8 @@ Target-specific meeting-demo units:
 
 - `air_no2`: NO2, `µg/m³`
 - `air_so2`: SO2, `µg/m³`
+- Connected XGBoost SO2 held-out test output: `ppm`, because the source notebook reports ppm-scale
+  values and no verified conversion is applied.
 - `air_pm_25`: PM2.5, `µg/m³`
 - `electricity_local`: Local electricity consumption, `GWh`
 - `ipi_abs_index_sa`: Seasonally adjusted IPI absolute index, `index points`
@@ -112,22 +116,53 @@ Supported optional forecast files:
 Preferred forecast CSV format:
 
 ```text
-date,country,target,model,forecast_value,lower_bound,upper_bound,scenario_id,predictors,unit
+date,country,target,model,forecast_value,actual_value,lower_bound,upper_bound,scenario_id,scenario_variant,predictors,engineered_features,unit,result_type,source_notebook,evaluation_start,evaluation_end,frequency
 ```
 
 Example:
 
 ```text
-2023-01-01,Malaysia,air_so2,XGBoost,7.4,7.1,7.7,ipi_electricity_to_so2,ipi_abs_index_sa;electricity_local,µg/m³
+2022-01-01,Malaysia,air_so2,XGBoost,0.001182,0.0012,,,ipi_electricity_to_so2,ipi_growth_yoy_sa_electricity_local_so2_lags,ipi_growth_yoy_index_sa;electricity_local,SO2_lag1;IPI_lag1;elec_lag1,ppm,test_prediction,XGBoost/xgboost_car_forecast.ipynb,2022-01-01,2022-12-01,monthly
 ```
 
-`lower_bound`, `upper_bound`, `scenario_id`, `predictors`, and `unit` are optional. Legacy forecast
-files using `pollutant` instead of `target` are still accepted and mapped to the generic target
-system. New files should use `target`.
+`actual_value` is used for held-out test predictions. `lower_bound`, `upper_bound`, `scenario_id`,
+`scenario_variant`, `predictors`, `engineered_features`, `unit`, `result_type`, `source_notebook`,
+`evaluation_start`, `evaluation_end`, and `frequency` are optional. Legacy forecast files using
+`pollutant` instead of `target` are still accepted and mapped to the generic target system. New
+files should use `target`.
 
 Use `public/model_outputs/model_metrics.json` only when final evaluation metrics are available.
 Model Comparison shows **Pending team results** and hides metric bars until real matching metrics
 are loaded.
+
+### Current XGBoost GUI Integration
+
+The dashboard currently connects one verified XGBoost row-level output:
+
+- Source: `XGBoost/xgboost_car_forecast.ipynb`
+- Target: `air_so2`
+- Scenario: `ipi_electricity_to_so2`
+- Variant: `IPI YoY growth SA + local electricity + historical SO2 features → SO2`
+- Result type: held-out test predictions
+- Evaluation period: January-December 2022
+- Frequency: monthly
+- Unit: `ppm`
+- External predictors: `ipi_growth_yoy_index_sa`, `electricity_local`
+- Engineered inputs: `SO2_lag1`, `IPI_lag1`, `elec_lag1`, `SO2_lag2`, `IPI_lag2`,
+  `elec_lag2`, `SO2_lag3`, `IPI_lag3`, `elec_lag3`, `SO2_roll_mean3`, `SO2_roll_std3`,
+  `month`
+
+The GUI does not call these rows a configurable horizon result. It displays them as actual versus
+predicted values for the held-out 2022 test period.
+
+Other XGBoost notebooks are listed as metrics-only where notebook metrics were visible but no
+row-level output was exported. Metrics-only entries do not count as connected forecast outputs and
+do not qualify for model ranking. The notebook named `XGBoost/xgboost_forecast_air_so2.ipynb` is
+recorded as `vehicle_registrations` metrics-only because the verified notebook content forecasts
+vehicle registrations despite its filename.
+
+No XGBoost `.json` or `.pkl` artifact is loaded by the browser integration. Prophet remains pending
+and is not inspected in this XGBoost-only task.
 
 ## Upload Regional Dataset
 

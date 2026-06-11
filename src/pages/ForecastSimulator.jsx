@@ -35,7 +35,7 @@ import {
   generatePrototypeForecast,
   prototypeFallbackNotice,
 } from '../utils/forecast';
-import { getMatchingForecastRows } from '../utils/modelOutputs';
+import { getMatchingForecastRows, getMatchingMetricRows } from '../utils/modelOutputs';
 
 const unavailableVehicleMessage =
   'Vehicle-related predictors are not available in the built-in Malaysia dataset. Upload a compatible regional dataset containing NO2, local electricity consumption, and at least one supported vehicle or transport indicator.';
@@ -95,6 +95,27 @@ const getPredictorOptionsForScenario = ({ scenarioId, rows, selectedTarget }) =>
   }
 
   return getAvailablePredictorOptions(rows).filter((option) => option.key !== selectedTarget);
+};
+
+const formatPeriod = (start, end) => {
+  if (!start || !end) {
+    return 'Not specified';
+  }
+
+  const formatter = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' });
+  return `${formatter.format(new Date(start))}-${formatter.format(new Date(end))}`;
+};
+
+const formatMetric = (value) => {
+  if (!Number.isFinite(value)) {
+    return '-';
+  }
+
+  if (Math.abs(value) < 0.01) {
+    return value.toPrecision(4);
+  }
+
+  return value.toFixed(3);
 };
 
 const CheckboxGroup = ({ options, selectedKeys, onChange, disabledKeys = [] }) => (
@@ -250,6 +271,22 @@ export default function ForecastSimulator({
     ? generateModelOutputForecast(activeRows, selectedTarget, matchingModelRows)
     : null;
   const isFinalOutput = Boolean(modelForecast);
+  const isHeldOutTestOutput = modelForecast?.resultType === 'test_prediction';
+  const outputUnit = modelForecast?.unit || unit;
+  const matchingMetrics = isFinalOutput
+    ? getMatchingMetricRows({
+        modelOutputs,
+        selectedTarget,
+        selectedScenario,
+        selectedCountry: activeContext.countryForModelOutputs,
+      }).filter(
+        (metric) =>
+          metric.modelKey === selectedModel &&
+          metric.integrationStatus !== 'metrics_only' &&
+          metric.rowLevelOutputAvailable,
+      )
+    : [];
+  const connectedMetric = matchingMetrics[0];
   const forecast = scenarioReady
     ? modelForecast ?? generatePrototypeForecast(activeRows, selectedTarget, Number(forecastHorizon))
     : null;
@@ -276,24 +313,38 @@ export default function ForecastSimulator({
     : scenarioReady
       ? `Available in ${activeContext.countryLabel} dataset`
       : 'Missing compatible target or predictor columns';
-  const outputSource = !scenarioReady ? 'Not available' : isFinalOutput ? 'Final model output' : 'Prototype fallback';
+  const outputSource = !scenarioReady
+    ? 'Not available'
+    : isHeldOutTestOutput
+      ? 'Connected XGBoost held-out test predictions'
+      : isFinalOutput
+        ? 'Final model output'
+        : 'Prototype fallback';
   const scenarioLimitation = isVehicleUnavailableBuiltIn
     ? unavailableVehicleMessage
     : scenarioReady && !isFinalOutput
       ? prototypeFallbackNotice
-      : scenarioReady
-        ? 'Matching final model output is connected for this selected task.'
-        : 'Upload or select a dataset with the required target and predictor columns.';
+      : isHeldOutTestOutput
+        ? 'Connected held-out test predictions are shown for the fixed evaluation period. They are not a projection beyond that period.'
+        : scenarioReady
+          ? 'Matching final model output is connected for this selected task.'
+          : 'Upload or select a dataset with the required target and predictor columns.';
 
   return (
     <section className="page-section">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Forecast Simulator</p>
-          <h1>{isFinalOutput ? 'Model forecast output' : 'Scenario forecast prototype'}</h1>
+          <h1>
+            {isHeldOutTestOutput
+              ? 'Connected model test output'
+              : isFinalOutput
+                ? 'Model output'
+                : 'Scenario forecast prototype'}
+          </h1>
           <p>
-            Select a target, predictor set, model, and horizon. Final model files are used only when
-            they match the selected country, target, and scenario.
+            Select a target, predictor set, model, and horizon. Connected model files are used only
+            when they match the selected country, target, and scenario.
           </p>
         </div>
       </div>
@@ -333,13 +384,21 @@ export default function ForecastSimulator({
           options={modelOptions}
           onChange={setSelectedModel}
         />
-        <Selector
-          id="forecast-horizon"
-          label="Forecast horizon"
-          value={Number(forecastHorizon)}
-          options={horizonOptions}
-          onChange={(value) => setForecastHorizon(Number(value))}
-        />
+        {isHeldOutTestOutput ? (
+          <div className="selector-field locked-field">
+            <label>Forecast horizon</label>
+            <strong>Not configurable for held-out test predictions</strong>
+            <small>Test period: {formatPeriod(modelForecast.evaluationStart, modelForecast.evaluationEnd)}</small>
+          </div>
+        ) : (
+          <Selector
+            id="forecast-horizon"
+            label="Forecast horizon"
+            value={Number(forecastHorizon)}
+            options={horizonOptions}
+            onChange={(value) => setForecastHorizon(Number(value))}
+          />
+        )}
       </div>
 
       <div className="text-panel scenario-definition-card">
@@ -361,11 +420,37 @@ export default function ForecastSimulator({
             <span>Current output source</span>
             <strong>{outputSource}</strong>
           </div>
+          {isHeldOutTestOutput ? (
+            <>
+              <div>
+                <span>Result type</span>
+                <strong>{modelForecast.resultTypeLabel}</strong>
+              </div>
+              <div>
+                <span>Test period</span>
+                <strong>{formatPeriod(modelForecast.evaluationStart, modelForecast.evaluationEnd)}</strong>
+              </div>
+              <div>
+                <span>Unit override</span>
+                <strong>{outputUnit}</strong>
+              </div>
+              <div>
+                <span>Scenario variant</span>
+                <strong>{modelForecast.scenarioVariantLabel}</strong>
+              </div>
+            </>
+          ) : null}
         </div>
         <p>
           {predictorSetLabel}: {effectivePredictors.length ? formatPredictorList(effectivePredictors) : 'Not available'}.{' '}
           {scenarioLimitation}
         </p>
+        {isHeldOutTestOutput ? (
+          <p>
+            External predictors: {formatPredictorList(modelForecast.predictors)}. Engineered inputs:{' '}
+            {modelForecast.engineeredFeatures.join(', ')}.
+          </p>
+        ) : null}
       </div>
 
       <div className={scenarioReady ? 'status-note' : 'upload-message error'}>
@@ -384,7 +469,11 @@ export default function ForecastSimulator({
           </>
         ) : scenarioReady ? (
           isFinalOutput ? (
-            `Using final model output for ${targetDefinition.label}.`
+            isHeldOutTestOutput ? (
+              <strong>Using connected XGBoost output · Held-out test predictions · Test period: January-December 2022</strong>
+            ) : (
+              `Using final model output for ${targetDefinition.label}.`
+            )
           ) : (
             prototypeFallbackNotice
           )
@@ -400,24 +489,38 @@ export default function ForecastSimulator({
         <>
           <div className="text-panel">
             <h2>Selected forecasting task</h2>
-            <p>
-              {scenario.description} Active target: {targetDefinition.label}. Intended predictors:{' '}
-              {formatPredictorList(effectivePredictors)}.
-            </p>
+            {isHeldOutTestOutput ? (
+              <p>
+                Connected variant: {modelForecast.scenarioVariantLabel}. Target: {targetDefinition.label}.
+                Unit: {outputUnit}. These rows are held-out test predictions for the fixed evaluation period.
+              </p>
+            ) : (
+              <p>
+                {scenario.description} Active target: {targetDefinition.label}. Intended predictors:{' '}
+                {formatPredictorList(effectivePredictors)}.
+              </p>
+            )}
           </div>
 
           <div className="chart-panel">
             <div className="panel-heading">
-              <h2>Historical and {forecastKind} {targetDefinition.label}</h2>
+              <h2>
+                {isHeldOutTestOutput
+                  ? `Actual vs predicted ${targetDefinition.label}`
+                  : `Historical and ${forecastKind} ${targetDefinition.label}`}
+              </h2>
               <span>
-                {activeContext.countryLabel}, {unit || 'unit not specified'}
+                {activeContext.countryLabel}, {outputUnit || 'unit not specified'}
               </span>
             </div>
             <ResponsiveContainer width="100%" height={340}>
               <LineChart data={forecast.chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
                 <XAxis dataKey="month" minTickGap={24} stroke="#5c7080" />
-                <YAxis stroke="#5c7080" />
+                <YAxis
+                  stroke="#5c7080"
+                  label={outputUnit ? { value: outputUnit, angle: -90, position: 'insideLeft' } : undefined}
+                />
                 <Tooltip />
                 <Line
                   type="monotone"
@@ -431,7 +534,7 @@ export default function ForecastSimulator({
                 <Line
                   type="monotone"
                   dataKey="forecast"
-                  name={`${isFinalOutput ? 'Model forecast' : 'Prototype forecast'} ${targetDefinition.label}`}
+                  name={`${isHeldOutTestOutput ? 'Predicted' : isFinalOutput ? 'Model forecast' : 'Prototype forecast'} ${targetDefinition.label}`}
                   stroke="#16a34a"
                   strokeWidth={3}
                   strokeDasharray="6 4"
@@ -445,15 +548,22 @@ export default function ForecastSimulator({
           <div className="split-grid">
             <div className="table-panel forecast-table">
               <div className="panel-heading">
-                <h2>Forecast table</h2>
-                <span>{isFinalOutput ? 'Final values by month' : 'Prototype values by month'}</span>
+                <h2>{isHeldOutTestOutput ? 'Held-out test prediction table' : 'Forecast table'}</h2>
+                <span>
+                  {isHeldOutTestOutput
+                    ? 'Actual and predicted values by month'
+                    : isFinalOutput
+                      ? 'Final values by month'
+                      : 'Prototype values by month'}
+                </span>
               </div>
               <div className="table-scroll">
                 <table>
                   <thead>
                     <tr>
                       <th>Month</th>
-                      <th>Forecasted {targetDefinition.label}</th>
+                      {isHeldOutTestOutput ? <th>Actual {targetDefinition.label}</th> : null}
+                      <th>{isHeldOutTestOutput ? 'Predicted' : 'Forecasted'} {targetDefinition.label}</th>
                       {hasBounds ? <th>Lower bound</th> : null}
                       {hasBounds ? <th>Upper bound</th> : null}
                       <th>Unit</th>
@@ -463,10 +573,11 @@ export default function ForecastSimulator({
                     {forecast.forecastRows.map((row) => (
                       <tr key={row.date}>
                         <td>{row.month}</td>
-                        <td>{compactNumber(row.forecast)}</td>
-                        {hasBounds ? <td>{compactNumber(row.lowerBound)}</td> : null}
-                        {hasBounds ? <td>{compactNumber(row.upperBound)}</td> : null}
-                        <td>{row.unit || unit}</td>
+                        {isHeldOutTestOutput ? <td>{compactNumber(row.actual, outputUnit === 'ppm' ? 6 : 2)}</td> : null}
+                        <td>{compactNumber(row.forecast, outputUnit === 'ppm' ? 6 : 2)}</td>
+                        {hasBounds ? <td>{compactNumber(row.lowerBound, outputUnit === 'ppm' ? 6 : 2)}</td> : null}
+                        {hasBounds ? <td>{compactNumber(row.upperBound, outputUnit === 'ppm' ? 6 : 2)}</td> : null}
+                        <td>{row.unit || outputUnit}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -475,9 +586,16 @@ export default function ForecastSimulator({
             </div>
 
             <article className="interpretation-panel">
-              <span>Forecast interpretation</span>
-              <h2>Trend direction: {forecast.trendDirection}</h2>
+              <span>{isHeldOutTestOutput ? 'Test performance interpretation' : 'Forecast interpretation'}</span>
+              <h2>{isHeldOutTestOutput ? 'Held-out evaluation result' : `Trend direction: ${forecast.trendDirection}`}</h2>
               <p>{interpretation}</p>
+              {connectedMetric ? (
+                <p>
+                  MAE: {formatMetric(connectedMetric.mae)} {connectedMetric.unit || outputUnit}; RMSE:{' '}
+                  {formatMetric(connectedMetric.rmse)} {connectedMetric.unit || outputUnit}; R²:{' '}
+                  {formatMetric(connectedMetric.r2)}.
+                </p>
+              ) : null}
             </article>
           </div>
         </>

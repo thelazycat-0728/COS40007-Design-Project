@@ -301,6 +301,29 @@ button {
   background: #f8fbfc;
 }
 
+.locked-field {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.locked-field label,
+.locked-field small {
+  color: #526779;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.locked-field strong {
+  color: #10212c;
+  line-height: 1.35;
+}
+
 .checkbox-field {
   display: grid;
   gap: 10px;
