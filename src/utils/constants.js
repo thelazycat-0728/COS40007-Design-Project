@@ -3,14 +3,21 @@ export const DATA_PATH = '/data/combined_air_electricity_ipi_cleaned.csv';
 export const targetOptions = [
   { key: 'air_pm_25', label: 'PM2.5', shortLabel: 'PM2.5', category: 'pollution', unit: 'µg/m³' },
   { key: 'air_pm_10', label: 'PM10', shortLabel: 'PM10', category: 'pollution', unit: 'µg/m³' },
-  { key: 'air_no2', label: 'NO2', shortLabel: 'NO2', category: 'pollution', unit: 'ppm' },
+  { key: 'air_no2', label: 'NO2', shortLabel: 'NO2', category: 'pollution', unit: 'µg/m³' },
   { key: 'air_o3', label: 'O3', shortLabel: 'O3', category: 'pollution', unit: 'ppm' },
   { key: 'air_co', label: 'CO', shortLabel: 'CO', category: 'pollution', unit: 'ppm' },
-  { key: 'air_so2', label: 'SO2', shortLabel: 'SO2', category: 'pollution', unit: 'ppm' },
+  { key: 'air_so2', label: 'SO2', shortLabel: 'SO2', category: 'pollution', unit: 'µg/m³' },
   {
     key: 'ipi_abs_index',
     label: 'Industrial Production Index',
     shortLabel: 'IPI',
+    category: 'industrial',
+    unit: 'index points',
+  },
+  {
+    key: 'ipi_abs_index_sa',
+    label: 'Seasonally adjusted IPI absolute index',
+    shortLabel: 'SA IPI',
     category: 'industrial',
     unit: 'index points',
   },
@@ -20,6 +27,20 @@ export const targetOptions = [
     shortLabel: 'IPI YoY growth',
     category: 'industrial',
     unit: '%',
+  },
+  {
+    key: 'electricity_local',
+    label: 'Local electricity consumption',
+    shortLabel: 'Local electricity',
+    category: 'electricity',
+    unit: 'GWh',
+  },
+  {
+    key: 'vehicle_registrations',
+    label: 'Vehicle registrations',
+    shortLabel: 'Vehicle registrations',
+    category: 'vehicle',
+    unit: 'registrations',
   },
   {
     key: 'industrial_index',
@@ -67,10 +88,17 @@ export const predictorOptions = [
     category: 'electricity',
     unit: 'GWh',
   },
-  { key: 'air_so2', label: 'SO2', category: 'pollution', unit: 'ppm' },
+  { key: 'air_no2', label: 'NO2', category: 'pollution', unit: 'µg/m³' },
+  { key: 'air_so2', label: 'SO2', category: 'pollution', unit: 'µg/m³' },
   {
     key: 'ipi_abs_index',
     label: 'Industrial Production Index',
+    category: 'industrial',
+    unit: 'index points',
+  },
+  {
+    key: 'ipi_abs_index_sa',
+    label: 'Seasonally adjusted IPI absolute index',
     category: 'industrial',
     unit: 'index points',
   },
@@ -96,24 +124,41 @@ export const vehiclePredictorKeys = [
   'transport_index',
 ];
 
+export const scenario2PreferredPredictorKeys = ['ipi_abs_index_sa', 'electricity_local'];
+export const scenario2FallbackPredictorKeys = ['ipi_abs_index', 'electricity_total'];
+
 export const scenarioOptions = [
   {
-    id: 'vehicle_to_pm25',
-    key: 'vehicle_to_pm25',
-    label: 'Vehicle activity → PM2.5',
-    target: 'air_pm_25',
-    acceptedPredictors: vehiclePredictorKeys,
-    requiredPredictors: [],
-    description: 'Forecast PM2.5 using compatible vehicle or transport activity indicators.',
+    id: 'vehicle_electricity_to_no2',
+    key: 'vehicle_electricity_to_no2',
+    label: 'Vehicle activity + local electricity → NO2',
+    target: 'air_no2',
+    acceptedPredictors: ['electricity_local', ...vehiclePredictorKeys],
+    requiredPredictors: ['electricity_local'],
+    status: 'Requires uploaded vehicle data',
+    description: 'Forecast NO2 using local electricity consumption and compatible vehicle or transport activity indicators.',
   },
   {
-    id: 'electricity_so2_to_ipi',
-    key: 'electricity_so2_to_ipi',
-    label: 'Electricity + SO2 → IPI',
-    target: 'ipi_abs_index',
-    acceptedPredictors: ['electricity_total', 'air_so2'],
-    requiredPredictors: ['electricity_total', 'air_so2'],
-    description: 'Forecast Industrial Production Index using electricity consumption and SO2 indicators.',
+    id: 'ipi_electricity_to_so2',
+    key: 'ipi_electricity_to_so2',
+    label: 'IPI + electricity → SO2',
+    target: 'air_so2',
+    acceptedPredictors: [...scenario2PreferredPredictorKeys, ...scenario2FallbackPredictorKeys],
+    requiredPredictors: [],
+    preferredPredictors: scenario2PreferredPredictorKeys,
+    fallbackPredictors: scenario2FallbackPredictorKeys,
+    status: 'Supported by current Malaysia dataset',
+    description: 'Forecast SO2 using an IPI indicator and electricity consumption.',
+  },
+  {
+    id: 'no2_to_pm25',
+    key: 'no2_to_pm25',
+    label: 'NO2 → PM2.5',
+    target: 'air_pm_25',
+    acceptedPredictors: ['air_no2'],
+    requiredPredictors: ['air_no2'],
+    status: 'Optional extension',
+    description: 'Forecast PM2.5 using NO2 as an optional extension discussed by the team.',
   },
   {
     id: 'custom',
@@ -127,8 +172,9 @@ export const scenarioOptions = [
 ];
 
 export const modelOptions = [
-  { key: 'xgboost', label: 'XGBoost' },
   { key: 'sarima', label: 'SARIMA' },
+  { key: 'lstm', label: 'LSTM' },
+  { key: 'xgboost', label: 'XGBoost' },
   { key: 'var', label: 'VAR' },
   { key: 'prophet', label: 'Prophet' },
 ];
@@ -146,9 +192,32 @@ export const horizonOptions = [
   { key: 12, label: '12 months' },
 ];
 
-export const defaultScenarioId = 'electricity_so2_to_ipi';
-export const defaultTargetKey = 'ipi_abs_index';
-export const defaultPredictorKeys = ['electricity_total', 'air_so2'];
+export const defaultScenarioId = 'ipi_electricity_to_so2';
+export const defaultTargetKey = 'air_so2';
+export const defaultPredictorKeys = scenario2PreferredPredictorKeys;
+
+export const univariateTargetsUnderConsideration = [
+  {
+    key: 'electricity_local',
+    label: 'Local electricity consumption',
+    availability: 'Available',
+    availableInBuiltIn: true,
+  },
+  { key: 'air_so2', label: 'SO2', availability: 'Available', availableInBuiltIn: true },
+  { key: 'air_no2', label: 'NO2', availability: 'Available', availableInBuiltIn: true },
+  {
+    key: 'ipi_abs_index_sa',
+    label: 'Seasonally adjusted IPI absolute index',
+    availability: 'Available',
+    availableInBuiltIn: true,
+  },
+  {
+    key: 'vehicle_registrations',
+    label: 'Car registrations',
+    availability: 'Requires uploaded dataset',
+    availableInBuiltIn: false,
+  },
+];
 
 export const labelFor = (options, key) =>
   options.find((option) => option.key === key || option.id === key)?.label ?? key;
@@ -188,11 +257,40 @@ export const getAvailablePredictorOptions = (rows) => getAvailableOptions(rows, 
 
 export const hasNumericColumn = (rows, key) => rows.some((row) => Number.isFinite(row[key]));
 
+export const getScenario2PredictorResolution = (rows) => {
+  const hasPreferredIpi = hasNumericColumn(rows, 'ipi_abs_index_sa');
+  const hasPreferredElectricity = hasNumericColumn(rows, 'electricity_local');
+  const ipiKey = hasPreferredIpi ? 'ipi_abs_index_sa' : hasNumericColumn(rows, 'ipi_abs_index') ? 'ipi_abs_index' : '';
+  const electricityKey = hasPreferredElectricity
+    ? 'electricity_local'
+    : hasNumericColumn(rows, 'electricity_total')
+      ? 'electricity_total'
+      : '';
+  const keys = [ipiKey, electricityKey].filter(Boolean);
+  const usesPreferredPair = ipiKey === 'ipi_abs_index_sa' && electricityKey === 'electricity_local';
+
+  return {
+    keys,
+    ready: keys.length === 2,
+    label: usesPreferredPair ? 'Configured predictors' : 'Fallback predictors',
+    usesFallback: !usesPreferredPair,
+  };
+};
+
 export const getScenarioPredictorKeys = (scenarioId, rows) => {
   const scenario = getScenarioDefinition(scenarioId);
 
   if (scenario.id === 'custom') {
     return getAvailablePredictorOptions(rows).map((option) => option.key);
+  }
+
+  if (scenario.id === 'vehicle_electricity_to_no2') {
+    const vehicleKeys = vehiclePredictorKeys.filter((key) => hasNumericColumn(rows, key));
+    return hasNumericColumn(rows, 'electricity_local') ? ['electricity_local', ...vehicleKeys] : vehicleKeys;
+  }
+
+  if (scenario.id === 'ipi_electricity_to_so2') {
+    return getScenario2PredictorResolution(rows).keys;
   }
 
   return scenario.acceptedPredictors.filter((key) => hasNumericColumn(rows, key));
@@ -206,6 +304,19 @@ export const isScenarioCompatible = (scenarioId, rows) => {
   }
 
   const hasTarget = hasNumericColumn(rows, scenario.target);
+
+  if (scenario.id === 'vehicle_electricity_to_no2') {
+    return (
+      hasTarget &&
+      hasNumericColumn(rows, 'electricity_local') &&
+      vehiclePredictorKeys.some((key) => hasNumericColumn(rows, key))
+    );
+  }
+
+  if (scenario.id === 'ipi_electricity_to_so2') {
+    return hasTarget && getScenario2PredictorResolution(rows).ready;
+  }
+
   const availablePredictors = scenario.acceptedPredictors.filter((key) => hasNumericColumn(rows, key));
   const hasRequiredPredictors = scenario.requiredPredictors.every((key) => hasNumericColumn(rows, key));
   const hasAcceptedPredictor = availablePredictors.length > 0;
@@ -237,6 +348,12 @@ export const targetAliases = {
   ipi_abs_index: 'ipi_abs_index',
   industrial_production_index: 'ipi_abs_index',
   'industrial production index': 'ipi_abs_index',
+  ipi_abs_index_sa: 'ipi_abs_index_sa',
+  seasonally_adjusted_ipi_absolute_index: 'ipi_abs_index_sa',
+  sa_ipi: 'ipi_abs_index_sa',
+  electricity_local: 'electricity_local',
+  local_electricity: 'electricity_local',
+  vehicle_registrations: 'vehicle_registrations',
   industrial_index: 'industrial_index',
   ipi_growth_yoy_index: 'ipi_growth_yoy_index',
 };

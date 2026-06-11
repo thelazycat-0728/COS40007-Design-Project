@@ -18,16 +18,27 @@ const targetInsight = {
     body:
       'PM2.5 forecasts can help teams monitor whether transport or activity indicators align with fine particulate matter trends. This supports air-quality and public-health planning when real vehicle predictors and trained models are available.',
   },
-  ipi_abs_index: {
-    heading: 'IPI planning interpretation',
+  air_no2: {
+    heading: 'NO2 planning interpretation',
     points: [
-      'industrial activity monitoring',
-      'electricity demand analysis',
-      'environmental-economic planning',
-      'production trend reporting',
+      'transport activity monitoring',
+      'local electricity review',
+      'air-quality monitoring',
+      'meeting scenario validation',
     ],
     body:
-      'IPI forecasts can support industrial activity monitoring and production trend reporting. Electricity consumption and SO2 are treated as intended model predictors for the final trained Scenario B workflow.',
+      'NO2 is the target for the vehicle activity and local electricity scenario under discussion. Built-in data can show NO2 history, but vehicle-related model inputs require a compatible uploaded dataset.',
+  },
+  air_so2: {
+    heading: 'SO2 planning interpretation',
+    points: [
+      'SO2 trend monitoring',
+      'electricity demand analysis',
+      'environmental-economic planning',
+      'IPI relationship review',
+    ],
+    body:
+      'SO2 is the target for the IPI and electricity scenario under discussion. The built-in dataset supports the prototype fallback view, while final trained outputs remain pending until teammates provide model files and metrics.',
   },
 };
 

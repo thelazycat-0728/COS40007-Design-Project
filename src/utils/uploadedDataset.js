@@ -4,6 +4,8 @@ import {
   getTargetDefinition,
   labelFor,
   predictorOptions,
+  scenario2FallbackPredictorKeys,
+  scenario2PreferredPredictorKeys,
   scenarioOptions,
   targetOptions,
   vehiclePredictorKeys,
@@ -66,13 +68,17 @@ const getInvalidNumericEntries = (rawRows, columns) =>
   }, 0);
 
 const getScenarioCompatibility = (detectedTargets, detectedPredictors) => ({
-  vehicle_to_pm25:
-    detectedTargets.includes('air_pm_25') &&
+  vehicle_electricity_to_no2:
+    detectedTargets.includes('air_no2') &&
+    detectedPredictors.includes('electricity_local') &&
     vehiclePredictorKeys.some((key) => detectedPredictors.includes(key)),
-  electricity_so2_to_ipi:
-    detectedTargets.includes('ipi_abs_index') &&
-    detectedPredictors.includes('electricity_total') &&
-    detectedPredictors.includes('air_so2'),
+  ipi_electricity_to_so2:
+    detectedTargets.includes('air_so2') &&
+    [...scenario2PreferredPredictorKeys, ...scenario2FallbackPredictorKeys].some(
+      (key) => key.startsWith('ipi_') && detectedPredictors.includes(key),
+    ) &&
+    ['electricity_local', 'electricity_total'].some((key) => detectedPredictors.includes(key)),
+  no2_to_pm25: detectedTargets.includes('air_pm_25') && detectedPredictors.includes('air_no2'),
   custom: detectedTargets.length > 0 && detectedPredictors.length > 0,
 });
 

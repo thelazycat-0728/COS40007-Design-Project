@@ -11,16 +11,17 @@ import {
 import Selector from '../components/Selector';
 import {
   countryOptions,
-  defaultPredictorKeys,
   formatPredictorList,
   getAvailablePredictorOptions,
   getAvailableTargetOptions,
   getPredictorDefinition,
   getScenarioDefinition,
+  getScenario2PredictorResolution,
   getScenarioPredictorKeys,
   getTargetDefinition,
   hasNumericColumn,
   horizonOptions,
+  isScenarioCompatible,
   labelFor,
   modelOptions,
   scenarioOptions,
@@ -37,7 +38,7 @@ import {
 import { getMatchingForecastRows } from '../utils/modelOutputs';
 
 const unavailableVehicleMessage =
-  'Vehicle-related predictors are not available in the built-in Malaysia dataset. Upload a compatible regional dataset containing PM2.5 and at least one supported vehicle or transport indicator.';
+  'Vehicle-related predictors are not available in the built-in Malaysia dataset. Upload a compatible regional dataset containing NO2, local electricity consumption, and at least one supported vehicle or transport indicator.';
 
 const buildCountryOptions = (uploadedDataset) =>
   uploadedDataset
@@ -73,14 +74,24 @@ const getActiveContext = ({ rows, selectedCountry, uploadedDataset }) => {
 const getPredictorOptionsForScenario = ({ scenarioId, rows, selectedTarget }) => {
   const scenario = getScenarioDefinition(scenarioId);
 
-  if (scenario.id === 'vehicle_to_pm25') {
-    return vehiclePredictorKeys
+  if (scenario.id === 'vehicle_electricity_to_no2') {
+    const electricityOption = hasNumericColumn(rows, 'electricity_local')
+      ? [getPredictorDefinition('electricity_local')]
+      : [];
+    const vehicleOptions = vehiclePredictorKeys
       .filter((key) => hasNumericColumn(rows, key))
       .map((key) => getPredictorDefinition(key));
+    return [...electricityOption, ...vehicleOptions];
   }
 
-  if (scenario.id === 'electricity_so2_to_ipi') {
-    return defaultPredictorKeys.map((key) => getPredictorDefinition(key));
+  if (scenario.id === 'ipi_electricity_to_so2') {
+    return getScenario2PredictorResolution(rows).keys.map((key) => getPredictorDefinition(key));
+  }
+
+  if (scenario.id === 'no2_to_pm25') {
+    return scenario.acceptedPredictors
+      .filter((key) => hasNumericColumn(rows, key))
+      .map((key) => getPredictorDefinition(key));
   }
 
   return getAvailablePredictorOptions(rows).filter((option) => option.key !== selectedTarget);
@@ -146,6 +157,8 @@ export default function ForecastSimulator({
   const horizonLabel = labelFor(horizonOptions, Number(forecastHorizon));
   const unit = unitForTarget(selectedTarget);
   const countrySelectOptions = buildCountryOptions(uploadedDataset);
+  const scenario2Resolution = getScenario2PredictorResolution(activeRows);
+  const scenario2PredictorKeyString = scenario2Resolution.keys.join('|');
   const targetOptions =
     scenario.id === 'custom' ? getAvailableTargetOptions(activeRows) : [getTargetDefinition(scenario.target)];
   const predictorOptions = getPredictorOptionsForScenario({
@@ -153,12 +166,24 @@ export default function ForecastSimulator({
     rows: activeRows,
     selectedTarget,
   });
-  const forcedPredictors = scenario.id === 'electricity_so2_to_ipi' ? defaultPredictorKeys : [];
+  const forcedPredictors =
+    scenario.id === 'ipi_electricity_to_so2'
+      ? scenario2Resolution.keys
+      : scenario.id === 'no2_to_pm25'
+        ? ['air_no2']
+        : scenario.id === 'vehicle_electricity_to_no2' && hasNumericColumn(activeRows, 'electricity_local')
+          ? ['electricity_local']
+          : [];
   const availableScenarioPredictors = getScenarioPredictorKeys(selectedScenario, activeRows);
+  const selectedAvailablePredictors = selectedPredictors.filter((key) =>
+    availableScenarioPredictors.includes(key),
+  );
   const effectivePredictors =
-    scenario.id === 'electricity_so2_to_ipi'
-      ? defaultPredictorKeys
-      : selectedPredictors.filter((key) => availableScenarioPredictors.includes(key));
+    scenario.id === 'ipi_electricity_to_so2' || scenario.id === 'no2_to_pm25'
+      ? forcedPredictors
+      : scenario.id === 'vehicle_electricity_to_no2'
+        ? [...forcedPredictors, ...selectedAvailablePredictors.filter((key) => key !== 'electricity_local')]
+        : selectedAvailablePredictors;
 
   useEffect(() => {
     if (scenario.id !== 'custom' && selectedTarget !== scenario.target) {
@@ -167,32 +192,49 @@ export default function ForecastSimulator({
   }, [scenario.id, scenario.target, selectedTarget, setSelectedTarget]);
 
   useEffect(() => {
-    if (scenario.id === 'electricity_so2_to_ipi') {
-      setSelectedPredictors(defaultPredictorKeys);
+    if (scenario.id === 'ipi_electricity_to_so2') {
+      if (selectedPredictors.join('|') !== scenario2PredictorKeyString) {
+        setSelectedPredictors(scenario2Resolution.keys);
+      }
       return;
     }
 
-    if (scenario.id === 'vehicle_to_pm25' && selectedCountry === 'uploaded') {
+    if (scenario.id === 'no2_to_pm25') {
+      if (selectedPredictors.join('|') !== 'air_no2') {
+        setSelectedPredictors(['air_no2']);
+      }
+      return;
+    }
+
+    if (scenario.id === 'vehicle_electricity_to_no2' && selectedCountry === 'uploaded') {
       const availableVehiclePredictors = vehiclePredictorKeys.filter((key) => hasNumericColumn(activeRows, key));
       const selectedAvailable = selectedPredictors.filter((key) => availableVehiclePredictors.includes(key));
       if (!selectedAvailable.length && availableVehiclePredictors.length) {
         setSelectedPredictors([availableVehiclePredictors[0]]);
       }
     }
-  }, [activeRows, scenario.id, selectedCountry, selectedPredictors, setSelectedPredictors]);
+  }, [
+    activeRows,
+    scenario.id,
+    scenario2PredictorKeyString,
+    scenario2Resolution.keys,
+    selectedCountry,
+    selectedPredictors,
+    setSelectedPredictors,
+  ]);
 
   const hasTarget = hasNumericColumn(activeRows, selectedTarget);
-  const hasRequiredPredictors =
-    scenario.id === 'electricity_so2_to_ipi'
-      ? defaultPredictorKeys.every((key) => hasNumericColumn(activeRows, key))
-      : true;
   const hasSelectedPredictors = effectivePredictors.length > 0;
-  const isVehicleUnavailableBuiltIn = scenario.id === 'vehicle_to_pm25' && activeContext.isBuiltIn;
+  const hasSelectedVehiclePredictor =
+    scenario.id !== 'vehicle_electricity_to_no2' ||
+    effectivePredictors.some((key) => vehiclePredictorKeys.includes(key));
+  const isVehicleUnavailableBuiltIn = scenario.id === 'vehicle_electricity_to_no2' && activeContext.isBuiltIn;
   const scenarioReady =
     !isVehicleUnavailableBuiltIn &&
     hasTarget &&
-    hasRequiredPredictors &&
-    (scenario.id === 'custom' || scenario.id === 'vehicle_to_pm25' ? hasSelectedPredictors : true);
+    isScenarioCompatible(selectedScenario, activeRows) &&
+    hasSelectedVehiclePredictor &&
+    (scenario.id === 'custom' ? hasSelectedPredictors : true);
 
   const matchingModelRows = scenarioReady
     ? getMatchingForecastRows({
@@ -226,7 +268,22 @@ export default function ForecastSimulator({
         predictorKeys: effectivePredictors,
       })
     : '';
-  const forecastKind = isFinalOutput ? 'model forecast' : 'prototype forecast';
+  const forecastKind = isFinalOutput ? 'final model output' : 'prototype forecast';
+  const predictorSetLabel =
+    scenario.id === 'ipi_electricity_to_so2' ? scenario2Resolution.label : 'Configured predictors';
+  const datasetReadiness = isVehicleUnavailableBuiltIn
+    ? 'Requires uploaded vehicle data'
+    : scenarioReady
+      ? `Available in ${activeContext.countryLabel} dataset`
+      : 'Missing compatible target or predictor columns';
+  const outputSource = !scenarioReady ? 'Not available' : isFinalOutput ? 'Final model output' : 'Prototype fallback';
+  const scenarioLimitation = isVehicleUnavailableBuiltIn
+    ? unavailableVehicleMessage
+    : scenarioReady && !isFinalOutput
+      ? prototypeFallbackNotice
+      : scenarioReady
+        ? 'Matching final model output is connected for this selected task.'
+        : 'Upload or select a dataset with the required target and predictor columns.';
 
   return (
     <section className="page-section">
@@ -244,7 +301,7 @@ export default function ForecastSimulator({
       <div className="control-grid forecast-control-grid">
         <Selector
           id="forecast-country"
-          label="Country"
+          label="Country / dataset source"
           value={selectedCountry}
           options={countrySelectOptions}
           onChange={setSelectedCountry}
@@ -265,13 +322,13 @@ export default function ForecastSimulator({
         />
         <CheckboxGroup
           options={predictorOptions}
-          selectedKeys={forcedPredictors.length ? forcedPredictors : selectedPredictors}
+          selectedKeys={effectivePredictors}
           disabledKeys={forcedPredictors}
           onChange={setSelectedPredictors}
         />
         <Selector
           id="forecast-model"
-          label="Forecast model"
+          label="Model display option"
           value={selectedModel}
           options={modelOptions}
           onChange={setSelectedModel}
@@ -283,6 +340,32 @@ export default function ForecastSimulator({
           options={horizonOptions}
           onChange={(value) => setForecastHorizon(Number(value))}
         />
+      </div>
+
+      <div className="text-panel scenario-definition-card">
+        <h2>Scenario definition</h2>
+        <div className="definition-grid">
+          <div>
+            <span>Target</span>
+            <strong>{targetDefinition.label}</strong>
+          </div>
+          <div>
+            <span>{predictorSetLabel}</span>
+            <strong>{effectivePredictors.length ? formatPredictorList(effectivePredictors) : 'Not available'}</strong>
+          </div>
+          <div>
+            <span>Dataset readiness</span>
+            <strong>{datasetReadiness}</strong>
+          </div>
+          <div>
+            <span>Current output source</span>
+            <strong>{outputSource}</strong>
+          </div>
+        </div>
+        <p>
+          {predictorSetLabel}: {effectivePredictors.length ? formatPredictorList(effectivePredictors) : 'Not available'}.{' '}
+          {scenarioLimitation}
+        </p>
       </div>
 
       <div className={scenarioReady ? 'status-note' : 'upload-message error'}>

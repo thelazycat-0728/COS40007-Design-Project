@@ -10,8 +10,8 @@ import {
 } from 'recharts';
 import Selector from '../components/Selector';
 import {
-  defaultPredictorKeys,
   formatPredictorList,
+  getScenario2PredictorResolution,
   getPredictorDefinition,
   getScenarioDefinition,
   getTargetDefinition,
@@ -32,25 +32,34 @@ import {
 } from '../utils/uploadedDataset';
 
 const forecastDisclaimer =
-  'Uploaded dataset forecasts use prototype trend logic only. They are not trained XGBoost, SARIMA, VAR, or Prophet outputs.';
+  'Uploaded dataset forecasts use prototype trend logic only. They are not trained XGBoost, SARIMA, LSTM, VAR, or Prophet outputs.';
 
 const getInitialScenario = (scenarioCompatibility) => {
-  if (scenarioCompatibility?.vehicle_to_pm25) return 'vehicle_to_pm25';
-  if (scenarioCompatibility?.electricity_so2_to_ipi) return 'electricity_so2_to_ipi';
+  if (scenarioCompatibility?.vehicle_electricity_to_no2) return 'vehicle_electricity_to_no2';
+  if (scenarioCompatibility?.ipi_electricity_to_so2) return 'ipi_electricity_to_so2';
+  if (scenarioCompatibility?.no2_to_pm25) return 'no2_to_pm25';
   return 'custom';
 };
 
 const getScenarioPredictorOptions = (dataset, scenarioId, selectedTarget) => {
   if (!dataset) return [];
 
-  if (scenarioId === 'vehicle_to_pm25') {
-    return vehiclePredictorKeys
+  if (scenarioId === 'vehicle_electricity_to_no2') {
+    const electricityOption = dataset.detectedPredictors.includes('electricity_local')
+      ? [getPredictorDefinition('electricity_local')]
+      : [];
+    const vehicleOptions = vehiclePredictorKeys
       .filter((key) => dataset.detectedPredictors.includes(key))
       .map((key) => getPredictorDefinition(key));
+    return [...electricityOption, ...vehicleOptions];
   }
 
-  if (scenarioId === 'electricity_so2_to_ipi') {
-    return defaultPredictorKeys
+  if (scenarioId === 'ipi_electricity_to_so2') {
+    return getScenario2PredictorResolution(dataset.rows).keys.map((key) => getPredictorDefinition(key));
+  }
+
+  if (scenarioId === 'no2_to_pm25') {
+    return ['air_no2']
       .filter((key) => dataset.detectedPredictors.includes(key))
       .map((key) => getPredictorDefinition(key));
   }
@@ -115,17 +124,23 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
   useEffect(() => {
     if (!uploadedDataset) return;
 
-    if (uploadedScenario === 'vehicle_to_pm25') {
-      setUploadedTarget('air_pm_25');
+    if (uploadedScenario === 'vehicle_electricity_to_no2') {
+      setUploadedTarget('air_no2');
       setUploadedPredictors(
         vehiclePredictorKeys.filter((key) => uploadedDataset.detectedPredictors.includes(key)).slice(0, 1),
       );
       return;
     }
 
-    if (uploadedScenario === 'electricity_so2_to_ipi') {
-      setUploadedTarget('ipi_abs_index');
-      setUploadedPredictors(defaultPredictorKeys);
+    if (uploadedScenario === 'ipi_electricity_to_so2') {
+      setUploadedTarget('air_so2');
+      setUploadedPredictors(getScenario2PredictorResolution(uploadedDataset.rows).keys);
+      return;
+    }
+
+    if (uploadedScenario === 'no2_to_pm25') {
+      setUploadedTarget('air_pm_25');
+      setUploadedPredictors(['air_no2']);
       return;
     }
 
@@ -152,17 +167,39 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
       ? targetSelectorOptions
       : [{ key: getScenarioDefinition(uploadedScenario).target, label: getTargetDefinition(getScenarioDefinition(uploadedScenario).target).label }];
   const predictorSelectorOptions = getScenarioPredictorOptions(uploadedDataset, uploadedScenario, uploadedTarget);
-  const forcedPredictors = uploadedScenario === 'electricity_so2_to_ipi' ? defaultPredictorKeys : [];
-  const effectivePredictors = forcedPredictors.length ? forcedPredictors : uploadedPredictors;
+  const scenario2Resolution = uploadedDataset
+    ? getScenario2PredictorResolution(uploadedDataset.rows)
+    : { keys: [], label: 'Configured predictors' };
+  const forcedPredictors =
+    uploadedScenario === 'ipi_electricity_to_so2'
+      ? scenario2Resolution.keys
+      : uploadedScenario === 'no2_to_pm25'
+        ? ['air_no2']
+        : uploadedScenario === 'vehicle_electricity_to_no2' &&
+            uploadedDataset?.detectedPredictors.includes('electricity_local')
+          ? ['electricity_local']
+          : [];
+  const effectivePredictors =
+    uploadedScenario === 'vehicle_electricity_to_no2'
+      ? [
+          ...forcedPredictors,
+          ...uploadedPredictors.filter((key) => vehiclePredictorKeys.includes(key)),
+        ]
+      : forcedPredictors.length
+        ? forcedPredictors
+        : uploadedPredictors;
   const targetDefinition = getTargetDefinition(uploadedTarget);
   const horizonLabel = labelFor(horizonOptions, Number(uploadedHorizon));
   const unit = unitForTarget(uploadedTarget);
   const rows = uploadedDataset?.rows ?? [];
   const scenario = getScenarioDefinition(uploadedScenario);
+  const hasSelectedUploadedVehiclePredictor =
+    uploadedScenario !== 'vehicle_electricity_to_no2' ||
+    effectivePredictors.some((key) => vehiclePredictorKeys.includes(key));
   const scenarioCompatible =
     uploadedScenario === 'custom'
       ? Boolean(uploadedTarget && effectivePredictors.length)
-      : Boolean(uploadedDataset?.scenarioCompatibility?.[uploadedScenario]);
+      : Boolean(uploadedDataset?.scenarioCompatibility?.[uploadedScenario]) && hasSelectedUploadedVehiclePredictor;
   const forecast = scenarioCompatible
     ? generatePrototypeForecast(rows, uploadedTarget, Number(uploadedHorizon))
     : null;
@@ -288,16 +325,22 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
 
           <div className="summary-grid">
             <ScenarioCompatibilityCard
-              label="Vehicle activity → PM2.5"
-              compatible={uploadedDataset.scenarioCompatibility.vehicle_to_pm25}
+              label="Vehicle activity + local electricity → NO2"
+              compatible={uploadedDataset.scenarioCompatibility.vehicle_electricity_to_no2}
             >
-              Requires `air_pm_25` and at least one vehicle or transport predictor.
+              Requires `air_no2`, `electricity_local`, and at least one vehicle or transport predictor.
             </ScenarioCompatibilityCard>
             <ScenarioCompatibilityCard
-              label="Electricity + SO2 → IPI"
-              compatible={uploadedDataset.scenarioCompatibility.electricity_so2_to_ipi}
+              label="IPI + electricity → SO2"
+              compatible={uploadedDataset.scenarioCompatibility.ipi_electricity_to_so2}
             >
-              Requires `ipi_abs_index`, `electricity_total`, and `air_so2`.
+              Requires `air_so2`, an IPI predictor, and an electricity predictor.
+            </ScenarioCompatibilityCard>
+            <ScenarioCompatibilityCard
+              label="NO2 → PM2.5"
+              compatible={uploadedDataset.scenarioCompatibility.no2_to_pm25}
+            >
+              Requires `air_pm_25` and `air_no2`.
             </ScenarioCompatibilityCard>
             <ScenarioCompatibilityCard label="Custom scenario" compatible={uploadedDataset.scenarioCompatibility.custom}>
               Requires at least one supported target and one supported predictor.
@@ -347,7 +390,11 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
 
           <div className={scenarioCompatible ? 'status-note' : 'upload-message error'}>
             {scenarioCompatible ? (
-              `${scenario.label} is compatible with the uploaded dataset. ${prototypeFallbackNotice}`
+              `${scenario.label} is compatible with the uploaded dataset. ${
+                uploadedScenario === 'ipi_electricity_to_so2'
+                  ? `${scenario2Resolution.label}: ${formatPredictorList(effectivePredictors)}. `
+                  : ''
+              }${prototypeFallbackNotice}`
             ) : (
               <strong>The selected scenario is not compatible with the detected uploaded columns.</strong>
             )}

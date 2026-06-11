@@ -224,6 +224,38 @@ button {
   line-height: 1.6;
 }
 
+.definition-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 14px;
+}
+
+.definition-grid div {
+  padding: 14px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.definition-grid span,
+.definition-grid strong {
+  display: block;
+}
+
+.definition-grid span {
+  color: #526779;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.definition-grid strong {
+  margin-top: 8px;
+  color: #0d2736;
+  line-height: 1.35;
+}
+
 .control-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(180px, 1fr));
@@ -688,7 +720,8 @@ td {
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,
-  .summary-grid {
+  .summary-grid,
+  .definition-grid {
     grid-template-columns: repeat(2, minmax(160px, 1fr));
   }
 
@@ -726,7 +759,8 @@ td {
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,
-  .summary-grid {
+  .summary-grid,
+  .definition-grid {
     grid-template-columns: 1fr;
   }
 

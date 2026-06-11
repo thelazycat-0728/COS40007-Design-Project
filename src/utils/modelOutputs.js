@@ -11,8 +11,9 @@ import {
 export const MODEL_OUTPUT_BASE_PATH = '/model_outputs';
 
 export const forecastFileNames = {
-  xgboost: 'xgboost_forecast.csv',
   sarima: 'sarima_forecast.csv',
+  lstm: 'lstm_forecast.csv',
+  xgboost: 'xgboost_forecast.csv',
   var: 'var_forecast.csv',
   prophet: 'prophet_forecast.csv',
 };
@@ -31,6 +32,7 @@ export const defaultModelOutputs = {
 const modelAliases = {
   xgboost: 'xgboost',
   xgb: 'xgboost',
+  lstm: 'lstm',
   sarima: 'sarima',
   var: 'var',
   prophet: 'prophet',

@@ -13,6 +13,7 @@ import {
   getScenarioDefinition,
   getTargetDefinition,
   labelFor,
+  modelOptions,
   scenarioOptions,
 } from '../utils/constants';
 import { getBestModelByRmse } from '../utils/modelMetrics';
@@ -59,7 +60,7 @@ export default function ModelComparison({
       <div className="section-heading">
         <div>
           <p className="eyebrow">Model Comparison</p>
-          <h1>{hasFinalMetrics ? 'Forecast model evaluation results' : 'No final metrics connected'}</h1>
+          <h1>{hasFinalMetrics ? 'Forecast model evaluation results' : 'Pending team results'}</h1>
           <p>
             Metrics are filtered by country, target, and scenario so different forecasting tasks are
             not compared as though they share the same target.
@@ -79,14 +80,44 @@ export default function ModelComparison({
       />
 
       {!hasFinalMetrics ? (
-        <div className="text-panel">
-          <h2>Evaluation pending</h2>
-          <p>
-            No production `model_metrics.json` entries match the selected target and scenario. This
-            page will populate after final model evaluation outputs are added using the generic target
-            schema.
-          </p>
-        </div>
+        <>
+          <div className="text-panel">
+            <h2>Pending team results</h2>
+            <p>
+              No real `model_metrics.json` entries match the selected target and scenario. Metric
+              bars and ranking are hidden until teammates provide trained results and evaluation
+              metrics.
+            </p>
+            <p>
+              The final model set and ranking will be confirmed after all team members provide trained
+              results and evaluation metrics.
+            </p>
+          </div>
+          <div className="table-panel">
+            <div className="panel-heading">
+              <h2>Model result status</h2>
+              <span>No placeholder comparison values are shown</span>
+            </div>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Model</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {modelOptions.map((model) => (
+                    <tr key={model.key}>
+                      <td>{model.label}</td>
+                      <td>Pending team results</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       ) : (
         <div className="split-grid">
           <div className="table-panel">
@@ -124,7 +155,11 @@ export default function ModelComparison({
                       <td>{metric.rmse.toFixed(2)}</td>
                       <td>{Number.isFinite(metric.mape) ? `${metric.mape.toFixed(1)}%` : '-'}</td>
                       <td>
-                        {metric === bestModelByRmse ? 'Current best model' : metric.legacySource ? 'Legacy schema' : '-'}
+                        {metric === bestModelByRmse
+                          ? 'Lowest connected RMSE'
+                          : metric.legacySource
+                            ? 'Legacy schema'
+                            : 'Connected metric'}
                       </td>
                     </tr>
                   ))}

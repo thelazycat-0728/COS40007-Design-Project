@@ -12,11 +12,11 @@ import Selector from '../components/Selector';
 import { compactNumber, tableColumns } from '../utils/data';
 import {
   countryOptions,
-  defaultPredictorKeys,
   getAvailablePredictorOptions,
   getAvailableTargetOptions,
   getPredictorDefinition,
   getScenarioDefinition,
+  getScenario2PredictorResolution,
   getTargetDefinition,
   hasNumericColumn,
   scenarioOptions,
@@ -44,14 +44,24 @@ const getTargetOptions = ({ scenario, rows }) =>
   scenario.id === 'custom' ? getAvailableTargetOptions(rows) : [getTargetDefinition(scenario.target)];
 
 const getPredictorOptions = ({ scenario, rows, selectedTarget }) => {
-  if (scenario.id === 'vehicle_to_pm25') {
-    return vehiclePredictorKeys
+  if (scenario.id === 'vehicle_electricity_to_no2') {
+    const electricityOption = hasNumericColumn(rows, 'electricity_local')
+      ? [getPredictorDefinition('electricity_local')]
+      : [];
+    const vehicleOptions = vehiclePredictorKeys
       .filter((key) => hasNumericColumn(rows, key))
       .map((key) => getPredictorDefinition(key));
+    return [...electricityOption, ...vehicleOptions];
   }
 
-  if (scenario.id === 'electricity_so2_to_ipi') {
-    return defaultPredictorKeys.map((key) => getPredictorDefinition(key));
+  if (scenario.id === 'ipi_electricity_to_so2') {
+    return getScenario2PredictorResolution(rows).keys.map((key) => getPredictorDefinition(key));
+  }
+
+  if (scenario.id === 'no2_to_pm25') {
+    return scenario.acceptedPredictors
+      .filter((key) => hasNumericColumn(rows, key))
+      .map((key) => getPredictorDefinition(key));
   }
 
   return getAvailablePredictorOptions(rows).filter((option) => option.key !== selectedTarget);
@@ -80,14 +90,24 @@ export default function DataExplorer({
     '';
   const targetDefinition = getTargetDefinition(selectedTarget);
   const predictorDefinition = selectedPredictor ? getPredictorDefinition(selectedPredictor) : null;
-  const isVehicleUnavailableBuiltIn = scenario.id === 'vehicle_to_pm25' && selectedCountry !== 'uploaded';
+  const isVehicleRelationshipUnavailableBuiltIn =
+    scenario.id === 'vehicle_electricity_to_no2' &&
+    selectedCountry !== 'uploaded' &&
+    !vehiclePredictorKeys.some((key) => hasNumericColumn(activeRows, key));
   const hasComparison = Boolean(
-    !isVehicleUnavailableBuiltIn &&
-      hasNumericColumn(activeRows, selectedTarget) &&
+    hasNumericColumn(activeRows, selectedTarget) &&
       selectedPredictor &&
       hasNumericColumn(activeRows, selectedPredictor),
   );
   const correlation = hasComparison ? calculateCorrelation(activeRows, selectedTarget, selectedPredictor) : null;
+  const explorationOptionsText =
+    scenario.id === 'vehicle_electricity_to_no2'
+      ? 'Predefined options: NO2 vs local electricity, and NO2 vs a detected vehicle predictor when uploaded data provides one.'
+      : scenario.id === 'ipi_electricity_to_so2'
+        ? 'Predefined options: SO2 vs seasonally adjusted IPI, and SO2 vs local electricity.'
+        : scenario.id === 'no2_to_pm25'
+          ? 'Predefined option: PM2.5 vs NO2 for the optional extension.'
+          : 'Custom exploration uses the selected target and predictor columns.';
   const chartRows = activeRows.map((row) => ({
     month: row.month,
     target: row[selectedTarget],
@@ -152,13 +172,14 @@ export default function DataExplorer({
         />
       </div>
 
-      {isVehicleUnavailableBuiltIn ? (
+      {isVehicleRelationshipUnavailableBuiltIn ? (
         <div className="upload-message error">
           <strong>
             Vehicle-related predictors are not available in the built-in Malaysia dataset. Upload a
-            compatible regional dataset containing PM2.5 and at least one supported vehicle or
-            transport indicator.
+            compatible regional dataset containing NO2, local electricity consumption, and at least
+            one supported vehicle or transport indicator.
           </strong>
+          <p>Built-in exploration can still compare NO2 with local electricity consumption.</p>
           <div className="inline-actions">
             <button
               className="template-button"
@@ -183,7 +204,7 @@ export default function DataExplorer({
         <div className="text-panel">
           <h2>Exploration scope</h2>
           <p>
-            {scenario.description} This chart is exploratory only; it is not a trained forecast and
+            {scenario.description} {explorationOptionsText} This chart is exploratory only; it is not a trained forecast and
             does not prove that {predictorDefinition?.label ?? 'the predictor'} causes changes in{' '}
             {targetDefinition.label}.
           </p>

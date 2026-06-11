@@ -1,7 +1,7 @@
 import { formatPredictorList, getScenarioDefinition, getTargetDefinition } from './constants';
 
 export const prototypeFallbackNotice =
-  "Prototype fallback uses the target variable's recent historical trend. The selected predictors describe the intended model scenario but are not used by the frontend fallback algorithm.";
+  'Prototype fallback uses the target variable’s recent historical trend. The selected predictors represent the intended final model inputs and are not used by the frontend fallback algorithm.';
 
 const addMonths = (dateValue, months) => {
   const date = new Date(dateValue);
@@ -150,12 +150,16 @@ const directionPhrase = (trendDirection, targetLabel) => {
 };
 
 const categoryContext = (targetDefinition, scenarioId, predictorKeys) => {
-  if (scenarioId === 'electricity_so2_to_ipi') {
-    return 'Electricity consumption and SO2 are the intended predictors for the final trained model.';
+  if (scenarioId === 'vehicle_electricity_to_no2') {
+    return 'Local electricity consumption and vehicle activity indicators are the intended predictors for the final trained model.';
   }
 
-  if (scenarioId === 'vehicle_to_pm25') {
-    return 'Vehicle and transport indicators are the intended predictors for the final trained model.';
+  if (scenarioId === 'ipi_electricity_to_so2') {
+    return 'An IPI indicator and electricity consumption are the intended predictors for the final trained model.';
+  }
+
+  if (scenarioId === 'no2_to_pm25') {
+    return 'NO2 is the intended predictor for this optional extension workflow.';
   }
 
   if (targetDefinition.category === 'industrial') {
@@ -191,8 +195,8 @@ export const createForecastInterpretation = ({
     return `The ${modelLabel} output indicates ${trendText} over the next ${horizonLabel} for the ${scenario.label} scenario. These values are loaded from final model output files connected to the dashboard.`;
   }
 
-  if (scenarioId === 'electricity_so2_to_ipi') {
-    return `This prototype displays an IPI trend forecast based on recent IPI history. ${categoryContext(
+  if (scenarioId === 'ipi_electricity_to_so2') {
+    return `This prototype displays an SO2 trend forecast based on recent SO2 history. ${categoryContext(
       targetDefinition,
       scenarioId,
       predictorKeys,

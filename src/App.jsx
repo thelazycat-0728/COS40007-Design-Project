@@ -27,13 +27,17 @@ const sectionTitles = {
 };
 
 const scenarioDefaults = {
-  vehicle_to_pm25: {
-    target: 'air_pm_25',
+  vehicle_electricity_to_no2: {
+    target: 'air_no2',
     predictors: [],
   },
-  electricity_so2_to_ipi: {
+  ipi_electricity_to_so2: {
     target: defaultTargetKey,
     predictors: defaultPredictorKeys,
+  },
+  no2_to_pm25: {
+    target: 'air_pm_25',
+    predictors: ['air_no2'],
   },
 };
 

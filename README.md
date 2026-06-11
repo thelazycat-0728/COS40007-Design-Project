@@ -5,24 +5,43 @@ Project.
 
 ## Project Purpose
 
-This project focuses only on time-series forecasting. The dashboard supports generic forecast
-targets and predictors instead of treating every forecast target as a pollutant.
+This project focuses only on time-series forecasting. The dashboard separates target variables,
+predictor variables, forecast scenarios, model display options, horizon, and output source so the
+team can review the current meeting-demo directions without implying that browser prototype values
+are trained model results.
 
-Primary forecasting scenarios:
+Meeting-demo scenarios under confirmation:
 
-1. **Vehicle activity → PM2.5**
+1. **Vehicle activity + local electricity → NO2**
+   - Target: `air_no2`
+   - Intended predictors: `electricity_local` plus at least one supported vehicle indicator
+   - Current status: requires uploaded vehicle data. The built-in Malaysia dataset has no verified
+     vehicle-related predictor, so the GUI must not generate fake vehicle values or a built-in
+     prototype forecast for this scenario.
+
+2. **IPI + electricity → SO2**
+   - Target: `air_so2`
+   - Preferred predictors: `ipi_abs_index_sa`, `electricity_local`
+   - Fallback predictors: `ipi_abs_index`, `electricity_total`
+   - Current status: supported by the current cleaned Malaysia dataset. The GUI clearly labels
+     whether it is using configured predictors or fallback predictors.
+
+3. **NO2 → PM2.5**
    - Target: `air_pm_25`
-   - Intended predictors: `vehicle_registrations`, `car_sales`, `traffic_volume`,
-     `vehicle_production`, `transport_index`
-   - Current status: unavailable for the built-in Malaysia dataset because tracked data does not
-     contain vehicle or transport activity variables. Upload a compatible regional dataset to test
-     this scenario.
+   - Predictor: `air_no2`
+   - Current status: optional extension supported by the current cleaned Malaysia dataset.
 
-2. **Electricity + SO2 → IPI**
-   - Target: `ipi_abs_index`
-   - Required predictors: `electricity_total`, `air_so2`
-   - Current status: supported by the current cleaned Malaysia dataset. Final trained model outputs
-     are still pending unless production model-output files are added.
+Scenario definitions remain subject to confirmation by the modelling team.
+
+## Univariate Targets Under Consideration
+
+These are informational for meeting discussion only. No trained model is implied.
+
+- `electricity_local`: Local electricity consumption, available
+- `air_so2`: SO2, available
+- `air_no2`: NO2, available
+- `ipi_abs_index_sa`: Seasonally adjusted IPI absolute index, available
+- `vehicle_registrations`: Car registrations, requires uploaded dataset
 
 ## Tech Stack
 
@@ -32,19 +51,12 @@ Primary forecasting scenarios:
 - Plain CSS for dashboard layout and responsive styling
 - No backend
 
-## Installation
-
-```bash
-npm install
-```
-
 ## Local Run
 
 ```bash
+npm install
 npm run dev
 ```
-
-Open the local Vite URL printed in the terminal.
 
 ## Build
 
@@ -61,26 +73,29 @@ public/data/combined_air_electricity_ipi_cleaned.csv
 ```
 
 The built-in dataset contains monthly air pollution, electricity consumption, and IPI columns. It
-does not contain vehicle-related indicators, so Scenario A must remain unavailable for the built-in
-Malaysia dataset.
+does not contain a verified supported vehicle-related predictor, so Scenario 1 must remain
+unavailable until a compatible uploaded dataset is provided.
 
-Target-specific units:
+Target-specific meeting-demo units:
 
+- `air_no2`: NO2, `µg/m³`
+- `air_so2`: SO2, `µg/m³`
 - `air_pm_25`: PM2.5, `µg/m³`
-- `ipi_abs_index`: Industrial Production Index, `index points`
+- `electricity_local`: Local electricity consumption, `GWh`
+- `ipi_abs_index_sa`: Seasonally adjusted IPI absolute index, `index points`
 
 ## Prototype Forecasting
 
-Frontend prototype forecasts are fallback/demo values generated from the selected target variable's
-recent historical trend. The selected predictors describe the intended modelling scenario but are not
-used mathematically by the frontend fallback algorithm.
+Frontend prototype forecasts are fallback/demo values generated from the selected target variable’s
+recent historical trend. The selected predictors represent the intended final model inputs and are
+not used by the frontend fallback algorithm.
 
-The browser does not train XGBoost, SARIMA, VAR, or Prophet models.
+The browser does not train XGBoost, SARIMA, VAR, Prophet, or LSTM models.
 
 ## Final Model Output Integration
 
-The dashboard can automatically switch from prototype fallback outputs to final model outputs when
-production files are added under:
+The dashboard can switch from prototype fallback outputs to final model outputs when production
+files are added under:
 
 ```text
 public/model_outputs/
@@ -88,8 +103,9 @@ public/model_outputs/
 
 Supported optional forecast files:
 
-- `xgboost_forecast.csv`
 - `sarima_forecast.csv`
+- `lstm_forecast.csv`
+- `xgboost_forecast.csv`
 - `var_forecast.csv`
 - `prophet_forecast.csv`
 
@@ -102,82 +118,59 @@ date,country,target,model,forecast_value,lower_bound,upper_bound,scenario_id,pre
 Example:
 
 ```text
-2023-01-01,Malaysia,ipi_abs_index,XGBoost,118.4,116.1,120.6,electricity_so2_to_ipi,electricity_total;air_so2,index points
+2023-01-01,Malaysia,air_so2,XGBoost,7.4,7.1,7.7,ipi_electricity_to_so2,ipi_abs_index_sa;electricity_local,µg/m³
 ```
 
 `lower_bound`, `upper_bound`, `scenario_id`, `predictors`, and `unit` are optional. Legacy forecast
 files using `pollutant` instead of `target` are still accepted and mapped to the generic target
 system. New files should use `target`.
 
-Supported optional metrics file:
-
-```text
-public/model_outputs/model_metrics.json
-```
-
-Preferred metrics structure:
-
-```json
-{
-  "metrics": [
-    {
-      "model": "XGBoost",
-      "country": "Malaysia",
-      "target": "ipi_abs_index",
-      "scenario_id": "electricity_so2_to_ipi",
-      "predictors": ["electricity_total", "air_so2"],
-      "mae": 1.82,
-      "rmse": 2.41,
-      "mape": 8.6
-    }
-  ]
-}
-```
-
-Metrics are filtered by country, target, and scenario before model comparison. Legacy metrics using
-`pollutant` instead of `target` are accepted and labeled as legacy after parsing.
+Use `public/model_outputs/model_metrics.json` only when final evaluation metrics are available.
+Model Comparison shows **Pending team results** and hides metric bars until real matching metrics
+are loaded.
 
 ## Upload Regional Dataset
 
-The dashboard includes an **Upload Regional Dataset** page for browser-only CSV testing. Uploaded
-files are parsed in the current browser session with PapaParse and are not saved permanently.
+The **Upload Regional Dataset** page parses CSV files in the current browser session only. Uploaded
+files are not saved permanently.
 
 Required base columns:
 
 - `date`
 - `country`
 
-Supported forecast targets include:
+Supported meeting-demo targets include:
 
-- `air_pm_25`
-- `air_pm_10`
 - `air_no2`
-- `air_o3`
-- `air_co`
 - `air_so2`
-- `ipi_abs_index`
-- `ipi_growth_yoy_index`
-- `industrial_index`
+- `air_pm_25`
+- `electricity_local`
+- `ipi_abs_index_sa`
+- `vehicle_registrations`
 
 Supported predictors include:
 
-- `electricity_total`
-- `electricity_local`
-- `electricity_local_commercial`
-- `electricity_local_domestic`
-- `air_so2`
 - `vehicle_registrations`
 - `car_sales`
 - `traffic_volume`
 - `vehicle_production`
 - `transport_index`
+- `electricity_local`
+- `electricity_total`
 - `ipi_abs_index`
-- `ipi_growth_yoy_index`
-- `industrial_index`
+- `ipi_abs_index_sa`
+- `air_no2`
 
-Validation requires at least one supported target, at least one supported predictor, and at least 6
-valid chronological rows with numeric target values. Non-empty non-numeric target or predictor values
-are rejected.
+Scenario compatibility:
+
+- Scenario 1 requires `air_no2`, `electricity_local`, and at least one supported vehicle predictor.
+- Scenario 2 requires `air_so2`, either `ipi_abs_index_sa` or `ipi_abs_index`, and either
+  `electricity_local` or `electricity_total`.
+- Scenario 3 requires `air_pm_25` and `air_no2`.
+
+Validation also requires at least one supported target, at least one supported predictor, at least
+6 valid chronological rows with numeric target values, and no non-empty non-numeric values in
+detected numeric fields.
 
 Template file:
 
@@ -185,5 +178,5 @@ Template file:
 public/templates/regional_dataset_template.csv
 ```
 
-The template contains demo values only and should be replaced with real regional observations for
-analysis.
+The template contains demonstration values only and should be replaced with real regional
+observations for analysis.

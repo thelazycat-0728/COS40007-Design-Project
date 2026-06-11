@@ -1,7 +1,7 @@
-date,country,air_pm_25,air_so2,electricity_total,ipi_abs_index,vehicle_registrations,car_sales,traffic_volume
-2023-01-01,Demo Region,12.4,0.0021,4300,103.2,15200,3100,482000
-2023-02-01,Demo Region,11.9,0.0020,4280,102.7,14950,2980,476500
-2023-03-01,Demo Region,13.1,0.0022,4410,104.1,15820,3260,489300
-2023-04-01,Demo Region,12.8,0.0021,4375,103.8,15600,3190,486100
-2023-05-01,Demo Region,13.5,0.0023,4460,105.0,16150,3350,494800
-2023-06-01,Demo Region,13.0,0.0022,4425,104.4,15920,3290,491200
+date,country,air_no2,air_so2,air_pm_25,electricity_local,electricity_total,ipi_abs_index,ipi_abs_index_sa,vehicle_registrations
+2023-01-01,Demo Region,18.4,7.2,12.4,3020,4300,103.2,102.9,15200
+2023-02-01,Demo Region,17.9,7.0,11.9,2995,4280,102.7,102.6,14950
+2023-03-01,Demo Region,19.1,7.4,13.1,3105,4410,104.1,103.8,15820
+2023-04-01,Demo Region,18.8,7.3,12.8,3070,4375,103.8,103.4,15600
+2023-05-01,Demo Region,19.5,7.6,13.5,3150,4460,105.0,104.7,16150
+2023-06-01,Demo Region,19.0,7.5,13.0,3115,4425,104.4,104.1,15920

@@ -2,7 +2,7 @@ const countries = [
   {
     name: 'Malaysia',
     status: 'Active real dataset',
-    detail: 'OpenDOSM pollution, electricity, and industrial activity indicators are connected for Scenario B.',
+    detail: 'OpenDOSM pollution, electricity, and IPI indicators support the SO2 and PM2.5 meeting-demo scenarios.',
     active: true,
   },
   {

@@ -18,22 +18,29 @@ import {
   modelOptions,
   scenarioOptions,
   unitForTarget,
+  univariateTargetsUnderConsideration,
 } from '../utils/constants';
 import { getModelIntegrationStatuses } from '../utils/modelOutputs';
 import { calculateKpis } from '../utils/stats';
 
 const builtInScenarioCards = [
   {
-    id: 'vehicle_to_pm25',
-    title: 'Vehicle activity → PM2.5',
-    status: 'Requires compatible vehicle dataset',
-    body: 'The built-in Malaysia dataset has PM2.5 but does not include vehicle registrations, car sales, traffic volume, production, or transport activity indicators.',
+    id: 'vehicle_electricity_to_no2',
+    title: 'Vehicle activity + local electricity → NO2',
+    status: 'Requires vehicle dataset',
+    body: 'The built-in Malaysia dataset has NO2 and local electricity consumption, but no verified vehicle predictor. Upload compatible vehicle data before reviewing this scenario forecast.',
   },
   {
-    id: 'electricity_so2_to_ipi',
-    title: 'Electricity + SO2 → IPI',
+    id: 'ipi_electricity_to_so2',
+    title: 'IPI + electricity → SO2',
     status: 'Supported by current Malaysia cleaned dataset',
-    body: 'The built-in Malaysia dataset includes Industrial Production Index, total electricity consumption, and SO2. Final trained model output is still pending unless a matching model-output file is connected.',
+    body: 'The built-in Malaysia dataset includes SO2, seasonally adjusted IPI, and local electricity consumption. Final trained model output is still pending unless a matching model-output file is connected.',
+  },
+  {
+    id: 'no2_to_pm25',
+    title: 'NO2 → PM2.5',
+    status: 'Optional extension',
+    body: 'The built-in Malaysia dataset includes PM2.5 and NO2, so this optional extension can be reviewed as a prototype fallback scenario.',
   },
 ];
 
@@ -96,9 +103,13 @@ export default function Overview({
       </div>
 
       <div className="description-band">
+        <strong>Meeting demo:</strong> forecasting directions are subject to confirmation by the modelling team.
+      </div>
+
+      <div className="description-band">
         This prototype is scoped to time-series forecasting. It separates the forecast target, intended
-        predictors, scenario, model, horizon, and output source so PM2.5 and IPI tasks are not treated
-        as the same target type.
+        predictors, scenario, model, horizon, and output source so NO2, SO2, PM2.5, electricity, and
+        IPI discussions are not treated as the same target type.
       </div>
 
       <div className="country-grid scenario-card-grid">
@@ -146,6 +157,33 @@ export default function Overview({
         {hasMatchingFinalOutput
           ? 'A matching final model output is connected for the selected target and scenario.'
           : 'Final trained model output is pending for the selected target and scenario. Prototype pages use frontend fallback logic where allowed.'}
+      </div>
+
+      <div className="table-panel">
+        <div className="panel-heading">
+          <h2>Univariate targets under consideration</h2>
+          <span>Meeting discussion only; no trained model is implied</span>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Target</th>
+                <th>Column key</th>
+                <th>Availability</th>
+              </tr>
+            </thead>
+            <tbody>
+              {univariateTargetsUnderConsideration.map((target) => (
+                <tr key={target.key}>
+                  <td>{target.label}</td>
+                  <td>{target.key}</td>
+                  <td>{target.availability}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="kpi-grid">
