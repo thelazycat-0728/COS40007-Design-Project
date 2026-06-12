@@ -22,6 +22,33 @@ const officialModels = {
   multivariate: ['XGBoost', 'VAR'],
 };
 
+const statusLegendItems = [
+  {
+    status: 'connected_output',
+    body: 'Verified row-level output is connected to GUI charts, counts, and comparisons.',
+  },
+  {
+    status: 'ready_for_export',
+    body: 'Model and metrics exist; normalized frontend row export is still pending.',
+  },
+  {
+    status: 'branch_only',
+    body: 'Implementation exists off main and must be reviewed or merged before GUI use.',
+  },
+  {
+    status: 'notebook_only',
+    body: 'Code exists, but model outputs are incomplete or not exported.',
+  },
+  {
+    status: 'metrics_only',
+    body: 'Evaluation metrics are verified, but row-level output is not available.',
+  },
+  {
+    status: 'stale_or_mismatched',
+    body: 'Hidden from charts and rankings until source, target, and metadata are verified.',
+  },
+];
+
 const formatBoolean = (value) => (value ? 'Yes' : 'No');
 
 const formatMetric = (value) => {
@@ -129,6 +156,21 @@ export default function ModelReadiness({ modelOutputs }) {
         forecasting. Prophet, univariate XGBoost, VECM, and baselines remain secondary or experimental.
       </div>
 
+      <div className="table-panel">
+        <div className="panel-heading">
+          <h2>Status legend</h2>
+          <span>Read before interpreting simulator or comparison output</span>
+        </div>
+        <div className="status-legend-grid">
+          {statusLegendItems.map((item) => (
+            <article key={item.status}>
+              <StatusBadge status={item.status} />
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+
       <div className="summary-grid">
         <article className="summary-card">
           <span>GUI connected official outputs</span>
@@ -154,7 +196,7 @@ export default function ModelReadiness({ modelOutputs }) {
 
       {staleXgboostRows.length || staleMetricRows.length ? (
         <div className="upload-message error">
-          <strong>Integration paused - source verification required.</strong>
+          <strong>Integration paused · Source verification required.</strong>
           <p>
             The exported XGBoost SO2 rows reference a notebook whose current target no longer matches the
             output. The result is hidden from charts, connected counts, and comparisons until the model owner

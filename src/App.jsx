@@ -9,10 +9,14 @@ import PolicyInsight from './pages/PolicyInsight';
 import RegionalComparison from './pages/RegionalComparison';
 import UploadRegionalDataset from './pages/UploadRegionalDataset';
 import {
+  defaultAnalysisType,
   defaultPredictorKeys,
   defaultScenarioId,
   defaultTargetKey,
+  getDefaultModelForAnalysis,
   getScenarioDefinition,
+  isOfficialModelForAnalysis,
+  univariateTargetsUnderConsideration,
 } from './utils/constants';
 import { loadMalaysiaData } from './utils/data';
 import { defaultModelOutputs, loadModelOutputs } from './utils/modelOutputs';
@@ -43,6 +47,9 @@ const scenarioDefaults = {
   },
 };
 
+const defaultUnivariateTargetKey = univariateTargetsUnderConsideration[0].key;
+const univariateTargetKeys = univariateTargetsUnderConsideration.map((target) => target.key);
+
 export default function App() {
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,10 +57,11 @@ export default function App() {
   const [modelOutputs, setModelOutputs] = useState(defaultModelOutputs);
   const [activeSection, setActiveSection] = useState('overview');
   const [selectedCountry, setSelectedCountry] = useState('malaysia');
+  const [selectedAnalysisType, setSelectedAnalysisType] = useState(defaultAnalysisType);
   const [selectedScenario, setSelectedScenario] = useState(defaultScenarioId);
   const [selectedTarget, setSelectedTarget] = useState(defaultTargetKey);
   const [selectedPredictors, setSelectedPredictors] = useState(defaultPredictorKeys);
-  const [selectedModel, setSelectedModel] = useState('xgboost');
+  const [selectedModel, setSelectedModel] = useState(getDefaultModelForAnalysis(defaultAnalysisType));
   const [forecastHorizon, setForecastHorizon] = useState(6);
   const [uploadedDataset, setUploadedDataset] = useState(null);
 
@@ -76,6 +84,7 @@ export default function App() {
   }, []);
 
   const handleScenarioChange = (scenarioId) => {
+    setSelectedAnalysisType('multivariate');
     setSelectedScenario(scenarioId);
 
     const scenario = getScenarioDefinition(scenarioId);
@@ -92,11 +101,34 @@ export default function App() {
     setSelectedPredictors(defaults.predictors);
   };
 
+  const handleAnalysisTypeChange = (analysisType) => {
+    setSelectedAnalysisType(analysisType);
+
+    if (!isOfficialModelForAnalysis(selectedModel, analysisType)) {
+      setSelectedModel(getDefaultModelForAnalysis(analysisType));
+    }
+
+    if (analysisType === 'univariate') {
+      setSelectedScenario('custom');
+      setSelectedPredictors([]);
+      setSelectedTarget((currentTarget) =>
+        univariateTargetKeys.includes(currentTarget) ? currentTarget : defaultUnivariateTargetKey,
+      );
+      return;
+    }
+
+    setSelectedScenario(defaultScenarioId);
+    setSelectedTarget(defaultTargetKey);
+    setSelectedPredictors(defaultPredictorKeys);
+  };
+
   const sharedProps = useMemo(
     () => ({
       rows,
       selectedCountry,
       setSelectedCountry,
+      selectedAnalysisType,
+      setSelectedAnalysisType: handleAnalysisTypeChange,
       selectedScenario,
       setSelectedScenario: handleScenarioChange,
       selectedTarget,
@@ -115,6 +147,7 @@ export default function App() {
     [
       rows,
       selectedCountry,
+      selectedAnalysisType,
       selectedScenario,
       selectedTarget,
       selectedPredictors,

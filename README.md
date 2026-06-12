@@ -205,10 +205,29 @@ VAR owner must provide:
 
 ## How To Use The Dashboard
 
+Recommended navigation order:
+
+1. Overview
+2. Model Readiness
+3. Forecast Simulator
+4. Model Comparison
+5. Upload Regional Dataset
+6. Data Explorer
+7. Regional Comparison
+8. Policy Insight
+
 1. Choose analysis type: univariate or multivariate.
 2. Choose a target or scenario.
 3. Choose only an allowed official model: SARIMA/LSTM for univariate, XGBoost/VAR for multivariate.
 4. Read the integration status before interpreting a chart.
-5. Treat prototype fallback as frontend trend logic only.
-6. Upload datasets only when required columns are present.
-7. Do not treat correlations or significance tests as causal proof.
+5. Expect the Forecast Simulator to show a pending state when no verified connected output exists.
+6. Treat prototype fallback as frontend trend logic only.
+7. Upload datasets only when required columns are present for the selected scenario.
+8. Do not treat correlations or significance tests as causal proof.
+
+Upload scenarios require:
+
+- Vehicle + electricity -> NO2: `date`, `country`, `air_no2`, `electricity_local`, and
+  `car_registration` or another supported vehicle indicator.
+- IPI + electricity -> SO2: `date`, `country`, `air_so2`, an IPI column, and an electricity column.
+- NO2 -> PM2.5: `date`, `country`, `air_pm_25`, and `air_no2`.

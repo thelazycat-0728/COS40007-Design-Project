@@ -10,18 +10,21 @@ import {
 import KpiCard from '../components/KpiCard';
 import Selector from '../components/Selector';
 import {
+  analysisTypeOptions,
   countryOptions,
   getAvailableTargetOptions,
+  getOfficialModelOptions,
   getScenarioDefinition,
   getTargetDefinition,
+  getUnivariateTargetOptions,
   labelFor,
-  modelOptions,
   scenarioOptions,
   unitForTarget,
   univariateTargetsUnderConsideration,
 } from '../utils/constants';
 import { getModelIntegrationStatuses } from '../utils/modelOutputs';
 import { calculateKpis } from '../utils/stats';
+import SegmentedControl from '../components/SegmentedControl';
 
 const builtInScenarioCards = [
   {
@@ -61,6 +64,8 @@ export default function Overview({
   rows,
   selectedCountry,
   setSelectedCountry,
+  selectedAnalysisType,
+  setSelectedAnalysisType,
   selectedScenario,
   setSelectedScenario,
   selectedTarget,
@@ -70,6 +75,7 @@ export default function Overview({
   modelOutputs,
   uploadedDataset,
 }) {
+  const isUnivariate = selectedAnalysisType === 'univariate';
   const activeRows = selectedCountry === 'uploaded' && uploadedDataset ? uploadedDataset.rows : rows;
   const availableTargets = getAvailableTargetOptions(activeRows);
   const targetDefinition = getTargetDefinition(selectedTarget);
@@ -88,9 +94,16 @@ export default function Overview({
     selectedTarget,
     selectedScenario,
     selectedCountry,
+    allowedModelKeys: getOfficialModelOptions(selectedAnalysisType).map((model) => model.key),
   });
   const hasMatchingFinalOutput = integrationStatuses.some((status) => status.connected);
-  const verifiedXgboostOutputs = modelOutputs.forecasts?.xgboost?.rows?.length ?? 0;
+  const staleXgboostAuditRows = modelOutputs.forecasts?.xgboost?.auditRows?.length ?? 0;
+  const modelSelectorOptions = getOfficialModelOptions(selectedAnalysisType);
+  const targetSelectorOptions = isUnivariate
+    ? getUnivariateTargetOptions().filter((option) => activeRows.some((row) => Number.isFinite(row[option.key])))
+    : scenario.id === 'custom'
+      ? availableTargets
+      : [targetDefinition];
 
   const chartRows = activeRows.map((row) => ({
     month: row.month,
@@ -120,17 +133,19 @@ export default function Overview({
         IPI discussions are not treated as the same target type.
       </div>
 
-      <div className="country-grid scenario-card-grid">
-        {builtInScenarioCards.map((card) => (
-          <article className={`country-card ${card.id === selectedScenario ? 'active' : ''}`} key={card.id}>
-            <span>{card.status}</span>
-            <h2>{card.title}</h2>
-            <p>{card.body}</p>
-          </article>
-        ))}
+      <div className="description-band">
+        Official GUI-connected outputs: <strong>currently none</strong>. Readiness is shown before charts so
+        pending, branch-only, notebook-only, and stale states are not mistaken for connected model results.
       </div>
 
       <div className="control-grid">
+        <SegmentedControl
+          id="overview-analysis-type"
+          label="Analysis type"
+          value={selectedAnalysisType}
+          options={analysisTypeOptions}
+          onChange={setSelectedAnalysisType}
+        />
         <Selector
           id="overview-country"
           label="Country"
@@ -138,25 +153,27 @@ export default function Overview({
           options={buildCountryOptions(uploadedDataset)}
           onChange={setSelectedCountry}
         />
-        <Selector
-          id="overview-scenario"
-          label="Forecast scenario"
-          value={selectedScenario}
-          options={scenarioOptions}
-          onChange={setSelectedScenario}
-        />
+        {!isUnivariate ? (
+          <Selector
+            id="overview-scenario"
+            label="Forecast scenario"
+            value={selectedScenario}
+            options={scenarioOptions.filter((option) => option.id !== 'custom')}
+            onChange={setSelectedScenario}
+          />
+        ) : null}
         <Selector
           id="overview-target"
           label="Target variable"
           value={selectedTarget}
-          options={scenario.id === 'custom' ? availableTargets : [targetDefinition]}
+          options={targetSelectorOptions}
           onChange={setSelectedTarget}
         />
         <Selector
           id="overview-model"
           label="Forecast model"
           value={selectedModel}
-          options={modelOptions}
+          options={modelSelectorOptions}
           onChange={setSelectedModel}
         />
       </div>
@@ -164,9 +181,21 @@ export default function Overview({
       <div className="status-note">
         {hasMatchingFinalOutput
           ? 'A matching final model output is connected for the selected target and scenario.'
-          : 'Final trained model output is pending for the selected target and scenario. Prototype pages use frontend fallback logic where allowed.'}
-        {verifiedXgboostOutputs ? ` Verified connected rows: ${verifiedXgboostOutputs}.` : ''}
+          : 'No verified official model output is currently connected for this task.'}
+        {staleXgboostAuditRows ? ' XGBoost SO2 export paused · Source verification required.' : ''}
       </div>
+
+      {!isUnivariate ? (
+        <div className="country-grid scenario-card-grid">
+          {builtInScenarioCards.map((card) => (
+            <article className={`country-card ${card.id === selectedScenario ? 'active' : ''}`} key={card.id}>
+              <span>{card.status}</span>
+              <h2>{card.title}</h2>
+              <p>{card.body}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
 
       <div className="table-panel">
         <div className="panel-heading">

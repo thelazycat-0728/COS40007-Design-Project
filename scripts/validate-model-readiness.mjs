@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
+const readText = (path) => readFileSync(path, 'utf8');
 
 const parseCsv = (path) => {
   const lines = readFileSync(path, 'utf8').trim().split(/\r?\n/);
@@ -163,6 +164,65 @@ const productionForecastFiles = [
 assert(
   productionForecastFiles.every((fileName) => !fileName.startsWith('sample_')),
   'Sample or template files must not be treated as production forecast files.',
+);
+
+const sidebarSource = readText('src/components/Sidebar.jsx');
+const expectedNavOrder = [
+  'overview',
+  'model-readiness',
+  'forecast-simulator',
+  'model-comparison',
+  'upload-regional-dataset',
+  'data-explorer',
+  'regional-comparison',
+  'policy-insight',
+];
+expectedNavOrder.reduce((lastIndex, sectionId) => {
+  const index = sidebarSource.indexOf(`id: '${sectionId}'`);
+  assert(index > lastIndex, `Sidebar navigation order must place ${sectionId} after the previous recommended section.`);
+  return index;
+}, -1);
+
+const forecastSimulatorSource = readText('src/pages/ForecastSimulator.jsx');
+assert(
+  forecastSimulatorSource.includes('Prototype forecast · No verified connected output'),
+  'Forecast Simulator must label pending states as unverified prototype output.',
+);
+assert(
+  forecastSimulatorSource.includes('Pending verified model export'),
+  'Forecast Simulator must show pending verified model export as the source when no connected output exists.',
+);
+assert(
+  forecastSimulatorSource.includes('getOfficialModelOptions(selectedAnalysisType)'),
+  'Forecast Simulator model selector must be filtered by official analysis type.',
+);
+assert(
+  !forecastSimulatorSource.includes('Using connected XGBoost output'),
+  'Forecast Simulator must not present stale XGBoost rows as connected output.',
+);
+
+const overviewSource = readText('src/pages/Overview.jsx');
+assert(
+  overviewSource.includes('Official GUI-connected outputs: <strong>currently none</strong>'),
+  'Overview must state that no official outputs are currently connected.',
+);
+assert(
+  !overviewSource.includes('Verified connected rows'),
+  'Overview must not show stale forecast rows as verified connected rows.',
+);
+
+const comparisonSource = readText('src/pages/ModelComparison.jsx');
+assert(
+  comparisonSource.includes('Ranking is hidden until two verified outputs share'),
+  'Model Comparison must explain why rankings are hidden.',
+);
+
+const uploadSource = readText('src/pages/UploadRegionalDataset.jsx');
+assert(
+  uploadSource.includes('Vehicle + electricity -> NO2') &&
+    uploadSource.includes('IPI + electricity -> SO2') &&
+    uploadSource.includes('NO2 -> PM2.5'),
+  'Upload page must show scenario-specific required-column instructions.',
 );
 
 console.log('Model readiness validation passed.');

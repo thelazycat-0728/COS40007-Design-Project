@@ -6,6 +6,7 @@ import {
   getTargetDefinition,
   labelFor,
   modelOptions,
+  officialModelKeys,
   scenarioOptions,
   targetAliases,
 } from './constants';
@@ -199,7 +200,7 @@ const findConnectedArtifactForForecast = (row, artifactRows) =>
 
 const getForecastValidationIssue = (row, artifactRows) => {
   if (row.integrationStatus !== connectedOutputStatus) {
-    return 'Integration paused - source verification required';
+    return 'Integration paused · Source verification required';
   }
 
   if (!isValidDateValue(row.date)) {
@@ -460,72 +461,76 @@ export const getModelIntegrationStatuses = ({
   selectedTarget,
   selectedScenario,
   selectedCountry,
+  allowedModelKeys = officialModelKeys,
 } = {}) => {
   const countryKey = normalizeCountryKey(selectedCountry || 'Malaysia');
 
-  return modelOptions.map((model) => {
-    const matchingRows = (modelOutputs.forecasts?.[model.key]?.rows ?? []).filter(
-      (row) =>
-        row.modelKey === model.key &&
-        (!selectedTarget || row.targetKey === selectedTarget) &&
-        matchesScenario(row.scenarioId, selectedScenario) &&
-        row.countryKey === countryKey,
-    );
-    const firstRow = matchingRows[0];
-    const matchingAuditRows = (modelOutputs.forecasts?.[model.key]?.auditRows ?? []).filter(
-      (row) =>
-        row.modelKey === model.key &&
-        (!selectedTarget || row.targetKey === selectedTarget) &&
-        matchesScenario(row.scenarioId, selectedScenario) &&
-        row.countryKey === countryKey,
-    );
-    const firstAuditRow = matchingAuditRows[0];
-    const matchingMetrics = (modelOutputs.metrics?.rows ?? []).filter(
-      (row) =>
-        row.modelKey === model.key &&
-        (!selectedTarget || row.targetKey === selectedTarget) &&
-        matchesScenario(row.scenarioId, selectedScenario) &&
-        row.countryKey === countryKey,
-    );
-    const firstMetric = matchingMetrics[0];
-    const hasMetricsOnly = matchingMetrics.some((row) => row.integrationStatus === 'metrics_only');
-    const hasVerificationIssue =
-      matchingAuditRows.length > 0 ||
-      matchingMetrics.some((row) => ['stale_or_mismatched', 'metrics_pending_verification'].includes(row.integrationStatus));
-    const statusSource = firstRow || firstAuditRow || firstMetric;
+  return modelOptions
+    .filter((model) => allowedModelKeys.includes(model.key))
+    .map((model) => {
+      const matchingRows = (modelOutputs.forecasts?.[model.key]?.rows ?? []).filter(
+        (row) =>
+          row.modelKey === model.key &&
+          (!selectedTarget || row.targetKey === selectedTarget) &&
+          matchesScenario(row.scenarioId, selectedScenario) &&
+          row.countryKey === countryKey,
+      );
+      const firstRow = matchingRows[0];
+      const matchingAuditRows = (modelOutputs.forecasts?.[model.key]?.auditRows ?? []).filter(
+        (row) =>
+          row.modelKey === model.key &&
+          (!selectedTarget || row.targetKey === selectedTarget) &&
+          matchesScenario(row.scenarioId, selectedScenario) &&
+          row.countryKey === countryKey,
+      );
+      const firstAuditRow = matchingAuditRows[0];
+      const matchingMetrics = (modelOutputs.metrics?.rows ?? []).filter(
+        (row) =>
+          row.modelKey === model.key &&
+          (!selectedTarget || row.targetKey === selectedTarget) &&
+          matchesScenario(row.scenarioId, selectedScenario) &&
+          row.countryKey === countryKey,
+      );
+      const firstMetric = matchingMetrics[0];
+      const hasMetricsOnly = matchingMetrics.some((row) => row.integrationStatus === 'metrics_only');
+      const hasVerificationIssue =
+        matchingAuditRows.length > 0 ||
+        matchingMetrics.some((row) =>
+          ['stale_or_mismatched', 'metrics_pending_verification'].includes(row.integrationStatus),
+        );
+      const statusSource = firstRow || firstAuditRow || firstMetric;
 
-    return {
-      ...model,
-      connected: matchingRows.length > 0,
-      metricsOnly: !matchingRows.length && hasMetricsOnly,
-      verificationRequired: !matchingRows.length && hasVerificationIssue,
-      targetLabel:
-        statusSource?.targetLabel ??
-        firstMetric?.target ??
-        (selectedTarget ? getTargetDefinition(selectedTarget).label : 'Selected target'),
-      scenarioLabel: statusSource?.scenarioId && getScenarioById(statusSource.scenarioId)
-        ? getScenarioDefinition(statusSource.scenarioId).label
-        : firstMetric?.scenarioLabel ||
-          (selectedScenario
-            ? getScenarioDefinition(selectedScenario).label
-            : 'Any scenario'),
-      scenarioVariantLabel: statusSource?.scenarioVariantLabel || firstMetric?.scenarioVariantLabel || '',
-      resultTypeLabel: statusSource?.resultTypeLabel || firstMetric?.resultTypeLabel || '',
-      integrationStatus: firstRow
-        ? connectedOutputStatus
-        : hasVerificationIssue
-          ? 'stale_or_mismatched'
-          : hasMetricsOnly
-          ? 'metrics_only'
-          : 'pending',
-      sourceNotebook: statusSource?.sourceNotebook || firstMetric?.sourceNotebook || '',
-      unit: statusSource?.unit || firstMetric?.unit || '',
-      evaluationStart: statusSource?.evaluationStart || firstMetric?.evaluationStart || '',
-      evaluationEnd: statusSource?.evaluationEnd || firstMetric?.evaluationEnd || '',
-      statusMessage: statusSource?.statusMessage || firstMetric?.caveat || '',
-      legacySource: Boolean(statusSource?.legacySource || firstMetric?.legacySource),
-    };
-  });
+      return {
+        ...model,
+        connected: matchingRows.length > 0,
+        metricsOnly: !matchingRows.length && hasMetricsOnly,
+        verificationRequired: !matchingRows.length && hasVerificationIssue,
+        targetLabel:
+          statusSource?.targetLabel ??
+          firstMetric?.target ??
+          (selectedTarget ? getTargetDefinition(selectedTarget).label : 'Selected target'),
+        scenarioLabel:
+          statusSource?.scenarioId && getScenarioById(statusSource.scenarioId)
+            ? getScenarioDefinition(statusSource.scenarioId).label
+            : firstMetric?.scenarioLabel ||
+              (selectedScenario ? getScenarioDefinition(selectedScenario).label : 'Any scenario'),
+        scenarioVariantLabel: statusSource?.scenarioVariantLabel || firstMetric?.scenarioVariantLabel || '',
+        resultTypeLabel: statusSource?.resultTypeLabel || firstMetric?.resultTypeLabel || '',
+        integrationStatus: firstRow
+          ? connectedOutputStatus
+          : hasVerificationIssue
+            ? 'stale_or_mismatched'
+            : hasMetricsOnly
+              ? 'metrics_only'
+              : 'pending',
+        sourceNotebook: statusSource?.sourceNotebook || firstMetric?.sourceNotebook || '',
+        unit: statusSource?.unit || firstMetric?.unit || '',
+        evaluationStart: statusSource?.evaluationStart || firstMetric?.evaluationStart || '',
+        evaluationEnd: statusSource?.evaluationEnd || firstMetric?.evaluationEnd || '',
+        statusMessage: statusSource?.statusMessage || firstMetric?.caveat || '',
+        legacySource: Boolean(statusSource?.legacySource || firstMetric?.legacySource),
+      };
+    });
 };
 
 export const getMatchingMetricsOnlyRows = ({

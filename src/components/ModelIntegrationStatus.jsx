@@ -24,7 +24,7 @@ export default function ModelIntegrationStatus({
           const statusText = status.connected
             ? 'Connected output'
             : status.verificationRequired
-              ? 'Integration paused - source verification required'
+              ? 'Integration paused · Source verification required'
               : status.metricsOnly
               ? 'Metrics reported by team'
               : status.key === 'xgboost'

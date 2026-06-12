@@ -105,6 +105,24 @@ const ScenarioCompatibilityCard = ({ label, compatible, children }) => (
   </article>
 );
 
+const requiredColumnGroups = [
+  {
+    title: 'Vehicle + electricity -> NO2',
+    columns: ['date', 'country', 'air_no2', 'electricity_local', 'car_registration'],
+    note: 'Use car_registration or another supported vehicle indicator. vehicle_registrations is accepted as a legacy alias.',
+  },
+  {
+    title: 'IPI + electricity -> SO2',
+    columns: ['date', 'country', 'air_so2', 'ipi_abs_index_sa', 'electricity_local'],
+    note: 'Fallback columns ipi_abs_index and electricity_total are accepted when preferred columns are unavailable.',
+  },
+  {
+    title: 'NO2 -> PM2.5',
+    columns: ['date', 'country', 'air_pm_25', 'air_no2'],
+    note: 'Use monthly chronological rows with numeric values; blank cells are allowed for missing values.',
+  },
+];
+
 export default function UploadRegionalDataset({ uploadedDataset, setUploadedDataset }) {
   const [validationMessage, setValidationMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
@@ -229,7 +247,7 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
       if (!validation.ok) {
         setUploadedDataset(null);
         setValidationErrors(validation.errors);
-        setValidationMessage('Upload validation failed.');
+        setValidationMessage('Upload validation failed. Check the required-column guide above.');
         return;
       }
 
@@ -260,6 +278,22 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
         </div>
       </div>
 
+      <div className="table-panel requirement-panel">
+        <div className="panel-heading">
+          <h2>Required columns before upload</h2>
+          <span>Match one official scenario first</span>
+        </div>
+        <div className="requirement-grid">
+          {requiredColumnGroups.map((group) => (
+            <article key={group.title}>
+              <h3>{group.title}</h3>
+              <p>{group.columns.join(', ')}</p>
+              <small>{group.note}</small>
+            </article>
+          ))}
+        </div>
+      </div>
+
       <div className="upload-panel">
         <div>
           <h2>Upload instructions</h2>
@@ -283,6 +317,12 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
       {validationMessage ? (
         <div className={`upload-message ${validationErrors.length ? 'error' : 'success'}`}>
           <strong>{validationMessage}</strong>
+          {validationErrors.length ? (
+            <p className="validation-guidance">
+              Compare your CSV headers with the required-column guide above. Scenario testing is
+              disabled until the required target and predictor columns are detected.
+            </p>
+          ) : null}
           {validationErrors.length ? (
             <ul>
               {validationErrors.map((error) => (

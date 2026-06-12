@@ -9,21 +9,24 @@ import {
   YAxis,
 } from 'recharts';
 import Selector from '../components/Selector';
+import SegmentedControl from '../components/SegmentedControl';
 import {
+  analysisTypeOptions,
   countryOptions,
   formatPredictorList,
   getAvailablePredictorOptions,
   getAvailableTargetOptions,
+  getOfficialModelOptions,
   getPredictorDefinition,
   getScenarioDefinition,
   getScenario2PredictorResolution,
   getScenarioPredictorKeys,
   getTargetDefinition,
+  getUnivariateTargetOptions,
   hasNumericColumn,
   horizonOptions,
   isScenarioCompatible,
   labelFor,
-  modelOptions,
   scenarioOptions,
   unitForTarget,
   vehiclePredictorKeys,
@@ -32,8 +35,6 @@ import { compactNumber } from '../utils/data';
 import {
   createForecastInterpretation,
   generateModelOutputForecast,
-  generatePrototypeForecast,
-  prototypeFallbackNotice,
 } from '../utils/forecast';
 import { getMatchingForecastRows, getMatchingMetricRows } from '../utils/modelOutputs';
 
@@ -156,6 +157,8 @@ export default function ForecastSimulator({
   rows,
   selectedCountry,
   setSelectedCountry,
+  selectedAnalysisType,
+  setSelectedAnalysisType,
   selectedScenario,
   setSelectedScenario,
   selectedTarget,
@@ -170,49 +173,70 @@ export default function ForecastSimulator({
   uploadedDataset,
   setActiveSection,
 }) {
+  const isUnivariate = selectedAnalysisType === 'univariate';
   const activeContext = getActiveContext({ rows, selectedCountry, uploadedDataset });
   const activeRows = activeContext.rows;
   const scenario = getScenarioDefinition(selectedScenario);
   const targetDefinition = getTargetDefinition(selectedTarget);
-  const modelLabel = labelFor(modelOptions, selectedModel);
+  const modelOptionsForAnalysis = getOfficialModelOptions(selectedAnalysisType);
+  const modelLabel = labelFor(modelOptionsForAnalysis, selectedModel);
   const horizonLabel = labelFor(horizonOptions, Number(forecastHorizon));
   const unit = unitForTarget(selectedTarget);
   const countrySelectOptions = buildCountryOptions(uploadedDataset);
   const scenario2Resolution = getScenario2PredictorResolution(activeRows);
   const scenario2PredictorKeyString = scenario2Resolution.keys.join('|');
-  const targetOptions =
-    scenario.id === 'custom' ? getAvailableTargetOptions(activeRows) : [getTargetDefinition(scenario.target)];
-  const predictorOptions = getPredictorOptionsForScenario({
-    scenarioId: selectedScenario,
-    rows: activeRows,
-    selectedTarget,
-  });
+  const univariateTargetOptions = getUnivariateTargetOptions().filter((option) =>
+    hasNumericColumn(activeRows, option.key),
+  );
+  const targetOptions = isUnivariate
+    ? univariateTargetOptions
+    : scenario.id === 'custom'
+      ? getAvailableTargetOptions(activeRows)
+      : [getTargetDefinition(scenario.target)];
+  const predictorOptions = isUnivariate
+    ? []
+    : getPredictorOptionsForScenario({
+        scenarioId: selectedScenario,
+        rows: activeRows,
+        selectedTarget,
+      });
   const forcedPredictors =
-    scenario.id === 'ipi_electricity_to_so2'
-      ? scenario2Resolution.keys
-      : scenario.id === 'no2_to_pm25'
-        ? ['air_no2']
-        : scenario.id === 'vehicle_electricity_to_no2' && hasNumericColumn(activeRows, 'electricity_local')
-          ? ['electricity_local']
-          : [];
-  const availableScenarioPredictors = getScenarioPredictorKeys(selectedScenario, activeRows);
+    isUnivariate
+      ? []
+      : scenario.id === 'ipi_electricity_to_so2'
+        ? scenario2Resolution.keys
+        : scenario.id === 'no2_to_pm25'
+          ? ['air_no2']
+          : scenario.id === 'vehicle_electricity_to_no2' && hasNumericColumn(activeRows, 'electricity_local')
+            ? ['electricity_local']
+            : [];
+  const availableScenarioPredictors = isUnivariate ? [] : getScenarioPredictorKeys(selectedScenario, activeRows);
   const selectedAvailablePredictors = selectedPredictors.filter((key) =>
     availableScenarioPredictors.includes(key),
   );
   const effectivePredictors =
-    scenario.id === 'ipi_electricity_to_so2' || scenario.id === 'no2_to_pm25'
-      ? forcedPredictors
-      : scenario.id === 'vehicle_electricity_to_no2'
-        ? [...forcedPredictors, ...selectedAvailablePredictors.filter((key) => key !== 'electricity_local')]
-        : selectedAvailablePredictors;
+    isUnivariate
+      ? []
+      : scenario.id === 'ipi_electricity_to_so2' || scenario.id === 'no2_to_pm25'
+        ? forcedPredictors
+        : scenario.id === 'vehicle_electricity_to_no2'
+          ? [...forcedPredictors, ...selectedAvailablePredictors.filter((key) => key !== 'electricity_local')]
+          : selectedAvailablePredictors;
 
   useEffect(() => {
-    if (scenario.id !== 'custom' && selectedTarget !== scenario.target) {
+    if (!isUnivariate && scenario.id !== 'custom' && selectedTarget !== scenario.target) {
       setSelectedTarget(scenario.target);
     }
-  }, [scenario.id, scenario.target, selectedTarget, setSelectedTarget]);
+  }, [isUnivariate, scenario.id, scenario.target, selectedTarget, setSelectedTarget]);
 
   useEffect(() => {
+    if (isUnivariate) {
+      if (selectedPredictors.length) {
+        setSelectedPredictors([]);
+      }
+      return;
+    }
+
     if (scenario.id === 'ipi_electricity_to_so2') {
       if (selectedPredictors.join('|') !== scenario2PredictorKeyString) {
         setSelectedPredictors(scenario2Resolution.keys);
@@ -236,6 +260,7 @@ export default function ForecastSimulator({
     }
   }, [
     activeRows,
+    isUnivariate,
     scenario.id,
     scenario2PredictorKeyString,
     scenario2Resolution.keys,
@@ -247,18 +272,21 @@ export default function ForecastSimulator({
   const hasTarget = hasNumericColumn(activeRows, selectedTarget);
   const hasSelectedPredictors = effectivePredictors.length > 0;
   const hasSelectedVehiclePredictor =
+    isUnivariate ||
     scenario.id !== 'vehicle_electricity_to_no2' ||
     effectivePredictors.some((key) => vehiclePredictorKeys.includes(key));
   const isVehicleUnavailableBuiltIn =
+    !isUnivariate &&
     scenario.id === 'vehicle_electricity_to_no2' &&
     activeContext.isBuiltIn &&
     !isScenarioCompatible(selectedScenario, activeRows);
-  const scenarioReady =
-    !isVehicleUnavailableBuiltIn &&
-    hasTarget &&
-    isScenarioCompatible(selectedScenario, activeRows) &&
-    hasSelectedVehiclePredictor &&
-    (scenario.id === 'custom' ? hasSelectedPredictors : true);
+  const scenarioReady = isUnivariate
+    ? hasTarget
+    : !isVehicleUnavailableBuiltIn &&
+      hasTarget &&
+      isScenarioCompatible(selectedScenario, activeRows) &&
+      hasSelectedVehiclePredictor &&
+      (scenario.id === 'custom' ? hasSelectedPredictors : true);
 
   const matchingModelRows = scenarioReady
     ? getMatchingForecastRows({
@@ -290,9 +318,7 @@ export default function ForecastSimulator({
       )
     : [];
   const connectedMetric = matchingMetrics[0];
-  const forecast = scenarioReady
-    ? modelForecast ?? generatePrototypeForecast(activeRows, selectedTarget, Number(forecastHorizon))
-    : null;
+  const forecast = modelForecast;
   const hasBounds = forecast?.forecastRows.some(
     (row) => Number.isFinite(row.lowerBound) || Number.isFinite(row.upperBound),
   );
@@ -309,24 +335,34 @@ export default function ForecastSimulator({
       })
     : '';
   const forecastKind = isFinalOutput ? 'final model output' : 'prototype forecast';
-  const predictorSetLabel =
-    scenario.id === 'ipi_electricity_to_so2' ? scenario2Resolution.label : 'Configured predictors';
+  const predictorSetLabel = isUnivariate
+    ? 'Predictors'
+    : scenario.id === 'ipi_electricity_to_so2'
+      ? scenario2Resolution.label
+      : 'Configured predictors';
+  const predictorSummary = isUnivariate
+    ? 'None (univariate)'
+    : effectivePredictors.length
+      ? formatPredictorList(effectivePredictors)
+      : 'Not available';
   const datasetReadiness = isVehicleUnavailableBuiltIn
     ? 'Requires uploaded vehicle data'
     : scenarioReady
       ? `Available in ${activeContext.countryLabel} dataset`
-      : 'Missing compatible target or predictor columns';
+      : isUnivariate
+        ? 'Missing compatible target column'
+        : 'Missing compatible target or predictor columns';
   const outputSource = !scenarioReady
     ? 'Not available'
     : isHeldOutTestOutput
       ? 'Connected XGBoost held-out test predictions'
       : isFinalOutput
         ? 'Final model output'
-        : 'Prototype fallback';
+        : 'Pending verified model export';
   const scenarioLimitation = isVehicleUnavailableBuiltIn
     ? unavailableVehicleMessage
     : scenarioReady && !isFinalOutput
-      ? prototypeFallbackNotice
+      ? 'No verified official model output is currently connected for this task.'
       : isHeldOutTestOutput
         ? 'Connected held-out test predictions are shown for the fixed evaluation period. They are not a projection beyond that period.'
         : scenarioReady
@@ -339,20 +375,27 @@ export default function ForecastSimulator({
         <div>
           <p className="eyebrow">Forecast Simulator</p>
           <h1>
-            {isHeldOutTestOutput
-              ? 'Connected model test output'
-              : isFinalOutput
-                ? 'Model output'
-                : 'Scenario forecast prototype'}
+            {isFinalOutput
+              ? isHeldOutTestOutput
+                ? 'Connected model test output'
+                : 'Connected model output'
+              : 'Prototype forecast · No verified connected output'}
           </h1>
           <p>
-            Select a target, predictor set, model, and horizon. Connected model files are used only
-            when they match the selected country, target, and scenario.
+            Choose univariate or multivariate first, then select only the matching official model
+            family. Connected model files are used only when their metadata matches the selected task.
           </p>
         </div>
       </div>
 
       <div className="control-grid forecast-control-grid">
+        <SegmentedControl
+          id="forecast-analysis-type"
+          label="Analysis type"
+          value={selectedAnalysisType}
+          options={analysisTypeOptions}
+          onChange={setSelectedAnalysisType}
+        />
         <Selector
           id="forecast-country"
           label="Country / dataset source"
@@ -360,13 +403,15 @@ export default function ForecastSimulator({
           options={countrySelectOptions}
           onChange={setSelectedCountry}
         />
-        <Selector
-          id="forecast-scenario"
-          label="Forecast scenario"
-          value={selectedScenario}
-          options={scenarioOptions}
-          onChange={setSelectedScenario}
-        />
+        {!isUnivariate ? (
+          <Selector
+            id="forecast-scenario"
+            label="Forecast scenario"
+            value={selectedScenario}
+            options={scenarioOptions.filter((option) => option.id !== 'custom')}
+            onChange={setSelectedScenario}
+          />
+        ) : null}
         <Selector
           id="forecast-target"
           label="Target variable"
@@ -374,17 +419,25 @@ export default function ForecastSimulator({
           options={targetOptions}
           onChange={setSelectedTarget}
         />
-        <CheckboxGroup
-          options={predictorOptions}
-          selectedKeys={effectivePredictors}
-          disabledKeys={forcedPredictors}
-          onChange={setSelectedPredictors}
-        />
+        {isUnivariate ? (
+          <div className="selector-field locked-field">
+            <label>Predictor variables</label>
+            <strong>None - univariate forecasting uses the target history only</strong>
+            <small>SARIMA and LSTM only</small>
+          </div>
+        ) : (
+          <CheckboxGroup
+            options={predictorOptions}
+            selectedKeys={effectivePredictors}
+            disabledKeys={forcedPredictors}
+            onChange={setSelectedPredictors}
+          />
+        )}
         <Selector
           id="forecast-model"
           label="Model display option"
           value={selectedModel}
-          options={modelOptions}
+          options={modelOptionsForAnalysis}
           onChange={setSelectedModel}
         />
         {isHeldOutTestOutput ? (
@@ -405,7 +458,7 @@ export default function ForecastSimulator({
       </div>
 
       <div className="text-panel scenario-definition-card">
-        <h2>Scenario definition</h2>
+        <h2>{isUnivariate ? 'Univariate task definition' : 'Scenario definition'}</h2>
         <div className="definition-grid">
           <div>
             <span>Target</span>
@@ -413,7 +466,7 @@ export default function ForecastSimulator({
           </div>
           <div>
             <span>{predictorSetLabel}</span>
-            <strong>{effectivePredictors.length ? formatPredictorList(effectivePredictors) : 'Not available'}</strong>
+            <strong>{predictorSummary}</strong>
           </div>
           <div>
             <span>Dataset readiness</span>
@@ -445,7 +498,9 @@ export default function ForecastSimulator({
           ) : null}
         </div>
         <p>
-          {predictorSetLabel}: {effectivePredictors.length ? formatPredictorList(effectivePredictors) : 'Not available'}.{' '}
+          {isUnivariate
+            ? `Univariate ${modelLabel} uses the selected target history only.`
+            : `${predictorSetLabel}: ${predictorSummary}.`}{' '}
           {scenarioLimitation}
         </p>
         {isHeldOutTestOutput ? (
@@ -456,37 +511,55 @@ export default function ForecastSimulator({
         ) : null}
       </div>
 
-      <div className={scenarioReady ? 'status-note' : 'upload-message error'}>
-        {isVehicleUnavailableBuiltIn ? (
-          <>
-            <strong>{unavailableVehicleMessage}</strong>
-            <div className="inline-actions">
-              <button
-                className="template-button"
-                type="button"
-                onClick={() => setActiveSection('upload-regional-dataset')}
-              >
-                Go to Upload Regional Dataset
-              </button>
-            </div>
-          </>
-        ) : scenarioReady ? (
-          isFinalOutput ? (
+      {!scenarioReady || isFinalOutput || isVehicleUnavailableBuiltIn ? (
+        <div className={scenarioReady ? 'status-note' : 'upload-message error'}>
+          {isVehicleUnavailableBuiltIn ? (
+            <>
+              <strong>{unavailableVehicleMessage}</strong>
+              <div className="inline-actions">
+                <button
+                  className="template-button"
+                  type="button"
+                  onClick={() => setActiveSection('upload-regional-dataset')}
+                >
+                  Go to Upload Regional Dataset
+                </button>
+              </div>
+            </>
+          ) : scenarioReady ? (
             isHeldOutTestOutput ? (
-              <strong>Using connected XGBoost output · Held-out test predictions · Test period: January-December 2022</strong>
+              <strong>Connected output · Held-out test predictions · Test period: January-December 2022</strong>
             ) : (
-              `Using final model output for ${targetDefinition.label}.`
+              `Using verified connected model output for ${targetDefinition.label}.`
             )
           ) : (
-            prototypeFallbackNotice
-          )
-        ) : (
-          <strong>
-            This scenario needs a numeric {targetDefinition.label} target and compatible predictor
-            columns in the active dataset.
-          </strong>
-        )}
-      </div>
+            <strong>
+              This task needs a numeric {targetDefinition.label} target
+              {isUnivariate ? '' : ' and compatible predictor columns'} in the active dataset.
+            </strong>
+          )}
+        </div>
+      ) : null}
+
+      {scenarioReady && !isFinalOutput ? (
+        <div className="pending-output-panel">
+          <span>Integration pending</span>
+          <h2>No verified official model output is currently connected for this task.</h2>
+          <p>
+            Current output source: Pending verified model export. The dashboard is intentionally not
+            drawing forecast charts, comparison bars, or rankings from prototype fallback values.
+          </p>
+          <div className="inline-actions">
+            <button
+              className="template-button"
+              type="button"
+              onClick={() => setActiveSection('model-readiness')}
+            >
+              View Model Readiness
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {scenarioReady && forecast ? (
         <>

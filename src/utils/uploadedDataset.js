@@ -21,6 +21,9 @@ const numericKeys = [...new Set([...targetKeys, ...predictorKeys])];
 const columnAliases = {
   vehicle_registrations: 'car_registration',
 };
+const targetColumnGuide = 'air_no2, air_so2, air_pm_25, electricity_local, ipi_abs_index_sa, or another supported target';
+const predictorColumnGuide =
+  'electricity_local, car_registration, vehicle_registrations, air_no2, ipi_abs_index_sa, ipi_abs_index, or electricity_total';
 
 const toNumberOrNull = (value) => {
   if (value === null || value === undefined || String(value).trim() === '') {
@@ -135,10 +138,10 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
   if (!fields.includes('date')) errors.push('CSV must include a date column.');
   if (!fields.includes('country')) errors.push('CSV must include a country column.');
   if (!detectedTargets.length) {
-    errors.push('CSV must include at least one supported forecast target column.');
+    errors.push(`CSV must include at least one supported forecast target column, such as ${targetColumnGuide}.`);
   }
   if (!detectedPredictors.length) {
-    errors.push('CSV must include at least one supported predictor column.');
+    errors.push(`CSV must include at least one supported predictor column, such as ${predictorColumnGuide}.`);
   }
 
   const invalidNumericEntries = getInvalidNumericEntries(rawRows, [
@@ -147,7 +150,9 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
   ]);
 
   if (invalidNumericEntries > 0) {
-    errors.push(`CSV contains ${invalidNumericEntries} non-numeric value(s) in target or predictor columns.`);
+    errors.push(
+      `CSV contains ${invalidNumericEntries} non-numeric value(s) in target or predictor columns. Use numbers or leave cells blank for missing values.`,
+    );
   }
 
   const normalizedRows = rawRows

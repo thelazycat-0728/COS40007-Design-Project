@@ -55,9 +55,11 @@ const statusLabels = {
   connected_output: 'Connected output',
   ready_for_export: 'Ready for export',
   metrics_only: 'Metrics only',
+  artifact_found: 'Artifact found',
   notebook_only: 'Notebook only',
   branch_only: 'Branch only',
   stale_or_mismatched: 'Verification required',
+  metrics_pending_verification: 'Metrics pending verification',
   missing: 'Missing',
 };
 
@@ -176,6 +178,11 @@ export default function ModelComparison({
 
       <div className="status-note">
         Selected task: {countryLabel}, {targetDefinition.label}, {scenario.label}.
+      </div>
+
+      <div className="description-band">
+        Ranking is hidden until two verified outputs share the same target/scenario, period, unit,
+        frequency, metric definition, and result type.
       </div>
 
       <ModelIntegrationStatus

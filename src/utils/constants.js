@@ -197,6 +197,31 @@ export const modelOptions = [
   { key: 'prophet', label: 'Prophet' },
 ];
 
+export const analysisTypeOptions = [
+  { key: 'multivariate', label: 'Multivariate' },
+  { key: 'univariate', label: 'Univariate' },
+];
+
+export const defaultAnalysisType = 'multivariate';
+
+export const officialModelKeys = ['sarima', 'lstm', 'xgboost', 'var'];
+
+export const officialModelKeysByAnalysis = {
+  univariate: ['sarima', 'lstm'],
+  multivariate: ['xgboost', 'var'],
+};
+
+export const getOfficialModelOptions = (analysisType) => {
+  const keys = officialModelKeysByAnalysis[analysisType] ?? officialModelKeys;
+  return modelOptions.filter((model) => keys.includes(model.key));
+};
+
+export const getDefaultModelForAnalysis = (analysisType) =>
+  getOfficialModelOptions(analysisType)[0]?.key ?? modelOptions[0].key;
+
+export const isOfficialModelForAnalysis = (modelKey, analysisType) =>
+  getOfficialModelOptions(analysisType).some((model) => model.key === modelKey);
+
 export const countryOptions = [
   { key: 'malaysia', label: 'Malaysia', status: 'Active built-in dataset', disabled: false },
   { key: 'singapore', label: 'Singapore', status: 'Future compatible dataset', disabled: true },
@@ -236,6 +261,12 @@ export const univariateTargetsUnderConsideration = [
     availableInBuiltIn: true,
   },
 ];
+
+export const getUnivariateTargetOptions = () =>
+  univariateTargetsUnderConsideration.map((target) => ({
+    key: target.key,
+    label: target.label,
+  }));
 
 export const labelFor = (options, key) =>
   options.find((option) => option.key === key || option.id === key)?.label ?? key;

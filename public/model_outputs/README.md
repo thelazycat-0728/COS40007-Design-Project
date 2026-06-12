@@ -53,6 +53,10 @@ Rules:
 - Legacy `pollutant` columns are accepted, but new files should use `target`.
 - Sample/template files are ignored.
 
+The browser must not infer connected outputs from notebooks or native model artifacts. Until a
+normalized output passes the registry and CSV validation rules, the Forecast Simulator shows
+`Pending verified model export`, and Model Comparison keeps rankings hidden.
+
 ## Metrics File
 
 Use `model_metrics.json` only for verified evaluation metrics. Metrics do not count as connected
@@ -91,7 +95,7 @@ stale_or_mismatched
 Reason:
 
 ```text
-Integration paused - source verification required
+Integration paused · Source verification required
 ```
 
 The exported SO2 rows reference `XGBoost/xgboost_car_forecast.ipynb`, but the current notebook target
