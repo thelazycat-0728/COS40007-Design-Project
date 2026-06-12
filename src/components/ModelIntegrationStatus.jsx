@@ -22,15 +22,22 @@ export default function ModelIntegrationStatus({
       <div className="integration-status-grid">
         {statuses.map((status) => {
           const statusText = status.connected
-            ? 'Connected forecast output'
-            : status.metricsOnly
+            ? 'Connected output'
+            : status.verificationRequired
+              ? 'Integration paused - source verification required'
+              : status.metricsOnly
               ? 'Metrics reported by team'
               : status.key === 'xgboost'
                 ? 'Pending team export'
                 : 'Pending for selected task';
+          const className = status.connected
+            ? 'connected'
+            : status.verificationRequired
+              ? 'verification-required'
+              : 'pending';
 
           return (
-            <article className={status.connected ? 'connected' : 'pending'} key={status.key}>
+            <article className={className} key={status.key}>
               <span>{status.label}</span>
               <strong>{statusText}</strong>
               <small>{status.targetLabel}</small>
@@ -43,6 +50,7 @@ export default function ModelIntegrationStatus({
                 </small>
               ) : null}
               {status.sourceNotebook ? <small>Source: {status.sourceNotebook}</small> : null}
+              {status.statusMessage ? <small>{status.statusMessage}</small> : null}
               {status.legacySource ? <small>Legacy pollutant schema</small> : null}
             </article>
           );

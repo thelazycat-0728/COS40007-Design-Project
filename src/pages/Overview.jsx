@@ -27,8 +27,8 @@ const builtInScenarioCards = [
   {
     id: 'vehicle_electricity_to_no2',
     title: 'Vehicle activity + local electricity → NO2',
-    status: 'Requires vehicle dataset',
-    body: 'The built-in Malaysia dataset has NO2 and local electricity consumption, but no verified vehicle predictor. Upload compatible vehicle data before reviewing this scenario forecast.',
+    status: 'Supported by verified frontend data sync',
+    body: 'The built-in Malaysia dataset now includes the canonical car_registration vehicle column plus NO2 and local electricity consumption. Final trained model output is still pending.',
   },
   {
     id: 'ipi_electricity_to_so2',
@@ -165,9 +165,7 @@ export default function Overview({
         {hasMatchingFinalOutput
           ? 'A matching final model output is connected for the selected target and scenario.'
           : 'Final trained model output is pending for the selected target and scenario. Prototype pages use frontend fallback logic where allowed.'}
-        {verifiedXgboostOutputs
-          ? ` Verified XGBoost rows connected: ${verifiedXgboostOutputs} held-out SO2 test predictions.`
-          : ''}
+        {verifiedXgboostOutputs ? ` Verified connected rows: ${verifiedXgboostOutputs}.` : ''}
       </div>
 
       <div className="table-panel">

@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import DataExplorer from './pages/DataExplorer';
 import ForecastSimulator from './pages/ForecastSimulator';
 import ModelComparison from './pages/ModelComparison';
+import ModelReadiness from './pages/ModelReadiness';
 import Overview from './pages/Overview';
 import PolicyInsight from './pages/PolicyInsight';
 import RegionalComparison from './pages/RegionalComparison';
@@ -20,6 +21,7 @@ const sectionTitles = {
   overview: 'Overview',
   'data-explorer': 'Data Explorer',
   'forecast-simulator': 'Forecast Simulator',
+  'model-readiness': 'Model Readiness',
   'model-comparison': 'Model Comparison',
   'regional-comparison': 'Regional Comparison',
   'upload-regional-dataset': 'Upload Regional Dataset',
@@ -137,6 +139,8 @@ export default function App() {
         return <DataExplorer {...sharedProps} />;
       case 'forecast-simulator':
         return <ForecastSimulator {...sharedProps} />;
+      case 'model-readiness':
+        return <ModelReadiness {...sharedProps} />;
       case 'model-comparison':
         return <ModelComparison {...sharedProps} />;
       case 'regional-comparison':

@@ -31,10 +31,12 @@
       "evaluation_end": "2022-12-01",
       "frequency": "monthly",
       "unit": "ppm",
-      "integration_status": "connected_forecast",
+      "integration_status": "stale_or_mismatched",
       "row_level_output_available": true,
+      "frontend_connected": false,
       "source_notebook": "XGBoost/xgboost_car_forecast.ipynb",
-      "metric_note": "Metrics are derived from the notebook's visible held-out test prediction output; no model artifact was loaded."
+      "metric_note": "Metrics are retained for audit only; no model artifact was loaded.",
+      "caveat": "Integration paused: exported SO2 rows reference a notebook whose current target is vehicle registrations, not SO2. The result is hidden until the model owner provides a verified current export."
     },
     {
       "model": "XGBoost",
@@ -93,10 +95,10 @@
     {
       "model": "XGBoost",
       "country": "Malaysia",
-      "target": "vehicle_registrations",
+      "target": "car_registration",
       "source_column": "car_registration",
       "scenario_id": "univariate_vehicle_registrations",
-      "predictors": ["vehicle_registrations"],
+      "predictors": ["car_registration"],
       "mae": 8963.46,
       "rmse": 11530.17,
       "r2": 0.375661,
@@ -107,8 +109,8 @@
       "result_type": "test_prediction",
       "integration_status": "metrics_only",
       "row_level_output_available": false,
-      "source_notebook": "XGBoost/xgboost_forecast_air_so2.ipynb",
-      "caveat": "Filename does not match the verified target; notebook forecasts vehicle registrations, not SO2."
+      "source_notebook": "XGBoost/xgboost_car_forecast.ipynb",
+      "caveat": "Vehicle-registration metric source verified from the car forecast notebook. This is an experimental univariate XGBoost metric and is not part of the official final model scope."
     }
   ]
 }

@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Building2,
+  ClipboardCheck,
   Factory,
   Gauge,
   Globe2,
@@ -12,6 +13,7 @@ const navItems = [
   { id: 'overview', label: 'Overview', icon: Gauge },
   { id: 'data-explorer', label: 'Data Explorer', icon: LineChart },
   { id: 'forecast-simulator', label: 'Forecast Simulator', icon: BarChart3 },
+  { id: 'model-readiness', label: 'Model Readiness', icon: ClipboardCheck },
   { id: 'model-comparison', label: 'Model Comparison', icon: Factory },
   { id: 'regional-comparison', label: 'Regional Comparison', icon: Globe2 },
   { id: 'upload-regional-dataset', label: 'Upload Regional Dataset', icon: UploadCloud },

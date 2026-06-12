@@ -38,7 +38,7 @@ import {
 import { getMatchingForecastRows, getMatchingMetricRows } from '../utils/modelOutputs';
 
 const unavailableVehicleMessage =
-  'Vehicle-related predictors are not available in the built-in Malaysia dataset. Upload a compatible regional dataset containing NO2, local electricity consumption, and at least one supported vehicle or transport indicator.';
+  'Vehicle-related predictors are not available in the active dataset. Upload a compatible regional dataset containing NO2, local electricity consumption, and at least one supported vehicle or transport indicator.';
 
 const buildCountryOptions = (uploadedDataset) =>
   uploadedDataset
@@ -249,7 +249,10 @@ export default function ForecastSimulator({
   const hasSelectedVehiclePredictor =
     scenario.id !== 'vehicle_electricity_to_no2' ||
     effectivePredictors.some((key) => vehiclePredictorKeys.includes(key));
-  const isVehicleUnavailableBuiltIn = scenario.id === 'vehicle_electricity_to_no2' && activeContext.isBuiltIn;
+  const isVehicleUnavailableBuiltIn =
+    scenario.id === 'vehicle_electricity_to_no2' &&
+    activeContext.isBuiltIn &&
+    !isScenarioCompatible(selectedScenario, activeRows);
   const scenarioReady =
     !isVehicleUnavailableBuiltIn &&
     hasTarget &&

@@ -5,45 +5,55 @@ Project.
 
 ## Project Purpose
 
-This project focuses only on time-series forecasting. The dashboard separates target variables,
-predictor variables, forecast scenarios, model display options, horizon, and output source so the
-team can review the current meeting-demo directions without implying that browser prototype values
-are trained model results.
+This project is scoped to time-series forecasting. The dashboard separates target variables,
+predictor variables, forecast scenarios, model families, horizon, output source, and integration
+status so prototype values are not mistaken for trained model outputs.
 
-Meeting-demo scenarios under confirmation:
+Official model scope:
 
-1. **Vehicle activity + local electricity → NO2**
+- Univariate: SARIMA and LSTM
+- Multivariate: XGBoost and VAR
+
+Secondary or experimental work such as Prophet, univariate XGBoost, VECM, and baselines can remain
+in the repository, but it is not counted in the official final model total.
+
+## Current Repository Truth
+
+The current GUI has zero fully trustworthy connected official model outputs.
+
+- LSTM: five univariate notebooks, architecture/weight files, and metrics exist. Normalized row-level
+  exports are still pending.
+- SARIMA: five univariate row-level CSVs and metrics exist only on `origin/daryl-sarima`. They are
+  not merged into `main`.
+- XGBoost: three official multivariate model scenarios, artifacts, and original-scale metrics exist.
+  Normalized row-level exports are still pending.
+- VAR: notebook/code and diagnostics exist, but no saved model object, row-level forecast export, or
+  frontend-ready metrics file is verified.
+
+The previous `public/model_outputs/xgboost_forecast.csv` SO2 display is retained for audit only and
+marked `stale_or_mismatched`. It is not shown as connected because its exported rows reference a
+notebook whose current target no longer matches the output.
+
+## Forecast Scenarios
+
+1. Vehicle activity + local electricity -> NO2
    - Target: `air_no2`
-   - Intended predictors: `electricity_local` plus at least one supported vehicle indicator
-   - Current status: requires uploaded vehicle data. The built-in Malaysia dataset has no verified
-     vehicle-related predictor, so the GUI must not generate fake vehicle values or a built-in
-     prototype forecast for this scenario.
+   - Predictors: `car_registration`, `electricity_local`
+   - Current GUI status: built-in Malaysia data contains the canonical `car_registration` column, but
+     official model row-level exports are pending.
 
-2. **IPI + electricity → SO2**
+2. IPI + electricity -> SO2
    - Target: `air_so2`
    - Preferred predictors: `ipi_abs_index_sa`, `electricity_local`
    - Fallback predictors: `ipi_abs_index`, `electricity_total`
-   - Current status: supported by the current cleaned Malaysia dataset. The GUI clearly labels
-     whether it is using configured predictors or fallback predictors.
-   - Verified XGBoost variant connected for review: `ipi_growth_yoy_index_sa`,
-     `electricity_local`, and historical SO2 lag/rolling features → SO2.
+   - Current GUI status: built-in Malaysia data supports prototype fallback. Official connected
+     outputs are pending.
 
-3. **NO2 → PM2.5**
+3. NO2 -> PM2.5
    - Target: `air_pm_25`
    - Predictor: `air_no2`
-   - Current status: optional extension supported by the current cleaned Malaysia dataset.
-
-Scenario definitions remain subject to confirmation by the modelling team.
-
-## Univariate Targets Under Consideration
-
-These are informational for meeting discussion only. No trained model is implied.
-
-- `electricity_local`: Local electricity consumption, available
-- `air_so2`: SO2, available
-- `air_no2`: NO2, available
-- `ipi_abs_index_sa`: Seasonally adjusted IPI absolute index, available
-- `vehicle_registrations`: Car registrations, requires uploaded dataset
+   - Current GUI status: built-in Malaysia data supports prototype fallback. Official connected
+     outputs are pending.
 
 ## Tech Stack
 
@@ -60,11 +70,15 @@ npm install
 npm run dev
 ```
 
-## Build
+## Build And Validation
 
 ```bash
 npm run build
+npm run validate:model-readiness
 ```
+
+`validate:model-readiness` checks the official registry, stale XGBoost exclusion, vehicle-data sync,
+sample-file exclusion, and model-output metadata rules.
 
 ## Dataset Placement
 
@@ -74,38 +88,41 @@ The browser loads the cleaned Malaysia dataset from:
 public/data/combined_air_electricity_ipi_cleaned.csv
 ```
 
-The built-in dataset contains monthly air pollution, electricity consumption, and IPI columns. It
-does not contain a verified supported vehicle-related predictor, so Scenario 1 must remain
-unavailable until a compatible uploaded dataset is provided.
+The canonical tracked frontend vehicle column is:
 
-Target-specific meeting-demo units:
+```text
+car_registration
+```
 
-- `air_no2`: NO2, `µg/m³`
-- `air_so2`: SO2, `µg/m³`
-- Connected XGBoost SO2 held-out test output: `ppm`, because the source notebook reports ppm-scale
-  values and no verified conversion is applied.
-- `air_pm_25`: PM2.5, `µg/m³`
-- `electricity_local`: Local electricity consumption, `GWh`
-- `ipi_abs_index_sa`: Seasonally adjusted IPI absolute index, `index points`
+The upload parser still accepts `vehicle_registrations` as a legacy alias and normalizes it to
+`car_registration`.
 
-## Prototype Forecasting
+## Model Readiness Registry
 
-Frontend prototype forecasts are fallback/demo values generated from the selected target variable’s
-recent historical trend. The selected predictors represent the intended final model inputs and are
-not used by the frontend fallback algorithm.
+The official model inventory is stored in:
 
-The browser does not train XGBoost, SARIMA, VAR, Prophet, or LSTM models.
+```text
+public/model_outputs/model_artifacts.json
+```
+
+Allowed readiness statuses:
+
+- `connected_output`
+- `ready_for_export`
+- `metrics_only`
+- `artifact_found`
+- `notebook_only`
+- `branch_only`
+- `stale_or_mismatched`
+- `missing`
+- `metrics_pending_verification`
+
+Native JSON, PKL, H5, and weight files are not browser prediction outputs. They can support
+`artifact_available`, but they do not make a GUI connection.
 
 ## Final Model Output Integration
 
-The dashboard can switch from prototype fallback outputs to final model outputs when production
-files are added under:
-
-```text
-public/model_outputs/
-```
-
-Supported optional forecast files:
+Supported production forecast files under `public/model_outputs/`:
 
 - `sarima_forecast.csv`
 - `lstm_forecast.csv`
@@ -113,105 +130,85 @@ Supported optional forecast files:
 - `var_forecast.csv`
 - `prophet_forecast.csv`
 
-Preferred forecast CSV format:
+Required production CSV columns for a connected output:
 
 ```text
-date,country,target,model,forecast_value,actual_value,lower_bound,upper_bound,scenario_id,scenario_variant,predictors,engineered_features,unit,result_type,source_notebook,evaluation_start,evaluation_end,frequency
+date,country,target,model,forecast_value,actual_value,lower_bound,upper_bound,scenario_id,scenario_variant,predictors,engineered_features,unit,result_type,source_notebook,evaluation_start,evaluation_end,frequency,integration_status,status_message
 ```
 
-Example:
+For an output to count as connected:
 
-```text
-2022-01-01,Malaysia,air_so2,XGBoost,0.001182,0.0012,,,ipi_electricity_to_so2,ipi_growth_yoy_sa_electricity_local_so2_lags,ipi_growth_yoy_index_sa;electricity_local,SO2_lag1;IPI_lag1;elec_lag1,ppm,test_prediction,XGBoost/xgboost_car_forecast.ipynb,2022-01-01,2022-12-01,monthly
-```
+- `integration_status` must be `connected_output`.
+- Dates must be valid and `forecast_value` must be numeric.
+- `unit`, `result_type`, and `source_notebook` must be present.
+- Scenario metadata must match the target and predictors.
+- The source must be verified through `model_artifacts.json`.
+- Sample/template files are ignored.
 
-`actual_value` is used for held-out test predictions. `lower_bound`, `upper_bound`, `scenario_id`,
-`scenario_variant`, `predictors`, `engineered_features`, `unit`, `result_type`, `source_notebook`,
-`evaluation_start`, `evaluation_end`, and `frequency` are optional. Legacy forecast files using
-`pollutant` instead of `target` are still accepted and mapped to the generic target system. New
-files should use `target`.
+If validation fails, the output is excluded from charts, connected counts, and rankings. It can still
+be retained as audit metadata.
 
-Use `public/model_outputs/model_metrics.json` only when final evaluation metrics are available.
-Model Comparison shows **Pending team results** and hides metric bars until real matching metrics
-are loaded.
+## Model Comparison Rules
 
-### Current XGBoost GUI Integration
+Univariate comparison is SARIMA vs LSTM only. Multivariate comparison is XGBoost vs VAR only.
 
-The dashboard currently connects one verified XGBoost row-level output:
+The dashboard does not rank models unless connected outputs share:
 
-- Source: `XGBoost/xgboost_car_forecast.ipynb`
-- Target: `air_so2`
-- Scenario: `ipi_electricity_to_so2`
-- Variant: `IPI YoY growth SA + local electricity + historical SO2 features → SO2`
-- Result type: held-out test predictions
-- Evaluation period: January-December 2022
-- Frequency: monthly
-- Unit: `ppm`
-- External predictors: `ipi_growth_yoy_index_sa`, `electricity_local`
-- Engineered inputs: `SO2_lag1`, `IPI_lag1`, `elec_lag1`, `SO2_lag2`, `IPI_lag2`,
-  `elec_lag2`, `SO2_lag3`, `IPI_lag3`, `elec_lag3`, `SO2_roll_mean3`, `SO2_roll_std3`,
-  `month`
+- target or scenario
+- dataset
+- test period
+- frequency
+- unit
+- metric definition
+- result type
+- predictor setup for multivariate models
 
-The GUI does not call these rows a configurable horizon result. It displays them as actual versus
-predicted values for the held-out 2022 test period.
+Until comparable connected outputs exist, the Model Comparison page shows readiness and individual
+verified metrics only.
 
-Other XGBoost notebooks are listed as metrics-only where notebook metrics were visible but no
-row-level output was exported. Metrics-only entries do not count as connected forecast outputs and
-do not qualify for model ranking. The notebook named `XGBoost/xgboost_forecast_air_so2.ipynb` is
-recorded as `vehicle_registrations` metrics-only because the verified notebook content forecasts
-vehicle registrations despite its filename.
+## Teammate Handoff Matrix
 
-No XGBoost `.json` or `.pkl` artifact is loaded by the browser integration. Prophet remains pending
-and is not inspected in this XGBoost-only task.
+LSTM owner must provide:
 
-## Upload Regional Dataset
+- `lstm_forecast.csv`
+- five targets
+- dates, actual values, predicted values, and units
+- test period and metrics
+- preprocessing/scaler description
 
-The **Upload Regional Dataset** page parses CSV files in the current browser session only. Uploaded
-files are not saved permanently.
+SARIMA owner must provide:
 
-Required base columns:
+- merged or approved branch outputs
+- `sarima_forecast.csv`
+- metrics JSON entries
+- confirmed source notebook
+- test-period metadata
 
-- `date`
-- `country`
+XGBoost owner must provide:
 
-Supported meeting-demo targets include:
+- `xgboost_forecast.csv`
+- three official multivariate scenarios
+- exact target and predictors
+- engineered features
+- actual/predicted rows
+- original-scale metrics
+- source notebook
 
-- `air_no2`
-- `air_so2`
-- `air_pm_25`
-- `electricity_local`
-- `ipi_abs_index_sa`
-- `vehicle_registrations`
+VAR owner must provide:
 
-Supported predictors include:
+- completed forecast code
+- row-level prediction or forecast CSV
+- metrics
+- scenario mapping
+- corrected interpretation of significance tests
+- optional saved model or reproducible export script
 
-- `vehicle_registrations`
-- `car_sales`
-- `traffic_volume`
-- `vehicle_production`
-- `transport_index`
-- `electricity_local`
-- `electricity_total`
-- `ipi_abs_index`
-- `ipi_abs_index_sa`
-- `air_no2`
+## How To Use The Dashboard
 
-Scenario compatibility:
-
-- Scenario 1 requires `air_no2`, `electricity_local`, and at least one supported vehicle predictor.
-- Scenario 2 requires `air_so2`, either `ipi_abs_index_sa` or `ipi_abs_index`, and either
-  `electricity_local` or `electricity_total`.
-- Scenario 3 requires `air_pm_25` and `air_no2`.
-
-Validation also requires at least one supported target, at least one supported predictor, at least
-6 valid chronological rows with numeric target values, and no non-empty non-numeric values in
-detected numeric fields.
-
-Template file:
-
-```text
-public/templates/regional_dataset_template.csv
-```
-
-The template contains demonstration values only and should be replaced with real regional
-observations for analysis.
+1. Choose analysis type: univariate or multivariate.
+2. Choose a target or scenario.
+3. Choose only an allowed official model: SARIMA/LSTM for univariate, XGBoost/VAR for multivariate.
+4. Read the integration status before interpreting a chart.
+5. Treat prototype fallback as frontend trend logic only.
+6. Upload datasets only when required columns are present.
+7. Do not treat correlations or significance tests as causal proof.

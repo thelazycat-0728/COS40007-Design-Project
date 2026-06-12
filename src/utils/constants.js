@@ -43,7 +43,7 @@ export const targetOptions = [
     unit: 'GWh',
   },
   {
-    key: 'vehicle_registrations',
+    key: 'car_registration',
     label: 'Vehicle registrations',
     shortLabel: 'Vehicle registrations',
     category: 'vehicle',
@@ -62,7 +62,7 @@ export const pollutantOptions = targetOptions.filter((option) => option.category
 
 export const predictorOptions = [
   {
-    key: 'vehicle_registrations',
+    key: 'car_registration',
     label: 'Vehicle registrations',
     category: 'vehicle',
     unit: 'registrations',
@@ -130,7 +130,7 @@ export const predictorOptions = [
 ];
 
 export const vehiclePredictorKeys = [
-  'vehicle_registrations',
+  'car_registration',
   'car_sales',
   'traffic_volume',
   'vehicle_production',
@@ -230,10 +230,10 @@ export const univariateTargetsUnderConsideration = [
     availableInBuiltIn: true,
   },
   {
-    key: 'vehicle_registrations',
-    label: 'Car registrations',
-    availability: 'Requires uploaded dataset',
-    availableInBuiltIn: false,
+    key: 'car_registration',
+    label: 'Vehicle registrations',
+    availability: 'Available after verified frontend data sync',
+    availableInBuiltIn: true,
   },
 ];
 
@@ -371,7 +371,10 @@ export const targetAliases = {
   sa_ipi: 'ipi_abs_index_sa',
   electricity_local: 'electricity_local',
   local_electricity: 'electricity_local',
-  vehicle_registrations: 'vehicle_registrations',
+  car_registration: 'car_registration',
+  car_registrations: 'car_registration',
+  vehicle_registration: 'car_registration',
+  vehicle_registrations: 'car_registration',
   industrial_index: 'industrial_index',
   ipi_growth_yoy_index: 'ipi_growth_yoy_index',
   ipi_growth_yoy_index_sa: 'ipi_growth_yoy_index_sa',

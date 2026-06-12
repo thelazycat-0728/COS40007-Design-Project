@@ -21,6 +21,7 @@ const numericColumns = new Set([
   'ipi_growth_mom_index_sa',
   'ipi_growth_yoy_index_sa',
   'industrial_index',
+  'car_registration',
   'vehicle_registrations',
   'car_sales',
   'traffic_volume',
@@ -59,6 +60,10 @@ export const normalizeRows = (rows) =>
       numericColumns.forEach((column) => {
         normalized[column] = toNumberOrNull(row[column]);
       });
+
+      if (!Number.isFinite(normalized.car_registration) && Number.isFinite(normalized.vehicle_registrations)) {
+        normalized.car_registration = normalized.vehicle_registrations;
+      }
 
       return normalized;
     })
@@ -115,4 +120,5 @@ export const tableColumns = [
   'ipi_abs_index',
   'ipi_growth_yoy_index',
   'ipi_abs_index_sa',
+  'car_registration',
 ];
