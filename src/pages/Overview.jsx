@@ -20,7 +20,6 @@ import {
   labelFor,
   scenarioOptions,
   unitForTarget,
-  univariateTargetsUnderConsideration,
 } from '../utils/constants';
 import { getModelIntegrationStatuses } from '../utils/modelOutputs';
 import { calculateKpis } from '../utils/stats';
@@ -44,6 +43,21 @@ const builtInScenarioCards = [
     title: 'NO2 → PM2.5',
     status: 'Optional extension',
     body: 'The built-in Malaysia dataset includes PM2.5 and NO2. VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.',
+  },
+];
+
+const officialScopeCards = [
+  {
+    title: 'Univariate models',
+    body: 'SARIMA and LSTM use one target history at a time. SARIMA has chartable row outputs; LSTM is shown as notebook metrics and plot evidence.',
+  },
+  {
+    title: 'Multivariate models',
+    body: 'XGBoost and VAR use scenario variables. XGBoost is metrics-and-plot-only; VAR has row outputs, with NO2/SO2 clearly labelled as transformed change values.',
+  },
+  {
+    title: 'User upload role',
+    body: 'Uploaded CSVs are used for validation and scenario compatibility checking. They do not run real-time model inference in the browser.',
   },
 ];
 
@@ -74,6 +88,7 @@ export default function Overview({
   setSelectedModel,
   modelOutputs,
   uploadedDataset,
+  setActiveSection,
 }) {
   const isUnivariate = selectedAnalysisType === 'univariate';
   const activeRows = selectedCountry === 'uploaded' && uploadedDataset ? uploadedDataset.rows : rows;
@@ -125,27 +140,51 @@ export default function Overview({
           <p className="eyebrow">Overview</p>
           <h1>Regional Time-Series Forecasting Dashboard</h1>
           <p>
-            Presenting notebook-confirmed results for the official COS40007 forecasting models across
-            transport, electricity, pollution, and industrial time-series data.
+            A guided way to validate a regional time-series CSV, choose a compatible forecasting
+            scenario, and view the notebook-confirmed results already produced by the COS40007 team.
           </p>
         </div>
       </div>
 
       <div className="description-band">
-        <strong>Model-results dashboard:</strong> results are shown as produced by the team notebooks and
-        output folders. Different models use different variables, transformations, metrics, and export formats.
+        <strong>Presentation flow:</strong> start with the uploaded or built-in dataset, check which official
+        scenario it supports, then open Forecast Results to view the matching chart, table, or metrics summary.
       </div>
 
       <div className="description-band">
-        Some outputs are official-scale predictions, some are transformed-scale outputs, and some are
-        metrics-and-plot-only notebook results. Transformed outputs are labelled and should not be read as
-        official concentration values.
+        The dashboard presents notebook-confirmed model results already produced by the team. Uploaded CSVs
+        are used for validation and compatibility checking, not real-time model inference.
       </div>
 
       <div className="description-band">
-        Official model scope remains SARIMA and LSTM for univariate forecasting, plus XGBoost and VAR for
-        multivariate forecasting. Ranking stays disabled unless target, period, scale, unit, metric
-        definition, and result type are directly comparable.
+        Some outputs are transformed-scale and clearly labelled. Model ranking is disabled unless outputs
+        share the same target, period, scale, unit, frequency, metric definition, and result type.
+      </div>
+
+      <div className="upload-panel">
+        <div>
+          <h2>Recommended next step</h2>
+          <p>
+            Upload a regional CSV to check compatibility, or go straight to Forecast Results to view the
+            notebook-confirmed Malaysia outputs.
+          </p>
+        </div>
+        <div className="upload-actions">
+          <button
+            className="template-button"
+            type="button"
+            onClick={() => setActiveSection('upload-regional-dataset')}
+          >
+            Upload dataset
+          </button>
+          <button
+            className="template-button"
+            type="button"
+            onClick={() => setActiveSection('forecast-simulator')}
+          >
+            View forecast results
+          </button>
+        </div>
       </div>
 
       <div className="control-grid">
@@ -197,7 +236,7 @@ export default function Overview({
 
       <div className="summary-grid">
         <article className="summary-card">
-          <span>Row-level outputs</span>
+          <span>Chartable model outputs</span>
           <strong>{rowOutputCount}</strong>
           <small>Notebook-confirmed SARIMA and VAR rows are available for display.</small>
         </article>
@@ -207,7 +246,7 @@ export default function Overview({
           <small>VAR NO2/SO2 are differenced-scale outputs, not official concentrations.</small>
         </article>
         <article className="summary-card">
-          <span>Metrics/plot-only results</span>
+          <span>Metrics-only model results</span>
           <strong>{metricsOnlyCount}</strong>
           <small>LSTM and XGBoost show notebook metrics without row-level charts.</small>
         </article>
@@ -232,28 +271,16 @@ export default function Overview({
 
       <div className="table-panel">
         <div className="panel-heading">
-          <h2>Univariate targets under consideration</h2>
-          <span>Meeting discussion only; no trained model is implied</span>
+          <h2>Official model scope</h2>
+          <span>Main models only</span>
         </div>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>Target</th>
-                <th>Column key</th>
-                <th>Availability</th>
-              </tr>
-            </thead>
-            <tbody>
-              {univariateTargetsUnderConsideration.map((target) => (
-                <tr key={target.key}>
-                  <td>{target.label}</td>
-                  <td>{target.key}</td>
-                  <td>{target.availability}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="requirement-grid">
+          {officialScopeCards.map((card) => (
+            <article key={card.title}>
+              <h3>{card.title}</h3>
+              <p>{card.body}</p>
+            </article>
+          ))}
         </div>
       </div>
 

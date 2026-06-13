@@ -5,9 +5,14 @@ Project.
 
 ## Current GUI Goal
 
-The dashboard presents results produced by the team notebooks and output folders. It does not require
-all models to use the same variables, transformations, metrics, or export format. Instead, it labels
-what each official model actually produced:
+The dashboard is now a user-facing forecasting-results flow. Normal users start at Overview, upload or
+select a dataset, confirm which official scenario is compatible, then open Forecast Results. The browser
+does not run real-time model inference from uploaded CSVs; uploads are used for validation and
+compatibility checking only.
+
+The Model Evidence page keeps the research handoff available. It presents results produced by the team
+notebooks and output folders without requiring all models to use the same variables, transformations,
+metrics, or export format. It labels what each official model actually produced:
 
 - official-scale row outputs
 - transformed-scale row outputs
@@ -165,14 +170,18 @@ sample-file exclusion.
 Recommended navigation order:
 
 1. Overview
-2. Model Results
-3. Forecast Simulator
-4. Model Comparison
-5. Upload Regional Dataset
-6. Data Explorer
-7. Regional Comparison
-8. Policy Insight
+2. Upload Regional Dataset
+3. Forecast Results
+4. Model Evidence
 
-Use the Model Results page first to explain what each model produced, then use Forecast Simulator only
-for models with row-level outputs or metrics summaries. Use Model Comparison to show notebook-reported
-metrics without forcing a ranking.
+Advanced / Evidence pages remain available from the sidebar for report support:
+
+- Model Comparison
+- Data Explorer
+- Regional Comparison
+- Policy Insight
+
+Use Overview to explain the app, Upload Regional Dataset to validate columns and detect compatible
+scenarios, Forecast Results to show notebook-confirmed charts/tables/metrics, and Model Evidence only
+when a presenter needs source notebooks, caveats, output scale, or row-output status. Model ranking stays
+disabled unless outputs are directly comparable.

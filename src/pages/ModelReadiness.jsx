@@ -158,12 +158,12 @@ export default function ModelReadiness({ modelOutputs }) {
     <section className="page-section">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Model Results & Readiness</p>
-          <h1>Notebook-confirmed official model results</h1>
+          <p className="eyebrow">Model Evidence</p>
+          <h1>Notebook-confirmed model evidence</h1>
           <p>
-            This page shows what the team actually trained and produced for the four official model
-            families. Row outputs, metrics-only notebooks, transformed targets, artifacts, and caveats are
-            separated so weak or inconsistent results are visible but not overclaimed.
+            Advanced evidence for the four official model families. This section keeps notebook sources,
+            metrics-only results, transformed targets, artifacts, and caveats available without making the
+            normal user flow depend on every model detail.
           </p>
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function ModelReadiness({ modelOutputs }) {
       <div className="table-panel">
         <div className="panel-heading">
           <h2>Status legend</h2>
-          <span>Read before interpreting simulator or comparison output</span>
+          <span>Advanced interpretation guide</span>
         </div>
         <div className="status-legend-grid">
           {statusLegendItems.map((item) => (
@@ -228,9 +228,9 @@ export default function ModelReadiness({ modelOutputs }) {
       <div className="text-panel">
         <h2>How to use the dashboard</h2>
         <p>
-          Choose an analysis type, select the target or scenario, then select only an allowed official model:
-          SARIMA or LSTM for univariate work, XGBoost or VAR for multivariate work. Read the display mode
-          and output scale before interpreting any chart.
+          Normal users should start at Overview, validate or select a dataset, then open Forecast Results.
+          Use this evidence section when a presenter or marker needs to verify the source notebook,
+          output scale, metrics, or row-output status behind a result.
         </p>
         <p>
           Held-out test predictions compare actual and predicted rows for a fixed evaluation period. Future

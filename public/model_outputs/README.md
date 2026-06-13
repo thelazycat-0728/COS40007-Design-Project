@@ -7,6 +7,10 @@ The current GUI goal is to present notebook-confirmed results honestly. A result
 fully normalized official-scale forecast to appear, but transformed-scale and metrics-only outputs must
 be labelled clearly.
 
+The main user flow is Overview -> Upload Regional Dataset -> Forecast Results -> Model Evidence.
+Uploaded CSV files are used for column validation and scenario compatibility checking only; the browser
+does not train or run the official SARIMA, LSTM, XGBoost, or VAR models in real time.
+
 ## Official Scope
 
 - Univariate: SARIMA and LSTM

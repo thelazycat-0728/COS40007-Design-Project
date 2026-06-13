@@ -251,9 +251,10 @@ assert(constantsSource.includes("key: 'air_so2', label: 'SO2', shortLabel: 'SO2'
 
 const forecastSimulatorSource = readText('src/pages/ForecastSimulator.jsx');
 assert(
+  forecastSimulatorSource.includes('Forecast Results') &&
   forecastSimulatorSource.includes('Metrics and plot only') &&
     forecastSimulatorSource.includes('No forecast line is drawn.'),
-  'Forecast Simulator must show metrics-only state without fake forecast lines.',
+  'Forecast Results must show metrics-only state without fake forecast lines.',
 );
 assert(
   forecastSimulatorSource.includes('<Legend') &&
@@ -265,27 +266,28 @@ assert(
 assert(
   forecastSimulatorSource.includes('transformed-scale output') &&
     forecastSimulatorSource.includes('not official-scale'),
-  'Forecast Simulator must label transformed-scale VAR output.',
+  'Forecast Results must label transformed-scale VAR output.',
 );
 assert(
-  !forecastSimulatorSource.includes('Connected XGBoost held-out test predictions'),
-  'Forecast Simulator must not present stale XGBoost rows as connected output.',
+  !forecastSimulatorSource.includes(['Connected XGBoost', 'held-out test predictions'].join(' ')),
+  'Forecast Results must not present stale XGBoost rows as connected output.',
 );
 
 const overviewSource = readText('src/pages/Overview.jsx');
 assert(
-  overviewSource.includes('Notebook-confirmed') &&
+  overviewSource.includes('Forecast Results') &&
+    overviewSource.includes('Uploaded CSVs are used for validation') &&
     overviewSource.includes('Transformed row outputs') &&
-    overviewSource.includes('Ranking stays disabled'),
-  'Overview must explain the notebook-confirmed model-results concept.',
+    overviewSource.includes('Model ranking is disabled'),
+  'Overview must explain the simplified user-facing forecasting-results flow.',
 );
 
 const readinessSource = readText('src/pages/ModelReadiness.jsx');
 assert(
-  readinessSource.includes('Model Results & Readiness') &&
+  readinessSource.includes('Model Evidence') &&
     readinessSource.includes('Transformed-scale rows') &&
     readinessSource.includes('Metrics and plot only'),
-  'Model Results page must expose new display modes.',
+  'Model Evidence page must expose display modes.',
 );
 
 const comparisonSource = readText('src/pages/ModelComparison.jsx');
@@ -299,8 +301,10 @@ const uploadSource = readText('src/pages/UploadRegionalDataset.jsx');
 assert(
   uploadSource.includes('Vehicle + electricity -> NO2') &&
     uploadSource.includes('IPI + electricity -> SO2') &&
-    uploadSource.includes('NO2 -> PM2.5'),
-  'Upload page must show scenario-specific required-column instructions.',
+    uploadSource.includes('NO2 -> PM2.5') &&
+    uploadSource.includes('No real-time model inference is run from the uploaded CSV') &&
+    uploadSource.includes('View forecast result'),
+  'Upload page must show scenario-specific requirements, validation-only wording, and result routing.',
 );
 
 const searchedSources = [

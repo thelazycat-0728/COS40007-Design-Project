@@ -76,7 +76,28 @@ button {
 
 .sidebar-nav {
   display: grid;
+  gap: 14px;
+}
+
+.sidebar-nav-group,
+.advanced-nav-items {
+  display: grid;
   gap: 8px;
+}
+
+.advanced-nav-items {
+  padding-left: 8px;
+  border-left: 1px solid rgba(125, 211, 252, 0.22);
+}
+
+.sidebar-nav-label {
+  display: block;
+  padding: 0 14px;
+  color: #7fa2b4;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sidebar-nav button {
@@ -97,6 +118,14 @@ button {
 .sidebar-nav button.active {
   color: #f7ffff;
   background: #0e3548;
+}
+
+.sidebar-nav .advanced-toggle {
+  justify-content: flex-start;
+}
+
+.advanced-toggle .expanded {
+  transform: rotate(180deg);
 }
 
 .sidebar-note {
@@ -591,6 +620,34 @@ button {
 .upload-message.error {
   border-color: #f97316;
   background: #fff7ed;
+}
+
+.recommendation-panel {
+  padding: 20px;
+  border: 1px solid #0891b2;
+  border-radius: 8px;
+  background: #f0fbff;
+  box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
+}
+
+.recommendation-panel span {
+  color: #075985;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.recommendation-panel h2 {
+  margin: 10px 0 0;
+  color: #0d2736;
+  font-size: 1.2rem;
+}
+
+.recommendation-panel p {
+  margin: 10px 0 0;
+  color: #526779;
+  line-height: 1.6;
 }
 
 .panel-heading {

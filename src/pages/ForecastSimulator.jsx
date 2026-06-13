@@ -342,7 +342,7 @@ export default function ForecastSimulator({
             scenarioId: selectedScenario,
             predictorKeys: effectivePredictors,
           });
-  const forecastKind = isFinalOutput ? 'final model output' : 'prototype forecast';
+  const forecastKind = isFinalOutput ? 'final model output' : 'notebook output';
   const predictorSetLabel = isUnivariate
     ? 'Predictors'
     : scenario.id === 'ipi_electricity_to_so2'
@@ -400,15 +400,17 @@ export default function ForecastSimulator({
     <section className="page-section">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Forecast Simulator</p>
-          <h1>{outputHeading}</h1>
+          <p className="eyebrow">Forecast Results</p>
+          <h1>Forecast Results</h1>
           <p>
-            Choose univariate or multivariate first, then select only the matching official model
-            family. The dashboard shows notebook-confirmed rows when they exist, otherwise it shows
-            notebook metrics and caveats without drawing synthetic forecast lines.
+            View the notebook-confirmed result for the selected official scenario. If row-level
+            output exists, the chart and table are shown. If a model only produced notebook metrics,
+            the page shows those metrics without drawing fake forecast rows.
           </p>
         </div>
       </div>
+
+      <div className="status-note">Current result status: {outputHeading}</div>
 
       <div className="control-grid forecast-control-grid">
         <SegmentedControl
@@ -603,7 +605,7 @@ export default function ForecastSimulator({
               type="button"
               onClick={() => setActiveSection('model-readiness')}
             >
-              View Model Readiness
+              View Model Evidence
             </button>
           </div>
         </div>
@@ -729,7 +731,7 @@ export default function ForecastSimulator({
                     ? 'Actual and predicted values by month'
                     : isFinalOutput
                       ? 'Final values by month'
-                      : 'Prototype values by month'}
+                      : 'Notebook values by month'}
                 </span>
               </div>
               <div className="table-scroll">

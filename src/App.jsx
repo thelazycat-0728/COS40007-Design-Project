@@ -23,12 +23,12 @@ import { defaultModelOutputs, loadModelOutputs } from './utils/modelOutputs';
 
 const sectionTitles = {
   overview: 'Overview',
-  'data-explorer': 'Data Explorer',
-  'forecast-simulator': 'Forecast Simulator',
-  'model-readiness': 'Model Results & Readiness',
-  'model-comparison': 'Model Comparison',
-  'regional-comparison': 'Regional Comparison',
   'upload-regional-dataset': 'Upload Regional Dataset',
+  'forecast-simulator': 'Forecast Results',
+  'model-readiness': 'Model Evidence',
+  'model-comparison': 'Model Comparison',
+  'data-explorer': 'Data Explorer',
+  'regional-comparison': 'Regional Comparison',
   'policy-insight': 'Policy Insight',
 };
 
