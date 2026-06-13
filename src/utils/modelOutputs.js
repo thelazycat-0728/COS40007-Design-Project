@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
 import {
   getPredictorDefinition,
+  getOfficialModelOptions,
   getScenarioDefinition,
   getScenarioVariantLabel,
   getTargetDefinition,
@@ -46,6 +47,8 @@ export const defaultModelOutputs = {
 
 const modelAliases = {
   xgboost: 'xgboost',
+  xgboost_univariate: 'xgboost',
+  xgboost_multivariate: 'xgboost',
   xgb: 'xgboost',
   lstm: 'lstm',
   sarima: 'sarima',
@@ -203,6 +206,26 @@ const loadArtifactRegistry = async () => {
 
 const getScenarioById = (scenarioId) => scenarioOptions.find((scenario) => scenario.id === scenarioId);
 
+const inferAnalysisType = (scenarioId, explicitAnalysisType = '') => {
+  const normalized = normalizeToken(explicitAnalysisType);
+  if (normalized) {
+    return normalized;
+  }
+
+  if (String(scenarioId || '').startsWith('univariate_')) {
+    return 'univariate';
+  }
+
+  if (scenarioId) {
+    return 'multivariate';
+  }
+
+  return '';
+};
+
+const matchesAnalysisType = (rowAnalysisType, selectedAnalysisType) =>
+  !selectedAnalysisType || !rowAnalysisType || rowAnalysisType === selectedAnalysisType;
+
 const findDisplayableArtifactForForecast = (row, artifactRows) =>
   artifactRows.find(
     (artifact) =>
@@ -296,6 +319,7 @@ const parseForecastRows = (csvText, modelKey, artifactRows = []) => {
         month: formatMonth(date),
         country: row.country || 'Malaysia',
         countryKey: normalizeCountryKey(row.country || 'Malaysia'),
+        analysisType: inferAnalysisType(row.scenario_id, row.analysis_type),
         target: row.target || row.pollutant || targetKey,
         targetKey,
         targetLabel: targetDefinition.label,
@@ -373,7 +397,7 @@ const parseMetrics = (text) => {
 
   return rows
     .map((metric) => {
-      const modelKey = normalizeModelKey(metric.model);
+      const modelKey = normalizeModelKey(metric.model_key || metric.model);
       const modelLabel = labelFor(modelOptions, modelKey);
       const targetKey = normalizeTargetKey(metric.target || metric.pollutant);
       const targetDefinition = getTargetDefinition(targetKey);
@@ -398,8 +422,9 @@ const parseMetrics = (text) => {
       const scenarioVariant = metric.scenario_variant || '';
 
       return {
-        model: modelLabel,
+        model: metric.display_model || metric.model || modelLabel,
         modelKey,
+        analysisType: inferAnalysisType(metric.scenario_id, metric.analysis_type),
         country: metric.country || 'Malaysia',
         countryKey: normalizeCountryKey(metric.country || 'Malaysia'),
         target: targetDefinition.label,
@@ -510,16 +535,20 @@ export const getModelIntegrationStatuses = ({
   selectedTarget,
   selectedScenario,
   selectedCountry,
+  selectedAnalysisType,
   allowedModelKeys = officialModelKeys,
 } = {}) => {
   const countryKey = normalizeCountryKey(selectedCountry || 'Malaysia');
 
-  return modelOptions
+  const displayModelOptions = selectedAnalysisType ? getOfficialModelOptions(selectedAnalysisType) : modelOptions;
+
+  return displayModelOptions
     .filter((model) => allowedModelKeys.includes(model.key))
     .map((model) => {
       const matchingRows = (modelOutputs.forecasts?.[model.key]?.rows ?? []).filter(
         (row) =>
           row.modelKey === model.key &&
+          matchesAnalysisType(row.analysisType, selectedAnalysisType) &&
           (!selectedTarget || row.targetKey === selectedTarget) &&
           matchesScenario(row.scenarioId, selectedScenario) &&
           row.countryKey === countryKey,
@@ -528,6 +557,7 @@ export const getModelIntegrationStatuses = ({
       const matchingAuditRows = (modelOutputs.forecasts?.[model.key]?.auditRows ?? []).filter(
         (row) =>
           row.modelKey === model.key &&
+          matchesAnalysisType(row.analysisType, selectedAnalysisType) &&
           (!selectedTarget || row.targetKey === selectedTarget) &&
           matchesScenario(row.scenarioId, selectedScenario) &&
           row.countryKey === countryKey,
@@ -536,6 +566,7 @@ export const getModelIntegrationStatuses = ({
       const matchingMetrics = (modelOutputs.metrics?.rows ?? []).filter(
         (row) =>
           row.modelKey === model.key &&
+          matchesAnalysisType(row.analysisType, selectedAnalysisType) &&
           (!selectedTarget || row.targetKey === selectedTarget) &&
           matchesScenario(row.scenarioId, selectedScenario) &&
           row.countryKey === countryKey,
@@ -608,6 +639,7 @@ export const getMatchingForecastRows = ({
   selectedCountry,
   selectedTarget,
   selectedScenario,
+  selectedAnalysisType,
   horizonMonths,
 }) => {
   const rows = modelOutputs.forecasts?.[selectedModel]?.rows ?? [];
@@ -616,6 +648,7 @@ export const getMatchingForecastRows = ({
   const matchingRows = rows.filter(
     (row) =>
       row.modelKey === selectedModel &&
+      matchesAnalysisType(row.analysisType, selectedAnalysisType) &&
       row.targetKey === selectedTarget &&
       matchesScenario(row.scenarioId, selectedScenario) &&
       row.countryKey === countryKey,
@@ -633,11 +666,13 @@ export const getMatchingMetricRows = ({
   selectedTarget,
   selectedScenario,
   selectedCountry,
+  selectedAnalysisType,
 } = {}) => {
   const countryKey = normalizeCountryKey(selectedCountry || 'Malaysia');
 
   return (modelOutputs.metrics?.rows ?? []).filter(
     (row) =>
+      matchesAnalysisType(row.analysisType, selectedAnalysisType) &&
       (!selectedTarget || row.targetKey === selectedTarget) &&
       matchesScenario(row.scenarioId, selectedScenario) &&
       row.countryKey === countryKey,

@@ -298,6 +298,7 @@ export default function ForecastSimulator({
         selectedCountry: activeContext.countryForModelOutputs,
         selectedTarget,
         selectedScenario,
+        selectedAnalysisType,
         horizonMonths: Number(forecastHorizon),
       })
     : [];
@@ -316,6 +317,7 @@ export default function ForecastSimulator({
         selectedTarget,
         selectedScenario,
         selectedCountry: activeContext.countryForModelOutputs,
+        selectedAnalysisType,
       }).filter(
         (metric) => metric.modelKey === selectedModel,
       )
@@ -447,7 +449,7 @@ export default function ForecastSimulator({
           <div className="selector-field locked-field">
             <label>Predictor variables</label>
             <strong>None - univariate forecasting uses the target history only</strong>
-            <small>SARIMA and LSTM only</small>
+            <small>SARIMA, LSTM, and XGBoost Univariate</small>
           </div>
         ) : (
           <CheckboxGroup

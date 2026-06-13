@@ -24,8 +24,8 @@ const groupLabels = {
 };
 
 const officialModels = {
-  univariate: ['SARIMA', 'LSTM'],
-  multivariate: ['XGBoost', 'VAR'],
+  univariate: ['SARIMA', 'LSTM', 'XGBoost Univariate'],
+  multivariate: ['XGBoost Multivariate', 'VAR'],
 };
 
 const statusLegendItems = [
@@ -161,7 +161,7 @@ export default function ModelReadiness({ modelOutputs }) {
           <p className="eyebrow">Model Evidence</p>
           <h1>Notebook-confirmed model evidence</h1>
           <p>
-            Advanced evidence for the four official model families. This section keeps notebook sources,
+            Advanced evidence for the official model families. This section keeps notebook sources,
             metrics-only results, transformed targets, artifacts, and caveats available without making the
             normal user flow depend on every model detail.
           </p>
@@ -169,8 +169,9 @@ export default function ModelReadiness({ modelOutputs }) {
       </div>
 
       <div className="description-band">
-        Official scope: SARIMA and LSTM for univariate forecasting; XGBoost and VAR for multivariate
-        forecasting. Prophet, univariate XGBoost, VECM, and baselines remain outside the final GUI scope.
+        Official scope: SARIMA, LSTM, and XGBoost Univariate for univariate forecasting; XGBoost
+        Multivariate and VAR for multivariate forecasting. Prophet, VECM, and baselines remain outside
+        the final GUI scope.
       </div>
 
       <div className="table-panel">
@@ -202,7 +203,7 @@ export default function ModelReadiness({ modelOutputs }) {
         <article className="summary-card">
           <span>Metrics and plot only</span>
           <strong>{metricsPlotOnlyCount}</strong>
-          <small>LSTM and XGBoost notebooks report metrics without exported dated rows.</small>
+          <small>LSTM, XGBoost Univariate, and XGBoost Multivariate notebooks report metrics without exported dated rows.</small>
         </article>
         <article className="summary-card">
           <span>Native artifacts found</span>

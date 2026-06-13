@@ -13,27 +13,29 @@ does not train or run the official SARIMA, LSTM, XGBoost, or VAR models in real 
 
 ## Official Scope
 
-- Univariate: SARIMA and LSTM
+- Univariate: SARIMA, LSTM, and XGBoost
 - Multivariate: XGBoost and VAR
+
+XGBoost Univariate and XGBoost Multivariate are separate result groups. They share the same model
+family name but come from different notebooks and should not be mixed in selectors or evidence tables.
 
 Excluded from the final GUI scope:
 
 - Prophet
 - VECM
 - baselines
-- univariate XGBoost
 
 ## Current Files
 
 - `model_artifacts.json`
-  - 16 official model-result entries.
+  - 21 official model-result entries.
   - Source of truth for display mode, source notebook, scale, metrics availability, row availability,
     plot availability, artifacts, and caveats.
 
 - `model_metrics.json`
-  - Notebook-reported metrics for all 16 official results.
-  - Includes official-scale SARIMA metrics, LSTM original-scale notebook metrics, XGBoost notebook
-    metrics, and VAR equation metrics.
+  - Notebook-reported metrics for all 21 official results.
+  - Includes official-scale SARIMA metrics, LSTM original-scale notebook metrics, XGBoost Univariate
+    target-history metrics, XGBoost Multivariate scenario metrics, and VAR equation metrics.
 
 - `sarima_forecast.csv`
   - 60 rows.
@@ -67,7 +69,7 @@ Use these status/display values:
 
 - `metrics_and_plot_only`
   - Notebook reports metrics and has plot/artifact evidence, but no dated row export.
-  - Example: LSTM and official multivariate XGBoost.
+  - Example: LSTM, XGBoost Univariate, and XGBoost Multivariate.
 
 - `summary_metrics_only`
   - Metrics exist, but no row output or reusable plot is available.
@@ -117,7 +119,16 @@ LSTM:
 - Display: metrics and plot only.
 - Caveat: no normalized dated row export exists.
 
-XGBoost:
+XGBoost Univariate:
+
+- Source: five notebooks under `XGBoost/`.
+- Targets: `electricity_local`, `air_so2`, `air_no2`, `ipi_abs_index_sa`, and `car_registration`.
+- Artifacts: XGBoost native JSON and joblib PKL files.
+- Display: metrics and plot only.
+- Caveat: notebooks report original-scale metrics and inline plots, but no normalized dated row export
+  exists. Do not synthesize forecast rows from the artifacts.
+
+XGBoost Multivariate:
 
 - Source: `XGBoost_Multivariate/xgboost_multivariate_models.ipynb`.
 - Artifacts: XGBoost JSON/H5 files.
@@ -152,11 +163,11 @@ npm run validate:model-readiness
 
 The validation script checks:
 
-- all 16 official result entries exist
+- all 21 official result entries exist
 - SARIMA rows are official-scale test predictions
 - VAR1/VAR2 remain transformed-scale row outputs
 - VAR3 is PM2.5-scale row output
-- LSTM and XGBoost remain metrics-and-plot-only
+- LSTM, XGBoost Univariate, and XGBoost Multivariate remain metrics-and-plot-only
 - stale XGBoost audit rows stay hidden
 - NO2/SO2 units are ppm
 - chart code includes legend, forecast boundary, and no fake metrics-only forecast line

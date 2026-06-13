@@ -49,11 +49,11 @@ const builtInScenarioCards = [
 const officialScopeCards = [
   {
     title: 'Univariate models',
-    body: 'SARIMA and LSTM use one target history at a time. SARIMA has chartable row outputs; LSTM is shown as notebook metrics and plot evidence.',
+    body: 'SARIMA, LSTM, and XGBoost Univariate use one target history at a time. SARIMA has chartable row outputs; LSTM and XGBoost Univariate are shown as notebook metrics and plot evidence.',
   },
   {
     title: 'Multivariate models',
-    body: 'XGBoost and VAR use scenario variables. XGBoost is metrics-and-plot-only; VAR has row outputs, with NO2/SO2 clearly labelled as transformed change values.',
+    body: 'XGBoost Multivariate and VAR use scenario variables. XGBoost Multivariate is metrics-and-plot-only; VAR has row outputs, with NO2/SO2 clearly labelled as transformed change values.',
   },
   {
     title: 'User upload role',
@@ -109,6 +109,7 @@ export default function Overview({
     selectedTarget,
     selectedScenario,
     selectedCountry,
+    selectedAnalysisType,
     allowedModelKeys: getOfficialModelOptions(selectedAnalysisType).map((model) => model.key),
   });
   const hasMatchingRowOutput = integrationStatuses.some((status) => status.connected);
@@ -248,7 +249,7 @@ export default function Overview({
         <article className="summary-card">
           <span>Metrics-only model results</span>
           <strong>{metricsOnlyCount}</strong>
-          <small>LSTM and XGBoost show notebook metrics without row-level charts.</small>
+          <small>LSTM, XGBoost Univariate, and XGBoost Multivariate show notebook metrics without row-level charts.</small>
         </article>
         <article className="summary-card">
           <span>Model ranking</span>

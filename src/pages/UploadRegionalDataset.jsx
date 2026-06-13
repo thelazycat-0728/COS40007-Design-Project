@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   getScenario2PredictorResolution,
   getScenarioDefinition,
+  getUnivariateTargetOptions,
   vehiclePredictorKeys,
 } from '../utils/constants';
 import { compactNumber } from '../utils/data';
@@ -36,6 +37,12 @@ const getRecommendedPredictors = (dataset, scenarioId) => {
   return [];
 };
 
+const getDetectedUnivariateTargets = (dataset) => {
+  const univariateTargets = getUnivariateTargetOptions();
+  const detected = new Set(dataset?.detectedTargets ?? []);
+  return univariateTargets.filter((target) => detected.has(target.key));
+};
+
 const ScenarioCompatibilityCard = ({ label, compatible, children }) => (
   <article className={`summary-card ${compatible ? 'compatible' : 'incompatible'}`}>
     <span>{compatible ? 'Compatible' : 'Not compatible'}</span>
@@ -46,19 +53,24 @@ const ScenarioCompatibilityCard = ({ label, compatible, children }) => (
 
 const requiredColumnGroups = [
   {
+    title: 'Univariate target history',
+    columns: ['date', 'country', 'one supported target column'],
+    note: 'Compatible target columns can be reviewed with SARIMA, LSTM, and XGBoost Univariate. Uploads validate compatibility only; they do not run live inference.',
+  },
+  {
     title: 'Vehicle + electricity -> NO2',
     columns: ['date', 'country', 'air_no2', 'electricity_local', 'car_registration'],
-    note: 'Use car_registration or another supported vehicle indicator. vehicle_registrations is accepted as a legacy alias.',
+    note: 'Use car_registration or another supported vehicle indicator. Compatible multivariate models: XGBoost Multivariate and VAR. vehicle_registrations is accepted as a legacy alias.',
   },
   {
     title: 'IPI + electricity -> SO2',
     columns: ['date', 'country', 'air_so2', 'ipi_abs_index_sa', 'electricity_local'],
-    note: 'Fallback columns ipi_abs_index and electricity_total are accepted when preferred columns are unavailable.',
+    note: 'Compatible multivariate models: XGBoost Multivariate and VAR. Fallback columns ipi_abs_index and electricity_total are accepted when preferred columns are unavailable.',
   },
   {
     title: 'NO2 -> PM2.5',
     columns: ['date', 'country', 'air_pm_25', 'air_no2'],
-    note: 'Use monthly chronological rows with numeric values; blank cells are allowed for missing values.',
+    note: 'Compatible multivariate models: XGBoost Multivariate and VAR. Use monthly chronological rows with numeric values; blank cells are allowed for missing values.',
   },
 ];
 
@@ -86,6 +98,7 @@ export default function UploadRegionalDataset({
     uploadedDataset && hasOfficialRecommendation
       ? getRecommendedPredictors(uploadedDataset, recommendedScenarioId)
       : [];
+  const detectedUnivariateTargets = uploadedDataset ? getDetectedUnivariateTargets(uploadedDataset) : [];
 
   const handleViewRecommendedResult = () => {
     if (!uploadedDataset || !recommendedScenario) return;
@@ -96,6 +109,19 @@ export default function UploadRegionalDataset({
     setSelectedTarget(recommendedScenario.target);
     setSelectedPredictors(recommendedPredictors);
     setSelectedModel('var');
+    setForecastHorizon(6);
+    setActiveSection('forecast-simulator');
+  };
+
+  const handleViewUnivariateResult = (targetKey) => {
+    if (!targetKey) return;
+
+    setSelectedAnalysisType('univariate');
+    setSelectedCountry('malaysia');
+    setSelectedScenario('custom');
+    setSelectedTarget(targetKey);
+    setSelectedPredictors([]);
+    setSelectedModel('xgboost');
     setForecastHorizon(6);
     setActiveSection('forecast-simulator');
   };
@@ -171,8 +197,9 @@ export default function UploadRegionalDataset({
             with real regional observations for project analysis.
           </p>
           <p>
-            Uploaded CSVs are used for validation and compatibility checking only. The dashboard does
-            not run real-time model inference from uploaded files.
+            Uploaded CSVs are used for validation and compatibility checking only. If a target column is
+            present, the univariate-compatible models are SARIMA, LSTM, and XGBoost Univariate. The
+            dashboard does not run real-time model inference from uploaded files.
           </p>
         </div>
         <div className="upload-actions">
@@ -242,8 +269,8 @@ export default function UploadRegionalDataset({
                 <h2>This dataset is compatible with the {recommendedScenario.label} scenario.</h2>
                 <p>
                   The upload confirms that the required columns are present. The dashboard will now show
-                  the notebook-confirmed VAR result for this scenario using the team&apos;s existing model
-                  output, not a new browser-trained forecast.
+                  the notebook-confirmed XGBoost Multivariate and VAR evidence for this scenario using
+                  the team&apos;s existing model outputs, not a new browser-trained forecast.
                 </p>
                 <div className="inline-actions">
                   <button className="template-button" type="button" onClick={handleViewRecommendedResult}>
@@ -252,6 +279,27 @@ export default function UploadRegionalDataset({
                 </div>
               </>
             ) : (
+              detectedUnivariateTargets.length ? (
+              <>
+                <h2>
+                  This dataset has target history compatible with univariate forecasting.
+                </h2>
+                <p>
+                  Detected targets: {detectedUnivariateTargets.map((target) => target.label).join(', ')}.
+                  Compatible models are SARIMA, LSTM, and XGBoost Univariate. The dashboard will show
+                  notebook-confirmed team results for the selected target, not live browser inference.
+                </p>
+                <div className="inline-actions">
+                  <button
+                    className="template-button"
+                    type="button"
+                    onClick={() => handleViewUnivariateResult(detectedUnivariateTargets[0]?.key)}
+                  >
+                    View univariate XGBoost result
+                  </button>
+                </div>
+              </>
+              ) : (
               <>
                 <h2>No official scenario was detected from these columns.</h2>
                 <p>
@@ -259,10 +307,19 @@ export default function UploadRegionalDataset({
                   infer a model result from unsupported columns.
                 </p>
               </>
+              )
             )}
           </div>
 
           <div className="summary-grid">
+            <ScenarioCompatibilityCard
+              label="Univariate target history"
+              compatible={detectedUnivariateTargets.length > 0}
+            >
+              {detectedUnivariateTargets.length
+                ? `Detected ${detectedUnivariateTargets.map((target) => target.label).join(', ')}. Compatible models: SARIMA, LSTM, and XGBoost Univariate.`
+                : 'Requires any supported target column such as air_so2, air_no2, electricity_local, ipi_abs_index_sa, or car_registration.'}
+            </ScenarioCompatibilityCard>
             <ScenarioCompatibilityCard
               label="Vehicle activity + local electricity → NO2"
               compatible={uploadedDataset.scenarioCompatibility.vehicle_electricity_to_no2}
