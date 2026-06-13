@@ -9,84 +9,227 @@ import {
   YAxis,
 } from 'recharts';
 import Selector from '../components/Selector';
-import { horizonOptions, labelFor, pollutantOptions, unitForPollutant } from '../utils/constants';
+import {
+  formatPredictorList,
+  getScenario2PredictorResolution,
+  getPredictorDefinition,
+  getScenarioDefinition,
+  getTargetDefinition,
+  horizonOptions,
+  labelFor,
+  scenarioOptions,
+  unitForTarget,
+  vehiclePredictorKeys,
+} from '../utils/constants';
 import { compactNumber } from '../utils/data';
-import { generatePrototypeForecast } from '../utils/forecast';
+import { generatePrototypeForecast, prototypeFallbackNotice } from '../utils/forecast';
 import { calculateCorrelation, describeCorrelation } from '../utils/stats';
 import {
   getUploadedColumnLabel,
   parseUploadedCsvFile,
-  uploadedPredictorOptions,
   uploadedTemplatePath,
   validateAndNormalizeUploadedDataset,
 } from '../utils/uploadedDataset';
 
 const forecastDisclaimer =
-  'This uploaded dataset forecast uses prototype trend logic only. It is not a trained XGBoost, SARIMA, VAR, or Prophet model output.';
+  'Uploaded dataset forecasts use prototype trend logic only. They are not trained XGBoost, SARIMA, LSTM, VAR, or Prophet outputs.';
 
-const describeTrend = (pollutantLabel, horizonLabel, trendDirection) => {
-  const directionText =
-    trendDirection === 'stable'
-      ? `${pollutantLabel} may remain broadly stable`
-      : `${pollutantLabel} may ${trendDirection === 'increasing' ? 'increase' : 'decrease'}`;
-  const implication =
-    trendDirection === 'increasing'
-      ? 'This may indicate a possible worsening trend in the uploaded regional time series.'
-      : trendDirection === 'decreasing'
-        ? 'This may indicate a possible easing trend in the uploaded regional time series.'
-        : 'This may indicate no major short-term movement in the uploaded regional time series.';
-
-  return `The uploaded dataset prototype forecast suggests that ${directionText} over the next ${horizonLabel}. ${implication} ${forecastDisclaimer}`;
+const getInitialScenario = (scenarioCompatibility) => {
+  if (scenarioCompatibility?.vehicle_electricity_to_no2) return 'vehicle_electricity_to_no2';
+  if (scenarioCompatibility?.ipi_electricity_to_so2) return 'ipi_electricity_to_so2';
+  if (scenarioCompatibility?.no2_to_pm25) return 'no2_to_pm25';
+  return 'custom';
 };
+
+const getScenarioPredictorOptions = (dataset, scenarioId, selectedTarget) => {
+  if (!dataset) return [];
+
+  if (scenarioId === 'vehicle_electricity_to_no2') {
+    const electricityOption = dataset.detectedPredictors.includes('electricity_local')
+      ? [getPredictorDefinition('electricity_local')]
+      : [];
+    const vehicleOptions = vehiclePredictorKeys
+      .filter((key) => dataset.detectedPredictors.includes(key))
+      .map((key) => getPredictorDefinition(key));
+    return [...electricityOption, ...vehicleOptions];
+  }
+
+  if (scenarioId === 'ipi_electricity_to_so2') {
+    return getScenario2PredictorResolution(dataset.rows).keys.map((key) => getPredictorDefinition(key));
+  }
+
+  if (scenarioId === 'no2_to_pm25') {
+    return ['air_no2']
+      .filter((key) => dataset.detectedPredictors.includes(key))
+      .map((key) => getPredictorDefinition(key));
+  }
+
+  return dataset.detectedPredictors
+    .filter((key) => key !== selectedTarget)
+    .map((key) => getPredictorDefinition(key));
+};
+
+const CheckboxGroup = ({ options, selectedKeys, onChange, disabledKeys = [] }) => (
+  <fieldset className="checkbox-field">
+    <legend>Predictor variables</legend>
+    <div className="checkbox-grid">
+      {options.map((option) => {
+        const isDisabled = disabledKeys.includes(option.key);
+        return (
+          <label key={option.key} className={isDisabled ? 'checkbox-option disabled' : 'checkbox-option'}>
+            <input
+              type="checkbox"
+              checked={selectedKeys.includes(option.key)}
+              disabled={isDisabled}
+              onChange={(event) => {
+                if (event.target.checked) {
+                  onChange([...new Set([...selectedKeys, option.key])]);
+                } else {
+                  onChange(selectedKeys.filter((key) => key !== option.key));
+                }
+              }}
+            />
+            <span>{option.label}</span>
+          </label>
+        );
+      })}
+    </div>
+  </fieldset>
+);
+
+const ScenarioCompatibilityCard = ({ label, compatible, children }) => (
+  <article className={`summary-card ${compatible ? 'compatible' : 'incompatible'}`}>
+    <span>{compatible ? 'Compatible' : 'Not compatible'}</span>
+    <strong>{label}</strong>
+    <small>{children}</small>
+  </article>
+);
+
+const requiredColumnGroups = [
+  {
+    title: 'Vehicle + electricity -> NO2',
+    columns: ['date', 'country', 'air_no2', 'electricity_local', 'car_registration'],
+    note: 'Use car_registration or another supported vehicle indicator. vehicle_registrations is accepted as a legacy alias.',
+  },
+  {
+    title: 'IPI + electricity -> SO2',
+    columns: ['date', 'country', 'air_so2', 'ipi_abs_index_sa', 'electricity_local'],
+    note: 'Fallback columns ipi_abs_index and electricity_total are accepted when preferred columns are unavailable.',
+  },
+  {
+    title: 'NO2 -> PM2.5',
+    columns: ['date', 'country', 'air_pm_25', 'air_no2'],
+    note: 'Use monthly chronological rows with numeric values; blank cells are allowed for missing values.',
+  },
+];
 
 export default function UploadRegionalDataset({ uploadedDataset, setUploadedDataset }) {
   const [validationMessage, setValidationMessage] = useState('');
   const [validationErrors, setValidationErrors] = useState([]);
   const [isParsing, setIsParsing] = useState(false);
-  const [selectedPollutant, setSelectedPollutant] = useState('air_pm_25');
-  const [selectedPredictor, setSelectedPredictor] = useState('electricity_total');
-  const [selectedHorizon, setSelectedHorizon] = useState(6);
+  const [uploadedScenario, setUploadedScenario] = useState('custom');
+  const [uploadedTarget, setUploadedTarget] = useState('air_pm_25');
+  const [uploadedPredictors, setUploadedPredictors] = useState([]);
+  const [uploadedHorizon, setUploadedHorizon] = useState(6);
 
   useEffect(() => {
     if (!uploadedDataset) return;
 
-    setSelectedPollutant(uploadedDataset.detectedPollutants[0]);
-    setSelectedPredictor(uploadedDataset.detectedPredictors[0]);
+    const nextScenario = getInitialScenario(uploadedDataset.scenarioCompatibility);
+    setUploadedScenario(nextScenario);
   }, [uploadedDataset]);
 
-  const pollutantSelectorOptions = useMemo(
-    () =>
-      (uploadedDataset?.detectedPollutants ?? []).map((key) => ({
-        key,
-        label: labelFor(pollutantOptions, key),
-      })),
-    [uploadedDataset],
-  );
+  useEffect(() => {
+    if (!uploadedDataset) return;
 
-  const predictorSelectorOptions = useMemo(
+    if (uploadedScenario === 'vehicle_electricity_to_no2') {
+      setUploadedTarget('air_no2');
+      setUploadedPredictors(
+        vehiclePredictorKeys.filter((key) => uploadedDataset.detectedPredictors.includes(key)).slice(0, 1),
+      );
+      return;
+    }
+
+    if (uploadedScenario === 'ipi_electricity_to_so2') {
+      setUploadedTarget('air_so2');
+      setUploadedPredictors(getScenario2PredictorResolution(uploadedDataset.rows).keys);
+      return;
+    }
+
+    if (uploadedScenario === 'no2_to_pm25') {
+      setUploadedTarget('air_pm_25');
+      setUploadedPredictors(['air_no2']);
+      return;
+    }
+
+    const firstTarget = uploadedDataset.detectedTargets[0] ?? 'air_pm_25';
+    const firstPredictor =
+      uploadedDataset.detectedPredictors.find((key) => key !== firstTarget) ??
+      uploadedDataset.detectedPredictors[0] ??
+      '';
+    setUploadedTarget(firstTarget);
+    setUploadedPredictors(firstPredictor ? [firstPredictor] : []);
+  }, [uploadedDataset, uploadedScenario]);
+
+  const targetSelectorOptions = useMemo(
     () =>
-      (uploadedDataset?.detectedPredictors ?? []).map((key) => ({
+      (uploadedDataset?.detectedTargets ?? []).map((key) => ({
         key,
         label: getUploadedColumnLabel(key),
       })),
     [uploadedDataset],
   );
 
-  const pollutantLabel = labelFor(pollutantOptions, selectedPollutant);
-  const predictorLabel = getUploadedColumnLabel(selectedPredictor);
-  const horizonLabel = labelFor(horizonOptions, Number(selectedHorizon));
-  const unit = unitForPollutant(selectedPollutant);
+  const scenarioTargetOptions =
+    uploadedScenario === 'custom'
+      ? targetSelectorOptions
+      : [{ key: getScenarioDefinition(uploadedScenario).target, label: getTargetDefinition(getScenarioDefinition(uploadedScenario).target).label }];
+  const predictorSelectorOptions = getScenarioPredictorOptions(uploadedDataset, uploadedScenario, uploadedTarget);
+  const scenario2Resolution = uploadedDataset
+    ? getScenario2PredictorResolution(uploadedDataset.rows)
+    : { keys: [], label: 'Configured predictors' };
+  const forcedPredictors =
+    uploadedScenario === 'ipi_electricity_to_so2'
+      ? scenario2Resolution.keys
+      : uploadedScenario === 'no2_to_pm25'
+        ? ['air_no2']
+        : uploadedScenario === 'vehicle_electricity_to_no2' &&
+            uploadedDataset?.detectedPredictors.includes('electricity_local')
+          ? ['electricity_local']
+          : [];
+  const effectivePredictors =
+    uploadedScenario === 'vehicle_electricity_to_no2'
+      ? [
+          ...forcedPredictors,
+          ...uploadedPredictors.filter((key) => vehiclePredictorKeys.includes(key)),
+        ]
+      : forcedPredictors.length
+        ? forcedPredictors
+        : uploadedPredictors;
+  const targetDefinition = getTargetDefinition(uploadedTarget);
+  const horizonLabel = labelFor(horizonOptions, Number(uploadedHorizon));
+  const unit = unitForTarget(uploadedTarget);
   const rows = uploadedDataset?.rows ?? [];
-  const forecast = generatePrototypeForecast(rows, selectedPollutant, Number(selectedHorizon));
-  const correlation = uploadedDataset
-    ? calculateCorrelation(rows, selectedPollutant, selectedPredictor)
+  const scenario = getScenarioDefinition(uploadedScenario);
+  const hasSelectedUploadedVehiclePredictor =
+    uploadedScenario !== 'vehicle_electricity_to_no2' ||
+    effectivePredictors.some((key) => vehiclePredictorKeys.includes(key));
+  const scenarioCompatible =
+    uploadedScenario === 'custom'
+      ? Boolean(uploadedTarget && effectivePredictors.length)
+      : Boolean(uploadedDataset?.scenarioCompatibility?.[uploadedScenario]) && hasSelectedUploadedVehiclePredictor;
+  const forecast = scenarioCompatible
+    ? generatePrototypeForecast(rows, uploadedTarget, Number(uploadedHorizon))
     : null;
-  const interpretation = describeTrend(pollutantLabel, horizonLabel, forecast.trendDirection);
-
+  const selectedCorrelationKey = effectivePredictors[0];
+  const correlation =
+    scenarioCompatible && selectedCorrelationKey
+      ? calculateCorrelation(rows, uploadedTarget, selectedCorrelationKey)
+      : null;
   const trendRows = rows.map((row) => ({
     month: row.month,
-    pollutant: row[selectedPollutant],
-    predictor: row[selectedPredictor],
+    target: row[uploadedTarget],
+    predictor: selectedCorrelationKey ? row[selectedCorrelationKey] : null,
   }));
 
   const handleUpload = async (event) => {
@@ -104,7 +247,7 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
       if (!validation.ok) {
         setUploadedDataset(null);
         setValidationErrors(validation.errors);
-        setValidationMessage('Upload validation failed.');
+        setValidationMessage('Upload validation failed. Check the required-column guide above.');
         return;
       }
 
@@ -126,11 +269,28 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
       <div className="section-heading">
         <div>
           <p className="eyebrow">Upload Regional Dataset</p>
-          <h1>Browser-only regional CSV prototype forecasting</h1>
+          <h1>Browser-only scenario dataset testing</h1>
           <p>
-            Upload a compatible cleaned CSV to preview regional pollution data and generate a
-            prototype trend forecast for the current browser session.
+            Upload a compatible cleaned CSV to validate target and predictor columns, check scenario
+            compatibility, and generate a prototype target-trend forecast for the current browser
+            session.
           </p>
+        </div>
+      </div>
+
+      <div className="table-panel requirement-panel">
+        <div className="panel-heading">
+          <h2>Required columns before upload</h2>
+          <span>Match one official scenario first</span>
+        </div>
+        <div className="requirement-grid">
+          {requiredColumnGroups.map((group) => (
+            <article key={group.title}>
+              <h3>{group.title}</h3>
+              <p>{group.columns.join(', ')}</p>
+              <small>{group.note}</small>
+            </article>
+          ))}
         </div>
       </div>
 
@@ -138,9 +298,9 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
         <div>
           <h2>Upload instructions</h2>
           <p>
-            CSV must include date and country, at least one supported pollutant column, and at least
-            one electricity or industrial activity predictor column. Forecasts from uploaded data use
-            prototype trend forecasting only.
+            CSV must include date and country, at least one supported forecast target, and at least
+            one supported predictor. The template contains demo values only and should be replaced
+            with real regional observations for project analysis.
           </p>
         </div>
         <div className="upload-actions">
@@ -158,6 +318,12 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
         <div className={`upload-message ${validationErrors.length ? 'error' : 'success'}`}>
           <strong>{validationMessage}</strong>
           {validationErrors.length ? (
+            <p className="validation-guidance">
+              Compare your CSV headers with the required-column guide above. Scenario testing is
+              disabled until the required target and predictor columns are detected.
+            </p>
+          ) : null}
+          {validationErrors.length ? (
             <ul>
               {validationErrors.map((error) => (
                 <li key={error}>{error}</li>
@@ -171,8 +337,9 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
         <div className="text-panel">
           <h2>No uploaded dataset loaded</h2>
           <p>
-            Upload a cleaned regional CSV to view validation results, dataset summary, exploratory
-            charts, correlation, and prototype forecast output. The file is not saved permanently.
+            Upload a cleaned regional CSV to view validation results, scenario compatibility, target
+            and predictor summaries, correlation, and prototype forecast output. The file is not saved
+            permanently.
           </p>
         </div>
       ) : (
@@ -192,14 +359,38 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
             </article>
             <article className="summary-card">
               <span>Forecast source</span>
-              <strong>Prototype trend logic</strong>
+              <strong>Prototype target trend</strong>
             </article>
+          </div>
+
+          <div className="summary-grid">
+            <ScenarioCompatibilityCard
+              label="Vehicle activity + local electricity → NO2"
+              compatible={uploadedDataset.scenarioCompatibility.vehicle_electricity_to_no2}
+            >
+              Requires `air_no2`, `electricity_local`, and at least one vehicle or transport predictor.
+            </ScenarioCompatibilityCard>
+            <ScenarioCompatibilityCard
+              label="IPI + electricity → SO2"
+              compatible={uploadedDataset.scenarioCompatibility.ipi_electricity_to_so2}
+            >
+              Requires `air_so2`, an IPI predictor, and an electricity predictor.
+            </ScenarioCompatibilityCard>
+            <ScenarioCompatibilityCard
+              label="NO2 → PM2.5"
+              compatible={uploadedDataset.scenarioCompatibility.no2_to_pm25}
+            >
+              Requires `air_pm_25` and `air_no2`.
+            </ScenarioCompatibilityCard>
+            <ScenarioCompatibilityCard label="Custom scenario" compatible={uploadedDataset.scenarioCompatibility.custom}>
+              Requires at least one supported target and one supported predictor.
+            </ScenarioCompatibilityCard>
           </div>
 
           <div className="split-grid">
             <div className="text-panel">
-              <h2>Detected pollutants</h2>
-              <p>{uploadedDataset.detectedPollutants.map((key) => labelFor(pollutantOptions, key)).join(', ')}</p>
+              <h2>Detected targets</h2>
+              <p>{uploadedDataset.detectedTargets.map((key) => getUploadedColumnLabel(key)).join(', ')}</p>
             </div>
             <div className="text-panel">
               <h2>Detected predictors</h2>
@@ -207,28 +398,46 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
             </div>
           </div>
 
-          <div className="control-grid">
+          <div className="control-grid forecast-control-grid">
             <Selector
-              id="upload-pollutant"
-              label="Pollutant"
-              value={selectedPollutant}
-              options={pollutantSelectorOptions}
-              onChange={setSelectedPollutant}
+              id="upload-scenario"
+              label="Forecast scenario"
+              value={uploadedScenario}
+              options={scenarioOptions}
+              onChange={setUploadedScenario}
             />
             <Selector
-              id="upload-predictor"
-              label="Predictor"
-              value={selectedPredictor}
+              id="upload-target"
+              label="Target variable"
+              value={uploadedTarget}
+              options={scenarioTargetOptions}
+              onChange={setUploadedTarget}
+            />
+            <CheckboxGroup
               options={predictorSelectorOptions}
-              onChange={setSelectedPredictor}
+              selectedKeys={effectivePredictors}
+              disabledKeys={forcedPredictors}
+              onChange={setUploadedPredictors}
             />
             <Selector
               id="upload-horizon"
               label="Forecast horizon"
-              value={Number(selectedHorizon)}
+              value={Number(uploadedHorizon)}
               options={horizonOptions}
-              onChange={(value) => setSelectedHorizon(Number(value))}
+              onChange={(value) => setUploadedHorizon(Number(value))}
             />
+          </div>
+
+          <div className={scenarioCompatible ? 'status-note' : 'upload-message error'}>
+            {scenarioCompatible ? (
+              `${scenario.label} is compatible with the uploaded dataset. ${
+                uploadedScenario === 'ipi_electricity_to_so2'
+                  ? `${scenario2Resolution.label}: ${formatPredictorList(effectivePredictors)}. `
+                  : ''
+              }${prototypeFallbackNotice}`
+            ) : (
+              <strong>The selected scenario is not compatible with the detected uploaded columns.</strong>
+            )}
           </div>
 
           <div className="insight-row">
@@ -240,131 +449,140 @@ export default function UploadRegionalDataset({ uploadedDataset, setUploadedData
             <div className="text-panel">
               <h2>Relationship note</h2>
               <p>
-                The selected pollutant and predictor are compared to identify whether the uploaded
-                dataset may contain useful forecasting signals. This exploratory correlation does not
-                prove that the predictor causes pollutant changes.
+                {selectedCorrelationKey
+                  ? `${getPredictorDefinition(selectedCorrelationKey).label} is compared with ${targetDefinition.label}.`
+                  : 'Select at least one predictor to calculate an exploratory correlation.'}{' '}
+                This correlation does not prove causation and is not itself a forecast.
               </p>
             </div>
           </div>
 
-          <div className="split-grid">
-            <div className="chart-panel">
-              <div className="panel-heading">
-                <h2>{pollutantLabel} trend</h2>
-                <span>Uploaded dataset</span>
-              </div>
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={trendRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
-                  <XAxis dataKey="month" minTickGap={24} stroke="#5c7080" />
-                  <YAxis stroke="#5c7080" />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="pollutant"
-                    name={pollutantLabel}
-                    stroke="#0891b2"
-                    strokeWidth={3}
-                    dot={false}
-                    connectNulls
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          {scenarioCompatible && forecast ? (
+            <>
+              <div className="split-grid">
+                <div className="chart-panel">
+                  <div className="panel-heading">
+                    <h2>{targetDefinition.label} trend</h2>
+                    <span>Uploaded dataset</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={trendRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
+                      <XAxis dataKey="month" minTickGap={24} stroke="#5c7080" />
+                      <YAxis stroke="#5c7080" />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="target"
+                        name={targetDefinition.label}
+                        stroke="#0891b2"
+                        strokeWidth={3}
+                        dot={false}
+                        connectNulls
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
 
-            <div className="chart-panel">
-              <div className="panel-heading">
-                <h2>{predictorLabel} trend</h2>
-                <span>Uploaded dataset</span>
+                <div className="chart-panel">
+                  <div className="panel-heading">
+                    <h2>{selectedCorrelationKey ? getPredictorDefinition(selectedCorrelationKey).label : 'Predictor'} trend</h2>
+                    <span>First selected predictor</span>
+                  </div>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={trendRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
+                      <XAxis dataKey="month" minTickGap={24} stroke="#5c7080" />
+                      <YAxis stroke="#5c7080" />
+                      <Tooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="predictor"
+                        name={selectedCorrelationKey ? getPredictorDefinition(selectedCorrelationKey).label : 'Predictor'}
+                        stroke="#16a34a"
+                        strokeWidth={3}
+                        dot={false}
+                        connectNulls
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={trendRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
-                  <XAxis dataKey="month" minTickGap={24} stroke="#5c7080" />
-                  <YAxis stroke="#5c7080" />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="predictor"
-                    name={predictorLabel}
-                    stroke="#16a34a"
-                    strokeWidth={3}
-                    dot={false}
-                    connectNulls
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
 
-          <div className="chart-panel">
-            <div className="panel-heading">
-              <h2>Actual and prototype forecasted {pollutantLabel}</h2>
-              <span>Uploaded dataset prototype forecast</span>
-            </div>
-            <ResponsiveContainer width="100%" height={330}>
-              <LineChart data={forecast.chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
-                <XAxis dataKey="month" minTickGap={24} stroke="#5c7080" />
-                <YAxis stroke="#5c7080" />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="actual"
-                  name={`Actual ${pollutantLabel}`}
-                  stroke="#0891b2"
-                  strokeWidth={3}
-                  dot={false}
-                  connectNulls
-                />
-                <Line
-                  type="monotone"
-                  dataKey="forecast"
-                  name={`Prototype forecast ${pollutantLabel}`}
-                  stroke="#16a34a"
-                  strokeWidth={3}
-                  strokeDasharray="6 4"
-                  dot={{ r: 3 }}
-                  connectNulls
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="split-grid">
-            <div className="table-panel forecast-table">
-              <div className="panel-heading">
-                <h2>Forecast table</h2>
-                <span>Prototype values by month</span>
+              <div className="chart-panel">
+                <div className="panel-heading">
+                  <h2>Actual and prototype forecasted {targetDefinition.label}</h2>
+                  <span>Uploaded dataset prototype forecast</span>
+                </div>
+                <ResponsiveContainer width="100%" height={330}>
+                  <LineChart data={forecast.chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
+                    <XAxis dataKey="month" minTickGap={24} stroke="#5c7080" />
+                    <YAxis stroke="#5c7080" />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="actual"
+                      name={`Actual ${targetDefinition.label}`}
+                      stroke="#0891b2"
+                      strokeWidth={3}
+                      dot={false}
+                      connectNulls
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="forecast"
+                      name={`Prototype forecast ${targetDefinition.label}`}
+                      stroke="#16a34a"
+                      strokeWidth={3}
+                      strokeDasharray="6 4"
+                      dot={{ r: 3 }}
+                      connectNulls
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-              <div className="table-scroll">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Month</th>
-                      <th>Forecasted value</th>
-                      <th>Unit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {forecast.forecastRows.map((row) => (
-                      <tr key={row.date}>
-                        <td>{row.month}</td>
-                        <td>{compactNumber(row.forecast)}</td>
-                        <td>{unit}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
 
-            <article className="interpretation-panel">
-              <span>Uploaded forecast interpretation</span>
-              <h2>Trend direction: {forecast.trendDirection}</h2>
-              <p>{interpretation}</p>
-            </article>
-          </div>
+              <div className="split-grid">
+                <div className="table-panel forecast-table">
+                  <div className="panel-heading">
+                    <h2>Forecast table</h2>
+                    <span>Prototype values by month</span>
+                  </div>
+                  <div className="table-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Month</th>
+                          <th>Forecasted value</th>
+                          <th>Unit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {forecast.forecastRows.map((row) => (
+                          <tr key={row.date}>
+                            <td>{row.month}</td>
+                            <td>{compactNumber(row.forecast)}</td>
+                            <td>{unit}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <article className="interpretation-panel">
+                  <span>Uploaded forecast interpretation</span>
+                  <h2>Trend direction: {forecast.trendDirection}</h2>
+                  <p>
+                    The uploaded dataset prototype suggests a {forecast.trendDirection} {targetDefinition.label}
+                    trend over the next {horizonLabel}. {forecastDisclaimer} Intended predictors:{' '}
+                    {formatPredictorList(effectivePredictors)}.
+                  </p>
+                </article>
+              </div>
+            </>
+          ) : null}
 
           <div className="table-panel">
             <div className="panel-heading">

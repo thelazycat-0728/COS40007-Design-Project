@@ -2,25 +2,25 @@ const countries = [
   {
     name: 'Malaysia',
     status: 'Active real dataset',
-    detail: 'OpenDOSM pollution, electricity, and industrial activity indicators are connected.',
+    detail: 'OpenDOSM pollution, electricity, and IPI indicators support the SO2 and PM2.5 meeting-demo scenarios.',
     active: true,
   },
   {
     name: 'Singapore',
     status: 'Future comparison option',
-    detail: 'Disabled until compatible pollution, electricity, and industrial activity datasets are added.',
+    detail: 'Disabled until compatible target and predictor datasets are added.',
     active: false,
   },
   {
     name: 'Brunei',
     status: 'Future comparison option',
-    detail: 'Disabled until compatible pollution, electricity, and industrial activity datasets are added.',
+    detail: 'Disabled until compatible target and predictor datasets are added.',
     active: false,
   },
 ];
 
 const regionalSupportNote =
-  'Regional comparison is supported where compatible pollution, electricity, and industrial activity datasets are available.';
+  'Regional comparison is supported where compatible target and predictor time-series datasets are available.';
 
 export default function RegionalComparison({ uploadedDataset }) {
   return (
@@ -47,8 +47,8 @@ export default function RegionalComparison({ uploadedDataset }) {
             <h2>{uploadedDataset.countryName}</h2>
             <p>
               This uploaded regional dataset is available for the current browser session. Any
-              uploaded regional forecasts are prototype trend forecasts, not final trained model
-              results.
+              uploaded regional forecasts are prototype target-trend forecasts, not final trained
+              model results.
             </p>
           </article>
         ) : null}

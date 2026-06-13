@@ -1,72 +1,104 @@
 import Selector from '../components/Selector';
-import { labelFor, pollutantOptions } from '../utils/constants';
+import {
+  getAvailableTargetOptions,
+  getTargetDefinition,
+  scenarioOptions,
+  targetOptions,
+} from '../utils/constants';
 
-const policyPoints = [
-  'early warning for high-pollution months',
-  'industrial activity monitoring',
-  'electricity demand and environmental planning',
-  'data-driven air quality reporting',
-  'public-sector environmental decision-making',
-];
-
-const riskText = {
-  air_co:
-    'CO changes can indicate combustion-related air quality pressure and should be monitored alongside transport, power, and industrial activity patterns.',
-  air_no2:
-    'NO2 risk interpretation supports monitoring of fuel combustion, urban emissions, and periods of intensified industrial demand.',
-  air_o3:
-    'O3 risk interpretation can support planning for photochemical pollution episodes during months with elevated precursor activity.',
-  air_pm_10:
-    'PM10 risk interpretation supports early warning for coarse particulate exposure and broader environmental planning actions.',
-  air_pm_25:
-    'PM2.5 risk interpretation is important for public health planning because fine particulate matter can create high exposure risk during worsening trend periods.',
-  air_so2:
-    'SO2 risk interpretation supports monitoring of fuel quality, industrial emissions, and possible regional haze-related pressure.',
+const targetInsight = {
+  air_pm_25: {
+    heading: 'PM2.5 planning interpretation',
+    points: [
+      'transport activity monitoring',
+      'air-quality monitoring',
+      'public-health planning',
+      'early review of fine particulate exposure trends',
+    ],
+    body:
+      'PM2.5 forecasts can help teams monitor whether transport or activity indicators align with fine particulate matter trends. This supports air-quality and public-health planning when real vehicle predictors and trained models are available.',
+  },
+  air_no2: {
+    heading: 'NO2 planning interpretation',
+    points: [
+      'transport activity monitoring',
+      'local electricity review',
+      'air-quality monitoring',
+      'meeting scenario validation',
+    ],
+    body:
+      'NO2 is the target for the vehicle activity and local electricity scenario under discussion. Built-in data can show NO2 history, but vehicle-related model inputs require a compatible uploaded dataset.',
+  },
+  air_so2: {
+    heading: 'SO2 planning interpretation',
+    points: [
+      'SO2 trend monitoring',
+      'electricity demand analysis',
+      'environmental-economic planning',
+      'IPI relationship review',
+    ],
+    body:
+      'SO2 is the target for the IPI and electricity scenario under discussion. The built-in dataset supports the prototype fallback view, while final trained outputs remain pending until teammates provide model files and metrics.',
+  },
 };
 
-export default function PolicyInsight({ selectedPollutant, setSelectedPollutant }) {
-  const pollutantLabel = labelFor(pollutantOptions, selectedPollutant);
+const fallbackInsight = {
+  heading: 'Target-specific planning interpretation',
+  points: ['time-series monitoring', 'indicator review', 'scenario planning', 'trend reporting'],
+  body:
+    'Forecast outputs should be interpreted according to the selected target category and the final model predictors used for that task.',
+};
+
+export default function PolicyInsight({ rows, selectedTarget, setSelectedTarget }) {
+  const targetDefinition = getTargetDefinition(selectedTarget);
+  const availableTargets = getAvailableTargetOptions(rows);
+  const insight = targetInsight[selectedTarget] ?? fallbackInsight;
 
   return (
     <section className="page-section">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Policy Insight</p>
-          <h1>Forecasting support for environmental decisions</h1>
+          <h1>Forecasting support for target-specific decisions</h1>
           <p>
-            Time-series forecasting can translate monthly pollutant trends into planning signals for
-            academic, technical, and public-sector reporting.
+            Time-series forecasts should be interpreted according to the selected target. Pollution
+            targets, industrial targets, and custom indicators have different planning uses.
           </p>
         </div>
       </div>
 
       <div className="control-grid single-control">
         <Selector
-          id="policy-pollutant"
-          label="Selected pollutant"
-          value={selectedPollutant}
-          options={pollutantOptions}
-          onChange={setSelectedPollutant}
+          id="policy-target"
+          label="Selected target"
+          value={selectedTarget}
+          options={availableTargets.length ? availableTargets : targetOptions}
+          onChange={setSelectedTarget}
         />
       </div>
 
       <div className="policy-grid">
-        {policyPoints.map((point) => (
+        {insight.points.map((point) => (
           <article className="policy-card" key={point}>
             <span>{point}</span>
             <p>
-              Forecast outputs can support earlier review of environmental conditions before
-              monthly pollutant levels become operational concerns.
+              Forecast outputs can support earlier review of {targetDefinition.label} trends before
+              they become reporting or planning concerns.
             </p>
           </article>
         ))}
       </div>
 
       <article className="risk-card">
-        <span>Selected pollutant risk interpretation</span>
-        <h2>{pollutantLabel}</h2>
-        <p>{riskText[selectedPollutant]}</p>
+        <span>{targetDefinition.category} target interpretation</span>
+        <h2>{insight.heading}</h2>
+        <p>{insight.body}</p>
       </article>
+
+      <div className="text-panel">
+        <h2>Configured scenarios</h2>
+        <p>{scenarioOptions.map((scenario) => scenario.label).join(', ')}.</p>
+      </div>
     </section>
   );
 }

@@ -1,3 +1,8 @@
+import { formatPredictorList, getScenarioDefinition, getTargetDefinition } from './constants';
+
+export const prototypeFallbackNotice =
+  'Prototype fallback uses the target variable’s recent historical trend. The selected predictors represent the intended final model inputs and are not used by the frontend fallback algorithm.';
+
 const addMonths = (dateValue, months) => {
   const date = new Date(dateValue);
   date.setMonth(date.getMonth() + months);
@@ -21,13 +26,13 @@ const dampenForecastStep = ({ trendStep, fallbackStep, lastActual, horizonMonths
   return Math.min(Math.max(dampedStep, -maxMonthlyStep), maxMonthlyStep);
 };
 
-export const generatePrototypeForecast = (rows, pollutantKey, horizonMonths) => {
+export const generatePrototypeForecast = (rows, targetKey, horizonMonths) => {
   const actualRows = rows
-    .filter((row) => Number.isFinite(row[pollutantKey]))
+    .filter((row) => Number.isFinite(row[targetKey]))
     .map((row) => ({
       date: row.date,
       month: row.month,
-      actual: row[pollutantKey],
+      actual: row[targetKey],
       forecast: null,
       type: 'Historical',
     }));
@@ -89,13 +94,64 @@ export const generatePrototypeForecast = (rows, pollutantKey, horizonMonths) => 
   };
 };
 
-export const generateModelOutputForecast = (rows, pollutantKey, forecastRows) => {
+export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
+  const hasActualOutputRows = forecastRows.some((row) => Number.isFinite(row.actualValue));
+
+  if (hasActualOutputRows) {
+    const modelForecastRows = forecastRows.map((row) => ({
+      date: row.date,
+      month: row.month,
+      actual: safeRound(row.actualValue),
+      forecast: safeRound(row.forecast),
+      lowerBound: safeRound(row.lowerBound),
+      upperBound: safeRound(row.upperBound),
+      unit: row.unit,
+      type: row.type,
+      resultType: row.resultType,
+      resultTypeLabel: row.resultTypeLabel,
+      sourceNotebook: row.sourceNotebook,
+      scenarioVariant: row.scenarioVariant,
+      scenarioVariantLabel: row.scenarioVariantLabel,
+      predictors: row.predictors,
+      engineeredFeatures: row.engineeredFeatures,
+      evaluationStart: row.evaluationStart,
+      evaluationEnd: row.evaluationEnd,
+      frequency: row.frequency,
+    }));
+    const firstActual = modelForecastRows.find((row) => Number.isFinite(row.actual))?.actual ?? null;
+    const lastForecast = modelForecastRows[modelForecastRows.length - 1]?.forecast ?? null;
+    const change =
+      Number.isFinite(firstActual) && Number.isFinite(lastForecast) ? lastForecast - firstActual : 0;
+    const directionThreshold = Number.isFinite(firstActual) ? Math.max(Math.abs(firstActual) * 0.02, 0.000001) : 0;
+    const trendDirection =
+      Math.abs(change) <= directionThreshold ? 'stable' : change > 0 ? 'increasing' : 'decreasing';
+
+    return {
+      chartRows: modelForecastRows,
+      forecastRows: modelForecastRows,
+      trendDirection,
+      lastActual: modelForecastRows[modelForecastRows.length - 1]?.actual ?? null,
+      lastForecast: safeRound(lastForecast),
+      resultType: modelForecastRows[0]?.resultType ?? '',
+      resultTypeLabel: modelForecastRows[0]?.resultTypeLabel ?? '',
+      sourceNotebook: modelForecastRows[0]?.sourceNotebook ?? '',
+      scenarioVariant: modelForecastRows[0]?.scenarioVariant ?? '',
+      scenarioVariantLabel: modelForecastRows[0]?.scenarioVariantLabel ?? '',
+      predictors: modelForecastRows[0]?.predictors ?? [],
+      engineeredFeatures: modelForecastRows[0]?.engineeredFeatures ?? [],
+      evaluationStart: modelForecastRows[0]?.evaluationStart ?? '',
+      evaluationEnd: modelForecastRows[0]?.evaluationEnd ?? '',
+      frequency: modelForecastRows[0]?.frequency ?? '',
+      unit: modelForecastRows[0]?.unit ?? '',
+    };
+  }
+
   const actualRows = rows
-    .filter((row) => Number.isFinite(row[pollutantKey]))
+    .filter((row) => Number.isFinite(row[targetKey]))
     .map((row) => ({
       date: row.date,
       month: row.month,
-      actual: row[pollutantKey],
+      actual: row[targetKey],
       forecast: null,
       type: 'Historical',
     }));
@@ -113,6 +169,7 @@ export const generateModelOutputForecast = (rows, pollutantKey, forecastRows) =>
     forecast: safeRound(row.forecast),
     lowerBound: safeRound(row.lowerBound),
     upperBound: safeRound(row.upperBound),
+    unit: row.unit,
     type: 'Final model output',
   }));
   const lastForecast = modelForecastRows[modelForecastRows.length - 1]?.forecast ?? lastActual;
@@ -134,28 +191,76 @@ export const generateModelOutputForecast = (rows, pollutantKey, forecastRows) =>
   };
 };
 
+const directionPhrase = (trendDirection, targetLabel) => {
+  if (trendDirection === 'stable') {
+    return `a broadly stable ${targetLabel} trend`;
+  }
+
+  const article = trendDirection === 'increasing' ? 'an' : 'a';
+  return `${article} ${trendDirection} ${targetLabel} trend`;
+};
+
+const categoryContext = (targetDefinition, scenarioId, predictorKeys) => {
+  if (scenarioId === 'vehicle_electricity_to_no2') {
+    return 'Local electricity consumption and vehicle activity indicators are the intended predictors for the final trained model.';
+  }
+
+  if (scenarioId === 'ipi_electricity_to_so2') {
+    return 'An IPI indicator and electricity consumption are the intended predictors for the final trained model.';
+  }
+
+  if (scenarioId === 'no2_to_pm25') {
+    return 'NO2 is the intended predictor for this optional extension workflow.';
+  }
+
+  if (targetDefinition.category === 'industrial') {
+    return 'The selected predictors describe the intended industrial forecasting scenario.';
+  }
+
+  if (targetDefinition.category === 'pollution') {
+    return 'The selected predictors describe the intended environmental forecasting scenario.';
+  }
+
+  if (predictorKeys.length) {
+    return `The intended predictor set is ${formatPredictorList(predictorKeys)}.`;
+  }
+
+  return 'The selected predictors describe the intended final model scenario.';
+};
+
 export const createForecastInterpretation = ({
-  pollutantLabel,
+  targetKey,
+  targetDefinition = getTargetDefinition(targetKey),
   modelLabel,
   horizonLabel,
   trendDirection,
   isFinalOutput = false,
+  scenarioId = 'custom',
+  predictorKeys = [],
 }) => {
-  const directionText =
-    trendDirection === 'stable'
-      ? `${pollutantLabel} may remain broadly stable`
-      : `${pollutantLabel} may ${trendDirection === 'increasing' ? 'increase' : 'decrease'}`;
-
-  const implication =
-    trendDirection === 'increasing'
-      ? 'This suggests a potential worsening air quality trend if current electricity consumption and industrial activity patterns continue.'
-      : trendDirection === 'decreasing'
-        ? 'This suggests a potential easing of pollutant concentration under the current observed trend pattern.'
-        : 'This suggests no major short-term shift in the selected pollutant under the current observed trend pattern.';
+  const targetLabel = targetDefinition.label;
+  const scenario = getScenarioDefinition(scenarioId);
+  const trendText = directionPhrase(trendDirection, targetLabel);
 
   if (isFinalOutput) {
-    return `The model forecast displayed under the ${modelLabel} option suggests that ${directionText} over the next ${horizonLabel}. ${implication} This interpretation is generated from final model output values connected to the dashboard.`;
+    if (scenarioId === 'ipi_electricity_to_so2') {
+      return `The connected ${modelLabel} output reproduces ${targetLabel} values over the held-out test period. It is not a projection beyond the fixed evaluation period.`;
+    }
+
+    return `The ${modelLabel} output indicates ${trendText} over the next ${horizonLabel} for the ${scenario.label} scenario. These values are loaded from final model output files connected to the dashboard.`;
   }
 
-  return `The prototype forecast displayed under the ${modelLabel} option suggests that ${directionText} over the next ${horizonLabel}. ${implication} This interpretation is generated from dampened prototype forecast values and should be replaced with final trained model outputs after model integration.`;
+  if (scenarioId === 'ipi_electricity_to_so2') {
+    return `This prototype displays an SO2 trend forecast based on recent SO2 history. ${categoryContext(
+      targetDefinition,
+      scenarioId,
+      predictorKeys,
+    )} ${prototypeFallbackNotice}`;
+  }
+
+  return `The forecast indicates ${trendText} over the selected horizon for the ${scenario.label} scenario. ${categoryContext(
+    targetDefinition,
+    scenarioId,
+    predictorKeys,
+  )} ${prototypeFallbackNotice}`;
 };

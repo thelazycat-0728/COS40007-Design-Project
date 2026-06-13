@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Building2,
+  ClipboardCheck,
   Factory,
   Gauge,
   Globe2,
@@ -10,11 +11,12 @@ import {
 
 const navItems = [
   { id: 'overview', label: 'Overview', icon: Gauge },
-  { id: 'data-explorer', label: 'Data Explorer', icon: LineChart },
+  { id: 'model-readiness', label: 'Model Readiness', icon: ClipboardCheck },
   { id: 'forecast-simulator', label: 'Forecast Simulator', icon: BarChart3 },
   { id: 'model-comparison', label: 'Model Comparison', icon: Factory },
-  { id: 'regional-comparison', label: 'Regional Comparison', icon: Globe2 },
   { id: 'upload-regional-dataset', label: 'Upload Regional Dataset', icon: UploadCloud },
+  { id: 'data-explorer', label: 'Data Explorer', icon: LineChart },
+  { id: 'regional-comparison', label: 'Regional Comparison', icon: Globe2 },
   { id: 'policy-insight', label: 'Policy Insight', icon: Building2 },
 ];
 
@@ -22,10 +24,10 @@ export default function Sidebar({ activeSection, onSectionChange }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-brand">
-        <span className="brand-mark">AI</span>
+        <span className="brand-mark">TS</span>
         <div>
           <strong>COS40007</strong>
-          <small>Design Project</small>
+          <small>Forecasting Dashboard</small>
         </div>
       </div>
       <nav className="sidebar-nav" aria-label="Dashboard sections">
@@ -42,8 +44,8 @@ export default function Sidebar({ activeSection, onSectionChange }) {
         ))}
       </nav>
       <div className="sidebar-note">
-        <span>Malaysia dataset</span>
-        <strong>Monthly time series</strong>
+        <span>Built-in dataset</span>
+        <strong>Malaysia monthly time series</strong>
       </div>
     </aside>
   );
