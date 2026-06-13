@@ -1,4 +1,4 @@
-date,country,air_no2,air_so2,air_pm_25,electricity_local,electricity_total,ipi_abs_index,ipi_abs_index_sa,vehicle_registrations
+date,country,air_no2,air_so2,air_pm_25,electricity_local,electricity_total,ipi_abs_index,ipi_abs_index_sa,car_registration
 2023-01-01,Demo Region,18.4,7.2,12.4,3020,4300,103.2,102.9,15200
 2023-02-01,Demo Region,17.9,7.0,11.9,2995,4280,102.7,102.6,14950
 2023-03-01,Demo Region,19.1,7.4,13.1,3105,4410,104.1,103.8,15820

@@ -1,4 +1,4 @@
 date,country,target,model,forecast_value,lower_bound,upper_bound,scenario_id,predictors,unit
-2023-01-01,Malaysia,air_so2,XGBoost,7.40,7.10,7.70,ipi_electricity_to_so2,ipi_abs_index_sa;electricity_local,µg/m³
-2023-02-01,Malaysia,air_so2,XGBoost,7.35,7.05,7.65,ipi_electricity_to_so2,ipi_abs_index_sa;electricity_local,µg/m³
-2023-03-01,Malaysia,air_so2,XGBoost,7.31,7.00,7.62,ipi_electricity_to_so2,ipi_abs_index_sa;electricity_local,µg/m³
+2023-01-01,Malaysia,air_so2,XGBoost,7.40,7.10,7.70,ipi_electricity_to_so2,ipi_abs_index_sa;electricity_local,ppm
+2023-02-01,Malaysia,air_so2,XGBoost,7.35,7.05,7.65,ipi_electricity_to_so2,ipi_abs_index_sa;electricity_local,ppm
+2023-03-01,Malaysia,air_so2,XGBoost,7.31,7.00,7.62,ipi_electricity_to_so2,ipi_abs_index_sa;electricity_local,ppm

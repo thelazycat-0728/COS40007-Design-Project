@@ -18,6 +18,12 @@ export const uploadedTemplatePath = '/templates/regional_dataset_template.csv';
 const targetKeys = uploadedTargetOptions.map((option) => option.key);
 const predictorKeys = uploadedPredictorOptions.map((option) => option.key);
 const numericKeys = [...new Set([...targetKeys, ...predictorKeys])];
+const columnAliases = {
+  vehicle_registrations: 'car_registration',
+};
+const targetColumnGuide = 'air_no2, air_so2, air_pm_25, electricity_local, ipi_abs_index_sa, or another supported target';
+const predictorColumnGuide =
+  'electricity_local, car_registration, vehicle_registrations, air_no2, ipi_abs_index_sa, ipi_abs_index, or electricity_total';
 
 const toNumberOrNull = (value) => {
   if (value === null || value === undefined || String(value).trim() === '') {
@@ -49,6 +55,28 @@ const formatDate = (value) => {
 
 const getDetectedColumns = (fields, allowedKeys) => allowedKeys.filter((key) => fields.includes(key));
 
+const normalizeFieldSet = (fields) => {
+  const normalized = new Set(fields);
+
+  fields.forEach((field) => {
+    const aliasTarget = columnAliases[field];
+    if (aliasTarget) {
+      normalized.add(aliasTarget);
+    }
+  });
+
+  return [...normalized];
+};
+
+const getRawValue = (row, key) => {
+  if (row[key] !== undefined) {
+    return row[key];
+  }
+
+  const alias = Object.entries(columnAliases).find(([, canonical]) => canonical === key)?.[0];
+  return alias ? row[alias] : undefined;
+};
+
 const buildMissingSummary = (rows, columns) =>
   columns.map((column) => ({
     column,
@@ -60,7 +88,7 @@ const buildMissingSummary = (rows, columns) =>
 const getInvalidNumericEntries = (rawRows, columns) =>
   rawRows.reduce((count, row) => {
     const invalidValues = columns.filter((column) => {
-      const value = row[column];
+      const value = getRawValue(row, column);
       return value !== null && value !== undefined && String(value).trim() !== '' && !Number.isFinite(Number(value));
     });
 
@@ -101,18 +129,19 @@ export const parseUploadedCsvFile = (file) =>
 
 export const validateAndNormalizeUploadedDataset = (parseResult) => {
   const fields = (parseResult.meta?.fields ?? []).map((field) => field.trim()).filter(Boolean);
+  const normalizedFields = normalizeFieldSet(fields);
   const rawRows = parseResult.data.filter((row) => Object.values(row).some((value) => String(value ?? '').trim()));
-  const detectedTargets = getDetectedColumns(fields, targetKeys);
-  const detectedPredictors = getDetectedColumns(fields, predictorKeys);
+  const detectedTargets = getDetectedColumns(normalizedFields, targetKeys);
+  const detectedPredictors = getDetectedColumns(normalizedFields, predictorKeys);
   const errors = [];
 
   if (!fields.includes('date')) errors.push('CSV must include a date column.');
   if (!fields.includes('country')) errors.push('CSV must include a country column.');
   if (!detectedTargets.length) {
-    errors.push('CSV must include at least one supported forecast target column.');
+    errors.push(`CSV must include at least one supported forecast target column, such as ${targetColumnGuide}.`);
   }
   if (!detectedPredictors.length) {
-    errors.push('CSV must include at least one supported predictor column.');
+    errors.push(`CSV must include at least one supported predictor column, such as ${predictorColumnGuide}.`);
   }
 
   const invalidNumericEntries = getInvalidNumericEntries(rawRows, [
@@ -121,7 +150,9 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
   ]);
 
   if (invalidNumericEntries > 0) {
-    errors.push(`CSV contains ${invalidNumericEntries} non-numeric value(s) in target or predictor columns.`);
+    errors.push(
+      `CSV contains ${invalidNumericEntries} non-numeric value(s) in target or predictor columns. Use numbers or leave cells blank for missing values.`,
+    );
   }
 
   const normalizedRows = rawRows
@@ -134,8 +165,8 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
       };
 
       numericKeys.forEach((key) => {
-        if (fields.includes(key)) {
-          normalized[key] = toNumberOrNull(row[key]);
+        if (normalizedFields.includes(key)) {
+          normalized[key] = toNumberOrNull(getRawValue(row, key));
         }
       });
 

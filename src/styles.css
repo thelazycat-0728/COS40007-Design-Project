@@ -15,6 +15,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
   background: #eef5f6;
 }
 
@@ -75,7 +76,28 @@ button {
 
 .sidebar-nav {
   display: grid;
+  gap: 14px;
+}
+
+.sidebar-nav-group,
+.advanced-nav-items {
+  display: grid;
   gap: 8px;
+}
+
+.advanced-nav-items {
+  padding-left: 8px;
+  border-left: 1px solid rgba(125, 211, 252, 0.22);
+}
+
+.sidebar-nav-label {
+  display: block;
+  padding: 0 14px;
+  color: #7fa2b4;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .sidebar-nav button {
@@ -96,6 +118,14 @@ button {
 .sidebar-nav button.active {
   color: #f7ffff;
   background: #0e3548;
+}
+
+.sidebar-nav .advanced-toggle {
+  justify-content: flex-start;
+}
+
+.advanced-toggle .expanded {
+  transform: rotate(180deg);
 }
 
 .sidebar-note {
@@ -168,13 +198,16 @@ button {
 
 .page-section {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
+  overflow-wrap: anywhere;
 }
 
 .section-heading {
   display: flex;
   justify-content: space-between;
   gap: 18px;
+  min-width: 0;
 }
 
 .section-heading h1 {
@@ -216,6 +249,20 @@ button {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
+}
+
+.description-band,
+.text-panel,
+.chart-panel,
+.table-panel,
+.interpretation-panel,
+.risk-card,
+.integration-status-card,
+.upload-panel,
+.upload-message,
+.pending-output-panel {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .description-band {
@@ -260,6 +307,7 @@ button {
   display: grid;
   grid-template-columns: repeat(4, minmax(180px, 1fr));
   gap: 14px;
+  min-width: 0;
 }
 
 .control-grid.two-column {
@@ -277,6 +325,7 @@ button {
 .field {
   display: grid;
   gap: 8px;
+  min-width: 0;
   padding: 14px;
   border: 1px solid #d9e8ec;
   border-radius: 8px;
@@ -293,12 +342,58 @@ button {
 
 .field select {
   width: 100%;
+  min-width: 0;
   min-height: 42px;
   border: 1px solid #b9cbd3;
   border-radius: 6px;
   padding: 0 12px;
   color: #10212c;
   background: #f8fbfc;
+}
+
+.segmented-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.segmented-field > span {
+  color: #526779;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid #b9cbd3;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.segmented-control button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 6px;
+  color: #526779;
+  background: transparent;
+  font-weight: 800;
+}
+
+.segmented-control button.active,
+.segmented-control button:focus-visible {
+  color: #075985;
+  background: #dff7fb;
+  outline: 2px solid #0891b2;
+  outline-offset: 1px;
 }
 
 .locked-field {
@@ -327,6 +422,7 @@ button {
 .checkbox-field {
   display: grid;
   gap: 10px;
+  min-width: 0;
   margin: 0;
   padding: 14px;
   border: 1px solid #d9e8ec;
@@ -346,6 +442,7 @@ button {
 .checkbox-grid {
   display: grid;
   gap: 8px;
+  min-width: 0;
 }
 
 .checkbox-grid p {
@@ -358,6 +455,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   color: #243b4a;
   font-size: 0.94rem;
 }
@@ -501,6 +599,12 @@ button {
   color: #526779;
 }
 
+.validation-guidance {
+  margin: 10px 0 0;
+  color: #526779;
+  line-height: 1.6;
+}
+
 .inline-actions {
   display: flex;
   flex-wrap: wrap;
@@ -516,6 +620,34 @@ button {
 .upload-message.error {
   border-color: #f97316;
   background: #fff7ed;
+}
+
+.recommendation-panel {
+  padding: 20px;
+  border: 1px solid #0891b2;
+  border-radius: 8px;
+  background: #f0fbff;
+  box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
+}
+
+.recommendation-panel span {
+  color: #075985;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.recommendation-panel h2 {
+  margin: 10px 0 0;
+  color: #0d2736;
+  font-size: 1.2rem;
+}
+
+.recommendation-panel p {
+  margin: 10px 0 0;
+  color: #526779;
+  line-height: 1.6;
 }
 
 .panel-heading {
@@ -540,6 +672,117 @@ button {
 .panel-heading span {
   color: #6b7f8d;
   font-size: 0.88rem;
+}
+
+.chart-boundary-note {
+  margin: -4px 0 12px;
+  color: #9a3412;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.pending-output-panel {
+  padding: 20px;
+  border: 1px solid #f97316;
+  border-radius: 8px;
+  background: #fff7ed;
+  box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
+}
+
+.pending-output-panel span {
+  color: #9a3412;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.pending-output-panel h2 {
+  margin: 10px 0 0;
+  color: #0d2736;
+  font-size: 1.18rem;
+}
+
+.pending-output-panel p {
+  margin: 10px 0 0;
+  color: #526779;
+  line-height: 1.6;
+}
+
+.metrics-only-panel {
+  border-color: #0891b2;
+  background: #f0fbff;
+}
+
+.metric-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.metric-chip-grid article {
+  padding: 12px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.metric-chip-grid span,
+.metric-chip-grid strong {
+  display: block;
+}
+
+.metric-chip-grid span {
+  color: #526779;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metric-chip-grid strong {
+  margin-top: 6px;
+  color: #0d2736;
+  font-size: 1.1rem;
+}
+
+.status-legend-grid,
+.requirement-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.status-legend-grid article,
+.requirement-grid article {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.status-legend-grid p,
+.requirement-grid p,
+.requirement-grid small {
+  display: block;
+  margin: 10px 0 0;
+  color: #526779;
+  line-height: 1.5;
+}
+
+.requirement-grid h3 {
+  margin: 0;
+  color: #0d2736;
+  font-size: 1rem;
+}
+
+.requirement-grid p {
+  color: #10212c;
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
 }
 
 .insight-row,
@@ -576,6 +819,7 @@ button {
 }
 
 .table-scroll {
+  max-width: 100%;
   overflow-x: auto;
 }
 
@@ -699,6 +943,64 @@ td {
   color: #14532d;
 }
 
+.integration-status-grid article.verification-required {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+
+.integration-status-grid article.verification-required strong {
+  color: #9a3412;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-connected_output,
+.status-official_scale_row_output {
+  color: #14532d;
+  background: #dcfce7;
+}
+
+.status-transformed_scale_row_output {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.status-ready_for_export,
+.status-metrics_and_plot_only,
+.status-summary_metrics_only {
+  color: #075985;
+  background: #dff7fb;
+}
+
+.status-branch_only,
+.status-notebook_only,
+.status-artifact_only,
+.status-branch_or_pending {
+  color: #854d0e;
+  background: #fef3c7;
+}
+
+.status-stale_or_mismatched,
+.status-metrics_pending_verification {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.readiness-table table {
+  min-width: 1120px;
+}
+
 .risk-card {
   border-left: 5px solid #0891b2;
 }
@@ -743,9 +1045,12 @@ td {
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,
+  .metric-chip-grid,
   .summary-grid,
+  .status-legend-grid,
+  .requirement-grid,
   .definition-grid {
-    grid-template-columns: repeat(2, minmax(160px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .split-grid,
@@ -782,9 +1087,12 @@ td {
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,
+  .metric-chip-grid,
   .summary-grid,
+  .status-legend-grid,
+  .requirement-grid,
   .definition-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .section-heading h1 {

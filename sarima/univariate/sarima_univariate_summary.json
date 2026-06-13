@@ -1,0 +1,108 @@
+{
+  "project": "COS40007 Design Project \u2014 SARIMA Univariate",
+  "dataset_period": "2018-01-01 to 2022-12-01",
+  "train_size": 48,
+  "test_size": 12,
+  "results": [
+    {
+      "variable": "electricity_local",
+      "order": "(0, 0, 1)",
+      "seasonal_order": "(0, 1, 0, 12)",
+      "aic": 534.3999,
+      "bic": 537.4526,
+      "train_metrics": {
+        "MAE": 2999.381045,
+        "RMSE": 5357.164384,
+        "MAPE": 24.81623,
+        "R2": -95.835489
+      },
+      "test_metrics": {
+        "MAE": 719.433081,
+        "RMSE": 973.964924,
+        "MAPE": 5.4482,
+        "R2": -5.41496
+      },
+      "ljung_box_p_lag12": 0.0
+    },
+    {
+      "variable": "air_so2",
+      "order": "(1, 0, 0)",
+      "seasonal_order": "(1, 1, 0, 12)",
+      "aic": -363.6915,
+      "bic": -360.285,
+      "train_metrics": {
+        "MAE": 0.000246,
+        "RMSE": 0.000336,
+        "MAPE": 23.464492,
+        "R2": -15.027164
+      },
+      "test_metrics": {
+        "MAE": 0.000112,
+        "RMSE": 0.00012,
+        "MAPE": 9.430368,
+        "R2": -4.940224
+      },
+      "ljung_box_p_lag12": 0.0
+    },
+    {
+      "variable": "air_no2",
+      "order": "(2, 0, 0)",
+      "seasonal_order": "(1, 1, 0, 12)",
+      "aic": -228.438,
+      "bic": -224.0738,
+      "train_metrics": {
+        "MAE": 0.001964,
+        "RMSE": 0.002756,
+        "MAPE": 28.485829,
+        "R2": -4.95931
+      },
+      "test_metrics": {
+        "MAE": 0.000665,
+        "RMSE": 0.000837,
+        "MAPE": 10.218174,
+        "R2": -2.729769
+      },
+      "ljung_box_p_lag12": 0.0
+    },
+    {
+      "variable": "ipi_abs_index_sa",
+      "order": "(1, 0, 0)",
+      "seasonal_order": "(2, 1, 1, 12)",
+      "aic": 58.1338,
+      "bic": 60.1232,
+      "train_metrics": {
+        "MAE": 11.77303,
+        "RMSE": 26.193269,
+        "MAPE": 10.59593,
+        "R2": -14.798844
+      },
+      "test_metrics": {
+        "MAE": 2.172703,
+        "RMSE": 2.673445,
+        "MAPE": 1.719479,
+        "R2": -0.081393
+      },
+      "ljung_box_p_lag12": 0.962863
+    },
+    {
+      "variable": "car_registration",
+      "order": "(2, 0, 0)",
+      "seasonal_order": "(1, 1, 0, 12)",
+      "aic": 498.2758,
+      "bic": 502.64,
+      "train_metrics": {
+        "MAE": 18621.099742,
+        "RMSE": 22591.584168,
+        "MAPE": 386.522363,
+        "R2": -0.865986
+      },
+      "test_metrics": {
+        "MAE": 17395.989294,
+        "RMSE": 21940.632281,
+        "MAPE": 27.341977,
+        "R2": -3.746666
+      },
+      "ljung_box_p_lag12": 2.9e-05
+    }
+  ]
+}

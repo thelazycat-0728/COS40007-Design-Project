@@ -16,21 +16,30 @@ export default function ModelIntegrationStatus({
   return (
     <div className="integration-status-card">
       <div className="panel-heading">
-        <h2>Model Integration Status</h2>
-        <span>Matching forecast output files</span>
+        <h2>Model Result Status</h2>
+        <span>Notebook-confirmed rows, metrics, or pending result evidence</span>
       </div>
       <div className="integration-status-grid">
         {statuses.map((status) => {
           const statusText = status.connected
-            ? 'Connected forecast output'
+            ? status.integrationStatus === 'transformed_scale_row_output'
+              ? 'Transformed row output'
+              : 'Notebook row output'
+            : status.verificationRequired
+              ? 'Integration paused · Source verification required'
             : status.metricsOnly
-              ? 'Metrics reported by team'
+              ? 'Metrics and plot only'
               : status.key === 'xgboost'
-                ? 'Pending team export'
+                ? 'No row export for selected task'
                 : 'Pending for selected task';
+          const className = status.connected
+            ? 'connected'
+            : status.verificationRequired
+              ? 'verification-required'
+              : 'pending';
 
           return (
-            <article className={status.connected ? 'connected' : 'pending'} key={status.key}>
+            <article className={className} key={status.key}>
               <span>{status.label}</span>
               <strong>{statusText}</strong>
               <small>{status.targetLabel}</small>
@@ -43,6 +52,7 @@ export default function ModelIntegrationStatus({
                 </small>
               ) : null}
               {status.sourceNotebook ? <small>Source: {status.sourceNotebook}</small> : null}
+              {status.statusMessage ? <small>{status.statusMessage}</small> : null}
               {status.legacySource ? <small>Legacy pollutant schema</small> : null}
             </article>
           );

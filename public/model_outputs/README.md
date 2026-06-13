@@ -1,94 +1,162 @@
 # Model Output Integration Files
 
-Drop final trained model outputs into this folder when teammates provide them. The dashboard checks
-these files at runtime and falls back to prototype target-trend forecasts or pending metric states
-when matching files are missing or invalid.
+This folder contains the frontend-facing model-result registry and normalized row outputs for the
+official COS40007 model families.
 
-## Forecast Files
+The current GUI goal is to present notebook-confirmed results honestly. A result does not have to be a
+fully normalized official-scale forecast to appear, but transformed-scale and metrics-only outputs must
+be labelled clearly.
 
-Supported optional forecast file names:
+The main user flow is Overview -> Upload Regional Dataset -> Forecast Results -> Model Evidence.
+Uploaded CSV files are used for column validation and scenario compatibility checking only; the browser
+does not train or run the official SARIMA, LSTM, XGBoost, or VAR models in real time.
+
+## Official Scope
+
+- Univariate: SARIMA and LSTM
+- Multivariate: XGBoost and VAR
+
+Excluded from the final GUI scope:
+
+- Prophet
+- VECM
+- baselines
+- univariate XGBoost
+
+## Current Files
+
+- `model_artifacts.json`
+  - 16 official model-result entries.
+  - Source of truth for display mode, source notebook, scale, metrics availability, row availability,
+    plot availability, artifacts, and caveats.
+
+- `model_metrics.json`
+  - Notebook-reported metrics for all 16 official results.
+  - Includes official-scale SARIMA metrics, LSTM original-scale notebook metrics, XGBoost notebook
+    metrics, and VAR equation metrics.
 
 - `sarima_forecast.csv`
-- `lstm_forecast.csv`
-- `xgboost_forecast.csv`
+  - 60 rows.
+  - Five univariate targets.
+  - 2022 held-out test predictions.
+  - Includes actual values, predicted values, confidence intervals, units, and source notebook.
+
 - `var_forecast.csv`
-- `prophet_forecast.csv`
+  - 72 rows.
+  - Three VAR scenarios.
+  - 2023-2024 future forecast rows.
+  - VAR1/VAR2 are transformed differenced outputs.
+  - VAR3 is PM2.5-scale output with unit `µg/m³`.
 
-Preferred CSV columns:
+- `xgboost_forecast.csv`
+  - Retained audit file only.
+  - Marked `stale_or_mismatched`.
+  - Not used for charts, connected counts, or rankings.
+
+## Display Modes
+
+Use these status/display values:
+
+- `official_scale_row_output`
+  - Dated forecast or prediction rows exist in the shown target scale.
+  - Example: SARIMA test predictions and VAR3 PM2.5 forecast.
+
+- `transformed_scale_row_output`
+  - Dated rows exist but the target is transformed.
+  - Example: VAR1 `d_air_no2`, VAR2 `d_air_so2`.
+
+- `metrics_and_plot_only`
+  - Notebook reports metrics and has plot/artifact evidence, but no dated row export.
+  - Example: LSTM and official multivariate XGBoost.
+
+- `summary_metrics_only`
+  - Metrics exist, but no row output or reusable plot is available.
+
+- `artifact_only`
+  - Native model artifact exists but no displayable result exists.
+
+- `branch_or_pending`
+  - Result is not merged or not inspectable.
+
+- `stale_or_mismatched`
+  - Retained audit output conflicts with source evidence and must stay hidden from result displays.
+
+## Forecast CSV Contract
+
+Normalized row-output CSVs use:
 
 ```text
-date,country,target,model,forecast_value,actual_value,lower_bound,upper_bound,scenario_id,scenario_variant,predictors,engineered_features,unit,result_type,source_notebook,evaluation_start,evaluation_end,frequency
+date,country,target,model,forecast_value,actual_value,lower_bound,upper_bound,scenario_id,scenario_variant,predictors,engineered_features,unit,result_type,source_notebook,evaluation_start,evaluation_end,frequency,integration_status,status_message,display_target,notebook_target,official_target,output_scale,display_mode,caveat,display_label
 ```
 
-Required fields are `date`, `target`, `model`, and numeric `forecast_value`. `country` defaults to
-Malaysia when blank. `actual_value` should be included for held-out test predictions. `lower_bound`,
-`upper_bound`, `scenario_id`, `scenario_variant`, `predictors`, `engineered_features`, `unit`,
-`result_type`, `source_notebook`, `evaluation_start`, `evaluation_end`, and `frequency` are optional.
-Use semicolon-separated predictor keys in `predictors` and semicolon-separated exact engineered
-feature names in `engineered_features`.
+Rules:
 
-Meeting-demo scenario examples:
+- `forecast_value` must come from an actual notebook/output file.
+- `actual_value` is required for held-out test prediction rows when available.
+- `actual_value` can be blank for future forecasts.
+- `unit` must match the notebook/source scale.
+- PM2.5/PM10 units must use `µg/m³`; NO2/SO2 notebook outputs use `ppm` or
+  `ppm change` for differenced VAR rows.
+- VAR1/VAR2 must stay as `ppm change` until the model owner provides official-scale inverse
+  transformation.
+- Do not invent confidence intervals, actual values, dates, metrics, or inverse-transformed values.
 
-```text
-2022-01-01,Malaysia,air_so2,XGBoost,0.001182,0.0012,,,ipi_electricity_to_so2,ipi_growth_yoy_sa_electricity_local_so2_lags,ipi_growth_yoy_index_sa;electricity_local,SO2_lag1;IPI_lag1;elec_lag1,ppm,test_prediction,XGBoost/xgboost_car_forecast.ipynb,2022-01-01,2022-12-01,monthly
-2023-01-01,Malaysia,air_pm_25,SARIMA,12.8,,12.1,13.4,no2_to_pm25,,air_no2,,µg/m³,future_forecast,,,
+## Current Model Notes
+
+SARIMA:
+
+- Source: `sarima/univariate/sarima_univariate.ipynb`.
+- Rows: `sarima/univariate/forecasts/*.csv`.
+- Display: official-scale held-out test prediction rows.
+- Caveat: some R2 values are negative; show results as notebook-produced and interpret carefully.
+
+LSTM:
+
+- Source: five notebooks under `lstm/`.
+- Artifacts: JSON/H5/weights files.
+- Display: metrics and plot only.
+- Caveat: no normalized dated row export exists.
+
+XGBoost:
+
+- Source: `XGBoost_Multivariate/xgboost_multivariate_models.ipynb`.
+- Artifacts: XGBoost JSON/H5 files.
+- Display: metrics and plot only.
+- Caveat: original-scale MSE/RMSE/R2 are printed; original-scale MAE is not printed in the notebook.
+
+VAR:
+
+- Source: `var/varOnly(Brandon).ipynb`.
+- Result folder: `var/VarOnlyFileResults/`.
+- Do not use `var/varAndVCEM(Brandon).ipynb` or `VarAndVCEMFileResults/` for official VAR display.
+- VAR1 displays `d_air_no2` as `ΔNO2` with label `Forecasted change in NO2`.
+  Warning: `This VAR output is shown in differenced NO2 scale. It represents change in NO2, not official-scale NO2 concentration.`
+- VAR2 displays `d_air_so2` as `ΔSO2` with label `Forecasted change in SO2`.
+  Warning: `This VAR output is shown in differenced SO2 scale. It represents change in SO2, not official-scale SO2 concentration.`
+- VAR3 displays `air_pm_25` as `PM2.5` with label `Forecasted PM2.5` and unit `µg/m³`.
+  Note: `VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.`
+
+## Comparison Policy
+
+Model Comparison may show notebook-reported metrics from incompatible outputs, but it must not rank
+models unless target/scenario, period, unit, output scale, frequency, result type, metric definition, and
+predictor setup are compatible.
+
+## Validation
+
+Run:
+
+```bash
+npm run validate:model-readiness
 ```
 
-Legacy compatibility: older files using a `pollutant` column are still accepted and mapped to the
-generic target system. New files should use `target`.
+The validation script checks:
 
-## Metrics File
-
-Use `model_metrics.json` only for verified evaluation metrics:
-
-```json
-{
-  "metrics": [
-    {
-      "model": "XGBoost",
-      "country": "Malaysia",
-      "target": "air_so2",
-      "scenario_id": "ipi_electricity_to_so2",
-      "scenario_variant": "ipi_growth_yoy_sa_electricity_local_so2_lags",
-      "predictors": ["ipi_growth_yoy_index_sa", "electricity_local"],
-      "engineered_features": ["SO2_lag1", "SO2_roll_mean3"],
-      "mae": 0.000016333333333333315,
-      "rmse": 0.00002398263260500532,
-      "r2": 0.76336,
-      "result_type": "test_prediction",
-      "evaluation_start": "2022-01-01",
-      "evaluation_end": "2022-12-01",
-      "frequency": "monthly",
-      "unit": "ppm",
-      "integration_status": "connected_forecast",
-      "row_level_output_available": true
-    }
-  ]
-}
-```
-
-The dashboard filters metrics by country, target, and scenario before comparing models. Do not mix
-NO2, SO2, and PM2.5 metrics in one comparison row set unless the selected target and scenario match.
-
-Legacy compatibility: metrics using `pollutant` instead of `target` are accepted and labeled as
-legacy data after parsing. New metrics should use `target`.
-
-## Current Verified XGBoost Integration
-
-`xgboost_forecast.csv` currently contains one verified connected output from
-`XGBoost/xgboost_car_forecast.ipynb`: SO2 held-out test predictions for January-December 2022.
-The connected variant is `IPI YoY growth SA + local electricity + historical SO2 features → SO2`.
-The source notebook labels the SO2 values as `ppm`, so the dashboard uses `ppm` for this connected
-result and does not convert to `µg/m³`.
-
-The XGBoost JSON and PKL artifacts were not loaded for this GUI integration. The connected rows are
-normalized from visible notebook outputs. Other XGBoost notebooks are documented as `metrics_only`
-when metrics were visible but row-level outputs were not exported. Metrics-only entries do not count
-as connected forecast outputs and do not create model rankings.
-
-`XGBoost/xgboost_forecast_air_so2.ipynb` is recorded with canonical target
-`vehicle_registrations` because the notebook content forecasts vehicle registrations despite the
-filename. It is not classified as an SO2 model.
-
-The sample files in this folder are schema templates only. Do not rename sample files to production
-file names until the values are final trained model outputs.
+- all 16 official result entries exist
+- SARIMA rows are official-scale test predictions
+- VAR1/VAR2 remain transformed-scale row outputs
+- VAR3 is PM2.5-scale row output
+- LSTM and XGBoost remain metrics-and-plot-only
+- stale XGBoost audit rows stay hidden
+- NO2/SO2 units are ppm
+- chart code includes legend, forecast boundary, and no fake metrics-only forecast line

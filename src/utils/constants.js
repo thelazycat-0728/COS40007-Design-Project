@@ -3,10 +3,10 @@ export const DATA_PATH = '/data/combined_air_electricity_ipi_cleaned.csv';
 export const targetOptions = [
   { key: 'air_pm_25', label: 'PM2.5', shortLabel: 'PM2.5', category: 'pollution', unit: 'µg/m³' },
   { key: 'air_pm_10', label: 'PM10', shortLabel: 'PM10', category: 'pollution', unit: 'µg/m³' },
-  { key: 'air_no2', label: 'NO2', shortLabel: 'NO2', category: 'pollution', unit: 'µg/m³' },
+  { key: 'air_no2', label: 'NO2', shortLabel: 'NO2', category: 'pollution', unit: 'ppm' },
   { key: 'air_o3', label: 'O3', shortLabel: 'O3', category: 'pollution', unit: 'ppm' },
   { key: 'air_co', label: 'CO', shortLabel: 'CO', category: 'pollution', unit: 'ppm' },
-  { key: 'air_so2', label: 'SO2', shortLabel: 'SO2', category: 'pollution', unit: 'µg/m³' },
+  { key: 'air_so2', label: 'SO2', shortLabel: 'SO2', category: 'pollution', unit: 'ppm' },
   {
     key: 'ipi_abs_index',
     label: 'Industrial Production Index',
@@ -43,7 +43,7 @@ export const targetOptions = [
     unit: 'GWh',
   },
   {
-    key: 'vehicle_registrations',
+    key: 'car_registration',
     label: 'Vehicle registrations',
     shortLabel: 'Vehicle registrations',
     category: 'vehicle',
@@ -62,7 +62,7 @@ export const pollutantOptions = targetOptions.filter((option) => option.category
 
 export const predictorOptions = [
   {
-    key: 'vehicle_registrations',
+    key: 'car_registration',
     label: 'Vehicle registrations',
     category: 'vehicle',
     unit: 'registrations',
@@ -95,8 +95,8 @@ export const predictorOptions = [
     category: 'electricity',
     unit: 'GWh',
   },
-  { key: 'air_no2', label: 'NO2', category: 'pollution', unit: 'µg/m³' },
-  { key: 'air_so2', label: 'SO2', category: 'pollution', unit: 'µg/m³' },
+  { key: 'air_no2', label: 'NO2', category: 'pollution', unit: 'ppm' },
+  { key: 'air_so2', label: 'SO2', category: 'pollution', unit: 'ppm' },
   {
     key: 'ipi_abs_index',
     label: 'Industrial Production Index',
@@ -130,7 +130,7 @@ export const predictorOptions = [
 ];
 
 export const vehiclePredictorKeys = [
-  'vehicle_registrations',
+  'car_registration',
   'car_sales',
   'traffic_volume',
   'vehicle_production',
@@ -197,6 +197,31 @@ export const modelOptions = [
   { key: 'prophet', label: 'Prophet' },
 ];
 
+export const analysisTypeOptions = [
+  { key: 'multivariate', label: 'Multivariate' },
+  { key: 'univariate', label: 'Univariate' },
+];
+
+export const defaultAnalysisType = 'multivariate';
+
+export const officialModelKeys = ['sarima', 'lstm', 'xgboost', 'var'];
+
+export const officialModelKeysByAnalysis = {
+  univariate: ['sarima', 'lstm'],
+  multivariate: ['xgboost', 'var'],
+};
+
+export const getOfficialModelOptions = (analysisType) => {
+  const keys = officialModelKeysByAnalysis[analysisType] ?? officialModelKeys;
+  return modelOptions.filter((model) => keys.includes(model.key));
+};
+
+export const getDefaultModelForAnalysis = (analysisType) =>
+  getOfficialModelOptions(analysisType)[0]?.key ?? modelOptions[0].key;
+
+export const isOfficialModelForAnalysis = (modelKey, analysisType) =>
+  getOfficialModelOptions(analysisType).some((model) => model.key === modelKey);
+
 export const countryOptions = [
   { key: 'malaysia', label: 'Malaysia', status: 'Active built-in dataset', disabled: false },
   { key: 'singapore', label: 'Singapore', status: 'Future compatible dataset', disabled: true },
@@ -230,12 +255,18 @@ export const univariateTargetsUnderConsideration = [
     availableInBuiltIn: true,
   },
   {
-    key: 'vehicle_registrations',
-    label: 'Car registrations',
-    availability: 'Requires uploaded dataset',
-    availableInBuiltIn: false,
+    key: 'car_registration',
+    label: 'Vehicle registrations',
+    availability: 'Available after verified frontend data sync',
+    availableInBuiltIn: true,
   },
 ];
+
+export const getUnivariateTargetOptions = () =>
+  univariateTargetsUnderConsideration.map((target) => ({
+    key: target.key,
+    label: target.label,
+  }));
 
 export const labelFor = (options, key) =>
   options.find((option) => option.key === key || option.id === key)?.label ?? key;
@@ -371,7 +402,10 @@ export const targetAliases = {
   sa_ipi: 'ipi_abs_index_sa',
   electricity_local: 'electricity_local',
   local_electricity: 'electricity_local',
-  vehicle_registrations: 'vehicle_registrations',
+  car_registration: 'car_registration',
+  car_registrations: 'car_registration',
+  vehicle_registration: 'car_registration',
+  vehicle_registrations: 'car_registration',
   industrial_index: 'industrial_index',
   ipi_growth_yoy_index: 'ipi_growth_yoy_index',
   ipi_growth_yoy_index_sa: 'ipi_growth_yoy_index_sa',
