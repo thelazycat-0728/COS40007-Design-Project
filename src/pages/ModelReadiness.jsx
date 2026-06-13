@@ -2,6 +2,12 @@ import { getScenarioDefinition, getTargetDefinition } from '../utils/constants';
 
 const statusLabels = {
   connected_output: 'Connected output',
+  official_scale_row_output: 'Official-scale rows',
+  transformed_scale_row_output: 'Transformed-scale rows',
+  metrics_and_plot_only: 'Metrics and plot only',
+  summary_metrics_only: 'Summary metrics only',
+  artifact_only: 'Artifact only',
+  branch_or_pending: 'Branch or pending',
   ready_for_export: 'Ready for export',
   metrics_only: 'Metrics only',
   artifact_found: 'Artifact found',
@@ -24,28 +30,28 @@ const officialModels = {
 
 const statusLegendItems = [
   {
-    status: 'connected_output',
-    body: 'Verified row-level output is connected to GUI charts, counts, and comparisons.',
+    status: 'official_scale_row_output',
+    body: 'Dated notebook output exists in the official target scale and can be charted/table-rendered.',
   },
   {
-    status: 'ready_for_export',
-    body: 'Model and metrics exist; normalized frontend row export is still pending.',
+    status: 'transformed_scale_row_output',
+    body: 'Dated rows exist, but the target is differenced or transformed and must be interpreted in that scale.',
   },
   {
-    status: 'branch_only',
-    body: 'Implementation exists off main and must be reviewed or merged before GUI use.',
+    status: 'metrics_and_plot_only',
+    body: 'The notebook reports metrics and plot/artifact evidence, but no dated row export is present.',
   },
   {
-    status: 'notebook_only',
-    body: 'Code exists, but model outputs are incomplete or not exported.',
+    status: 'summary_metrics_only',
+    body: 'Metrics exist without row output or a reusable plot.',
   },
   {
-    status: 'metrics_only',
-    body: 'Evaluation metrics are verified, but row-level output is not available.',
+    status: 'artifact_only',
+    body: 'A native saved model exists, but no result display is available.',
   },
   {
     status: 'stale_or_mismatched',
-    body: 'Hidden from charts and rankings until source, target, and metadata are verified.',
+    body: 'Retained audit data conflicts with source evidence and is hidden from result displays.',
   },
 ];
 
@@ -53,13 +59,18 @@ const formatBoolean = (value) => (value ? 'Yes' : 'No');
 
 const formatMetric = (value) => {
   if (!Number.isFinite(value)) return '';
-  return Math.abs(value) < 0.01 ? value.toPrecision(4) : value.toFixed(3);
+  if (Math.abs(value) >= 100) return value.toFixed(2);
+  if (Math.abs(value) >= 1) return value.toFixed(2);
+  if (Math.abs(value) >= 0.01) return value.toFixed(4);
+  return value.toFixed(6);
 };
 
 const formatMetricSummary = (metrics) => {
   if (!metrics) return 'Not exported';
 
   const parts = [
+    Number.isFinite(metrics.mse) ? `MSE ${formatMetric(metrics.mse)}` : '',
+    Number.isFinite(metrics.mae) ? `MAE ${formatMetric(metrics.mae)}` : '',
     Number.isFinite(metrics.rmse) ? `RMSE ${formatMetric(metrics.rmse)}` : '',
     Number.isFinite(metrics.r2) ? `R2 ${formatMetric(metrics.r2)}` : '',
   ].filter(Boolean);
@@ -92,12 +103,13 @@ const ReadinessTable = ({ title, rows }) => (
             <th>Model</th>
             <th>Target / scenario</th>
             <th>Status</th>
-            <th>Location</th>
+            <th>Notebook/source</th>
+            <th>Output scale</th>
             <th>Artifact</th>
             <th>Metrics</th>
             <th>Rows</th>
-            <th>GUI</th>
-            <th>Required next handoff</th>
+            <th>Plot</th>
+            <th>Caveat / handoff</th>
           </tr>
         </thead>
         <tbody>
@@ -109,14 +121,15 @@ const ReadinessTable = ({ title, rows }) => (
                 <StatusBadge status={artifact.integrationStatus} />
               </td>
               <td>{artifact.location}</td>
+              <td>{artifact.outputScale || 'Not specified'}</td>
               <td>{formatBoolean(artifact.artifactAvailable)}</td>
               <td>
                 {artifact.metricsAvailable ? 'Yes' : 'No'}
                 {artifact.metrics ? ` - ${formatMetricSummary(artifact.metrics)}` : ''}
               </td>
               <td>{formatBoolean(artifact.rowLevelOutputAvailable)}</td>
-              <td>{artifact.guiConnected ? 'Connected' : 'Not connected'}</td>
-              <td>{artifact.nextHandoff || artifact.statusMessage}</td>
+              <td>{formatBoolean(artifact.plotAvailable)}</td>
+              <td>{artifact.caveat || artifact.nextHandoff || artifact.statusMessage}</td>
             </tr>
           ))}
         </tbody>
@@ -129,10 +142,10 @@ export default function ModelReadiness({ modelOutputs }) {
   const rows = modelOutputs.artifacts?.rows ?? [];
   const univariateRows = rows.filter((artifact) => artifact.analysisType === 'univariate');
   const multivariateRows = rows.filter((artifact) => artifact.analysisType === 'multivariate');
-  const connectedCount = rows.filter((artifact) => artifact.guiConnected).length;
-  const readyForExportCount = rows.filter((artifact) => artifact.integrationStatus === 'ready_for_export').length;
-  const branchOnlyCount = rows.filter((artifact) => artifact.integrationStatus === 'branch_only').length;
-  const notebookOnlyCount = rows.filter((artifact) => artifact.integrationStatus === 'notebook_only').length;
+  const officialScaleRowCount = rows.filter((artifact) => artifact.integrationStatus === 'official_scale_row_output').length;
+  const transformedRowCount = rows.filter((artifact) => artifact.integrationStatus === 'transformed_scale_row_output').length;
+  const metricsPlotOnlyCount = rows.filter((artifact) => artifact.integrationStatus === 'metrics_and_plot_only').length;
+  const artifactCount = rows.filter((artifact) => artifact.artifactAvailable).length;
   const staleXgboostRows = modelOutputs.forecasts?.xgboost?.auditRows ?? [];
   const staleMetricRows = (modelOutputs.metrics?.rows ?? []).filter(
     (metric) => metric.integrationStatus === 'stale_or_mismatched',
@@ -142,18 +155,19 @@ export default function ModelReadiness({ modelOutputs }) {
     <section className="page-section">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Model Readiness</p>
-          <h1>Official model readiness registry</h1>
+          <p className="eyebrow">Model Results & Readiness</p>
+          <h1>Notebook-confirmed official model results</h1>
           <p>
-            This page separates notebooks, native artifacts, metrics, row-level exports, and GUI connection
-            state for the four official model families.
+            This page shows what the team actually trained and produced for the four official model
+            families. Row outputs, metrics-only notebooks, transformed targets, artifacts, and caveats are
+            separated so weak or inconsistent results are visible but not overclaimed.
           </p>
         </div>
       </div>
 
       <div className="description-band">
         Official scope: SARIMA and LSTM for univariate forecasting; XGBoost and VAR for multivariate
-        forecasting. Prophet, univariate XGBoost, VECM, and baselines remain secondary or experimental.
+        forecasting. Prophet, univariate XGBoost, VECM, and baselines remain outside the final GUI scope.
       </div>
 
       <div className="table-panel">
@@ -173,24 +187,24 @@ export default function ModelReadiness({ modelOutputs }) {
 
       <div className="summary-grid">
         <article className="summary-card">
-          <span>GUI connected official outputs</span>
-          <strong>{connectedCount}</strong>
-          <small>Must be zero until verified exports arrive.</small>
+          <span>Official-scale row outputs</span>
+          <strong>{officialScaleRowCount}</strong>
+          <small>SARIMA targets and VAR PM2.5 have dated rows in the shown target scale.</small>
         </article>
         <article className="summary-card">
-          <span>Ready for export</span>
-          <strong>{readyForExportCount}</strong>
-          <small>LSTM and official multivariate XGBoost need normalized row files.</small>
+          <span>Transformed row outputs</span>
+          <strong>{transformedRowCount}</strong>
+          <small>VAR NO2 and SO2 rows are differenced outputs, not official concentrations.</small>
         </article>
         <article className="summary-card">
-          <span>Branch only</span>
-          <strong>{branchOnlyCount}</strong>
-          <small>SARIMA outputs remain on origin/daryl-sarima.</small>
+          <span>Metrics and plot only</span>
+          <strong>{metricsPlotOnlyCount}</strong>
+          <small>LSTM and XGBoost notebooks report metrics without exported dated rows.</small>
         </article>
         <article className="summary-card">
-          <span>Notebook only</span>
-          <strong>{notebookOnlyCount}</strong>
-          <small>VAR still needs forecast rows and metrics export.</small>
+          <span>Native artifacts found</span>
+          <strong>{artifactCount}</strong>
+          <small>LSTM, XGBoost, and VAR include saved model/artifact files.</small>
         </article>
       </div>
 
@@ -212,13 +226,13 @@ export default function ModelReadiness({ modelOutputs }) {
         <h2>How to use the dashboard</h2>
         <p>
           Choose an analysis type, select the target or scenario, then select only an allowed official model:
-          SARIMA or LSTM for univariate work, XGBoost or VAR for multivariate work. Read the integration
-          status before interpreting any chart.
+          SARIMA or LSTM for univariate work, XGBoost or VAR for multivariate work. Read the display mode
+          and output scale before interpreting any chart.
         </p>
         <p>
           Held-out test predictions compare actual and predicted rows for a fixed evaluation period. Future
-          forecasts project beyond history. Prototype fallback values are frontend trend demos only. Metrics-only
-          and artifact-only entries are not connected outputs.
+          forecasts project beyond history. Transformed-scale outputs are notebook results but are not official
+          concentration values. Metrics-only entries show cards and summaries instead of fake forecast lines.
         </p>
         <p>
           Upload datasets only when the required columns are present, and do not treat correlations or

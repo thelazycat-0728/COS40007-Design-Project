@@ -96,7 +96,15 @@ export default function Overview({
     selectedCountry,
     allowedModelKeys: getOfficialModelOptions(selectedAnalysisType).map((model) => model.key),
   });
-  const hasMatchingFinalOutput = integrationStatuses.some((status) => status.connected);
+  const hasMatchingRowOutput = integrationStatuses.some((status) => status.connected);
+  const artifactRows = modelOutputs.artifacts?.rows ?? [];
+  const rowOutputCount = artifactRows.filter((artifact) => artifact.rowLevelOutputAvailable).length;
+  const transformedOutputCount = artifactRows.filter(
+    (artifact) => artifact.integrationStatus === 'transformed_scale_row_output',
+  ).length;
+  const metricsOnlyCount = artifactRows.filter(
+    (artifact) => artifact.integrationStatus === 'metrics_and_plot_only',
+  ).length;
   const staleXgboostAuditRows = modelOutputs.forecasts?.xgboost?.auditRows?.length ?? 0;
   const modelSelectorOptions = getOfficialModelOptions(selectedAnalysisType);
   const targetSelectorOptions = isUnivariate
@@ -117,25 +125,27 @@ export default function Overview({
           <p className="eyebrow">Overview</p>
           <h1>Regional Time-Series Forecasting Dashboard</h1>
           <p>
-            Forecasting environmental and industrial indicators using transport, electricity,
-            pollution, and industrial data.
+            Presenting notebook-confirmed results for the official COS40007 forecasting models across
+            transport, electricity, pollution, and industrial time-series data.
           </p>
         </div>
       </div>
 
       <div className="description-band">
-        <strong>Meeting demo:</strong> forecasting directions are subject to confirmation by the modelling team.
+        <strong>Model-results dashboard:</strong> results are shown as produced by the team notebooks and
+        output folders. Different models use different variables, transformations, metrics, and export formats.
       </div>
 
       <div className="description-band">
-        This prototype is scoped to time-series forecasting. It separates the forecast target, intended
-        predictors, scenario, model, horizon, and output source so NO2, SO2, PM2.5, electricity, and
-        IPI discussions are not treated as the same target type.
+        Some outputs are official-scale predictions, some are transformed-scale outputs, and some are
+        metrics-and-plot-only notebook results. Transformed outputs are labelled and should not be read as
+        official concentration values.
       </div>
 
       <div className="description-band">
-        Official GUI-connected outputs: <strong>currently none</strong>. Readiness is shown before charts so
-        pending, branch-only, notebook-only, and stale states are not mistaken for connected model results.
+        Official model scope remains SARIMA and LSTM for univariate forecasting, plus XGBoost and VAR for
+        multivariate forecasting. Ranking stays disabled unless target, period, scale, unit, metric
+        definition, and result type are directly comparable.
       </div>
 
       <div className="control-grid">
@@ -179,10 +189,33 @@ export default function Overview({
       </div>
 
       <div className="status-note">
-        {hasMatchingFinalOutput
-          ? 'A matching final model output is connected for the selected target and scenario.'
-          : 'No verified official model output is currently connected for this task.'}
+        {hasMatchingRowOutput
+          ? 'A notebook-confirmed row output is available for the selected target and scenario.'
+          : 'This selected model has no dated row output; check metrics/plot-only status before interpreting it.'}
         {staleXgboostAuditRows ? ' XGBoost SO2 export paused · Source verification required.' : ''}
+      </div>
+
+      <div className="summary-grid">
+        <article className="summary-card">
+          <span>Row-level outputs</span>
+          <strong>{rowOutputCount}</strong>
+          <small>Notebook-confirmed SARIMA and VAR rows are available for display.</small>
+        </article>
+        <article className="summary-card">
+          <span>Transformed row outputs</span>
+          <strong>{transformedOutputCount}</strong>
+          <small>VAR NO2/SO2 are differenced-scale outputs, not official concentrations.</small>
+        </article>
+        <article className="summary-card">
+          <span>Metrics/plot-only results</span>
+          <strong>{metricsOnlyCount}</strong>
+          <small>LSTM and XGBoost show notebook metrics without row-level charts.</small>
+        </article>
+        <article className="summary-card">
+          <span>Model ranking</span>
+          <strong>Disabled</strong>
+          <small>Enabled only for directly comparable outputs.</small>
+        </article>
       </div>
 
       {!isUnivariate ? (

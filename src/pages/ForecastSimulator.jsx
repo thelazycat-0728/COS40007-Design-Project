@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import {
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -31,7 +33,7 @@ import {
   unitForTarget,
   vehiclePredictorKeys,
 } from '../utils/constants';
-import { compactNumber } from '../utils/data';
+import { compactNumber, formatNumericValue, precisionForValue } from '../utils/data';
 import {
   createForecastInterpretation,
   generateModelOutputForecast,
@@ -112,12 +114,13 @@ const formatMetric = (value) => {
     return '-';
   }
 
-  if (Math.abs(value) < 0.01) {
-    return value.toPrecision(4);
-  }
-
-  return value.toFixed(3);
+  return formatNumericValue(value, precisionForValue(value));
 };
+
+const tooltipFormatter = (value, name, item) => [
+  formatNumericValue(value, precisionForValue(value)),
+  `${name} (${item?.payload?.phase || 'value'})`,
+];
 
 const CheckboxGroup = ({ options, selectedKeys, onChange, disabledKeys = [] }) => (
   <fieldset className="checkbox-field">
@@ -303,37 +306,41 @@ export default function ForecastSimulator({
     : null;
   const isFinalOutput = Boolean(modelForecast);
   const isHeldOutTestOutput = modelForecast?.resultType === 'test_prediction';
+  const isTransformedOutput = modelForecast?.outputScale?.includes('transformed');
+  const displayTargetLabel = modelForecast?.displayTarget || targetDefinition.label;
   const outputUnit = modelForecast?.unit || unit;
-  const matchingMetrics = isFinalOutput
+  const matchingMetrics = scenarioReady
     ? getMatchingMetricRows({
         modelOutputs,
         selectedTarget,
         selectedScenario,
         selectedCountry: activeContext.countryForModelOutputs,
       }).filter(
-        (metric) =>
-          metric.modelKey === selectedModel &&
-          metric.integrationStatus !== 'metrics_only' &&
-          metric.rowLevelOutputAvailable,
+        (metric) => metric.modelKey === selectedModel,
       )
     : [];
-  const connectedMetric = matchingMetrics[0];
+  const selectedMetric = matchingMetrics[0];
+  const connectedMetric = matchingMetrics.find((metric) => metric.rowLevelOutputAvailable) ?? selectedMetric;
   const forecast = modelForecast;
   const hasBounds = forecast?.forecastRows.some(
     (row) => Number.isFinite(row.lowerBound) || Number.isFinite(row.upperBound),
   );
-  const interpretation = forecast
-    ? createForecastInterpretation({
-        targetKey: selectedTarget,
-        targetDefinition,
-        modelLabel,
-        horizonLabel,
-        trendDirection: forecast.trendDirection,
-        isFinalOutput,
-        scenarioId: selectedScenario,
-        predictorKeys: effectivePredictors,
-      })
-    : '';
+  const interpretation = !forecast
+    ? ''
+    : isTransformedOutput
+      ? `The ${modelLabel} notebook output is displayed in transformed ${displayTargetLabel} scale. It should not be interpreted as official concentration values.`
+      : isHeldOutTestOutput
+        ? `The ${modelLabel} notebook result compares actual and predicted ${displayTargetLabel} values for a fixed held-out test period. It is not a future projection.`
+        : createForecastInterpretation({
+            targetKey: selectedTarget,
+            targetDefinition,
+            modelLabel,
+            horizonLabel,
+            trendDirection: forecast.trendDirection,
+            isFinalOutput,
+            scenarioId: selectedScenario,
+            predictorKeys: effectivePredictors,
+          });
   const forecastKind = isFinalOutput ? 'final model output' : 'prototype forecast';
   const predictorSetLabel = isUnivariate
     ? 'Predictors'
@@ -354,36 +361,50 @@ export default function ForecastSimulator({
         : 'Missing compatible target or predictor columns';
   const outputSource = !scenarioReady
     ? 'Not available'
-    : isHeldOutTestOutput
-      ? 'Connected XGBoost held-out test predictions'
-      : isFinalOutput
-        ? 'Final model output'
-        : 'Pending verified model export';
+    : isFinalOutput
+      ? `${modelLabel} notebook row output`
+      : selectedMetric
+        ? `${modelLabel} notebook metrics and plot only`
+        : 'Pending notebook result export';
   const scenarioLimitation = isVehicleUnavailableBuiltIn
     ? unavailableVehicleMessage
-    : scenarioReady && !isFinalOutput
-      ? 'No verified official model output is currently connected for this task.'
+    : scenarioReady && !isFinalOutput && selectedMetric
+      ? 'This model has notebook-reported metrics and plot evidence, but no dated row-level export. No forecast line is drawn.'
+      : scenarioReady && !isFinalOutput
+        ? 'No notebook-confirmed row output or metric result is available for this selected task.'
+        : isTransformedOutput
+          ? modelForecast.caveat
+          : isHeldOutTestOutput
+            ? 'Held-out test predictions are shown for the fixed evaluation period. They are not a projection beyond that period.'
+            : scenarioReady
+              ? 'Notebook-confirmed model output is shown for this selected task.'
+              : 'Upload or select a dataset with the required target and predictor columns.';
+  const outputHeading = isFinalOutput
+    ? isTransformedOutput
+      ? `Notebook row output · transformed ${displayTargetLabel}`
       : isHeldOutTestOutput
-        ? 'Connected held-out test predictions are shown for the fixed evaluation period. They are not a projection beyond that period.'
-        : scenarioReady
-          ? 'Matching final model output is connected for this selected task.'
-          : 'Upload or select a dataset with the required target and predictor columns.';
+        ? 'Notebook test prediction rows'
+        : 'Notebook forecast rows'
+    : selectedMetric
+      ? 'Notebook metrics and plot only'
+      : 'Notebook result pending';
+  const firstForecastMonth = forecast?.forecastRows[0]?.month;
+  const boundaryNote = firstForecastMonth
+    ? isHeldOutTestOutput
+      ? `Test prediction starts: ${firstForecastMonth}`
+      : `Forecast starts: ${firstForecastMonth}`
+    : '';
 
   return (
     <section className="page-section">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Forecast Simulator</p>
-          <h1>
-            {isFinalOutput
-              ? isHeldOutTestOutput
-                ? 'Connected model test output'
-                : 'Connected model output'
-              : 'Prototype forecast · No verified connected output'}
-          </h1>
+          <h1>{outputHeading}</h1>
           <p>
             Choose univariate or multivariate first, then select only the matching official model
-            family. Connected model files are used only when their metadata matches the selected task.
+            family. The dashboard shows notebook-confirmed rows when they exist, otherwise it shows
+            notebook metrics and caveats without drawing synthetic forecast lines.
           </p>
         </div>
       </div>
@@ -496,6 +517,26 @@ export default function ForecastSimulator({
               </div>
             </>
           ) : null}
+          {isFinalOutput && !isHeldOutTestOutput ? (
+            <>
+              <div>
+                <span>Result type</span>
+                <strong>{modelForecast.resultTypeLabel || 'Future forecast'}</strong>
+              </div>
+              <div>
+                <span>Output scale</span>
+                <strong>{isTransformedOutput ? 'Transformed / differenced' : 'Official target scale'}</strong>
+              </div>
+              <div>
+                <span>Notebook target</span>
+                <strong>{modelForecast.notebookTarget || displayTargetLabel}</strong>
+              </div>
+              <div>
+                <span>Unit</span>
+                <strong>{outputUnit}</strong>
+              </div>
+            </>
+          ) : null}
         </div>
         <p>
           {isUnivariate
@@ -528,9 +569,11 @@ export default function ForecastSimulator({
             </>
           ) : scenarioReady ? (
             isHeldOutTestOutput ? (
-              <strong>Connected output · Held-out test predictions · Test period: January-December 2022</strong>
+              <strong>Notebook row output · Held-out test predictions · Test period: January-December 2022</strong>
+            ) : isTransformedOutput ? (
+              <strong>{modelForecast.caveat}</strong>
             ) : (
-              `Using verified connected model output for ${targetDefinition.label}.`
+              `Using notebook-confirmed row output for ${displayTargetLabel}.`
             )
           ) : (
             <strong>
@@ -541,13 +584,13 @@ export default function ForecastSimulator({
         </div>
       ) : null}
 
-      {scenarioReady && !isFinalOutput ? (
+      {scenarioReady && !isFinalOutput && !selectedMetric ? (
         <div className="pending-output-panel">
-          <span>Integration pending</span>
-          <h2>No verified official model output is currently connected for this task.</h2>
+          <span>Result pending</span>
+          <h2>No notebook-confirmed row or metric result is available for this task.</h2>
           <p>
-            Current output source: Pending verified model export. The dashboard is intentionally not
-            drawing forecast charts, comparison bars, or rankings from prototype fallback values.
+            Current output source: pending notebook result export. The dashboard is intentionally not
+            drawing forecast charts, comparison bars, or rankings from fallback values.
           </p>
           <div className="inline-actions">
             <button
@@ -561,18 +604,50 @@ export default function ForecastSimulator({
         </div>
       ) : null}
 
+      {scenarioReady && !isFinalOutput && selectedMetric ? (
+        <div className="pending-output-panel metrics-only-panel">
+          <span>Metrics and plot only</span>
+          <h2>{modelLabel} has notebook-reported metrics, but no row-level export.</h2>
+          <p>
+            Source notebook: {selectedMetric.sourceNotebook}. The notebook reports metrics and plot/artifact
+            evidence, so this page shows the result summary instead of synthesizing a forecast line.
+          </p>
+          <div className="metric-chip-grid">
+            {Number.isFinite(selectedMetric.mse) ? (
+              <article><span>MSE</span><strong>{formatMetric(selectedMetric.mse)}</strong></article>
+            ) : null}
+            {Number.isFinite(selectedMetric.mae) ? (
+              <article><span>MAE</span><strong>{formatMetric(selectedMetric.mae)}</strong></article>
+            ) : null}
+            {Number.isFinite(selectedMetric.rmse) ? (
+              <article><span>RMSE</span><strong>{formatMetric(selectedMetric.rmse)}</strong></article>
+            ) : null}
+            {Number.isFinite(selectedMetric.r2) ? (
+              <article><span>R2</span><strong>{formatMetric(selectedMetric.r2)}</strong></article>
+            ) : null}
+          </div>
+          <p>{selectedMetric.caveat || selectedMetric.metricNote}</p>
+        </div>
+      ) : null}
+
       {scenarioReady && forecast ? (
         <>
           <div className="text-panel">
             <h2>Selected forecasting task</h2>
             {isHeldOutTestOutput ? (
               <p>
-                Connected variant: {modelForecast.scenarioVariantLabel}. Target: {targetDefinition.label}.
+                Notebook variant: {modelForecast.scenarioVariantLabel}. Target: {displayTargetLabel}.
                 Unit: {outputUnit}. These rows are held-out test predictions for the fixed evaluation period.
+              </p>
+            ) : isTransformedOutput ? (
+              <p>
+                This transformed-scale chart is not official-scale concentration. {modelForecast.caveat}
+                Notebook target: {modelForecast.notebookTarget}. Official scenario target: {targetDefinition.label}.
+                Predictor metadata: {formatPredictorList(modelForecast.predictors)}.
               </p>
             ) : (
               <p>
-                {scenario.description} Active target: {targetDefinition.label}. Intended predictors:{' '}
+                {scenario.description} Active target: {displayTargetLabel}. Intended predictors:{' '}
                 {formatPredictorList(effectivePredictors)}.
               </p>
             )}
@@ -582,13 +657,17 @@ export default function ForecastSimulator({
             <div className="panel-heading">
               <h2>
                 {isHeldOutTestOutput
-                  ? `Actual vs predicted ${targetDefinition.label}`
-                  : `Historical and ${forecastKind} ${targetDefinition.label}`}
+                  ? `Actual vs predicted ${displayTargetLabel}`
+                  : isTransformedOutput
+                    ? `${displayTargetLabel} notebook forecast`
+                    : `Historical and ${forecastKind} ${displayTargetLabel}`}
               </h2>
               <span>
                 {activeContext.countryLabel}, {outputUnit || 'unit not specified'}
+                {isTransformedOutput ? ' · transformed-scale output' : ''}
               </span>
             </div>
+            {boundaryNote ? <p className="chart-boundary-note">{boundaryNote}</p> : null}
             <ResponsiveContainer width="100%" height={340}>
               <LineChart data={forecast.chartRows} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e3edf0" />
@@ -596,12 +675,27 @@ export default function ForecastSimulator({
                 <YAxis
                   stroke="#5c7080"
                   label={outputUnit ? { value: outputUnit, angle: -90, position: 'insideLeft' } : undefined}
+                  tickFormatter={(value) => formatNumericValue(value, precisionForValue(value))}
                 />
-                <Tooltip />
+                <Tooltip formatter={tooltipFormatter} />
+                <Legend verticalAlign="top" height={32} />
+                {forecast.forecastRows[0]?.month ? (
+                  <ReferenceLine
+                    x={forecast.forecastRows[0].month}
+                    stroke="#f97316"
+                    strokeDasharray="4 4"
+                    label={{
+                      value: isHeldOutTestOutput ? 'Test start' : 'Forecast start',
+                      position: 'top',
+                      fill: '#9a3412',
+                      fontSize: 12,
+                    }}
+                  />
+                ) : null}
                 <Line
                   type="monotone"
                   dataKey="actual"
-                  name={`Actual ${targetDefinition.label}`}
+                  name="Historical / Actual"
                   stroke="#0891b2"
                   strokeWidth={3}
                   dot={false}
@@ -610,8 +704,8 @@ export default function ForecastSimulator({
                 <Line
                   type="monotone"
                   dataKey="forecast"
-                  name={`${isHeldOutTestOutput ? 'Predicted' : isFinalOutput ? 'Model forecast' : 'Prototype forecast'} ${targetDefinition.label}`}
-                  stroke="#16a34a"
+                  name="Predicted / Forecast"
+                  stroke={isTransformedOutput ? '#dc2626' : '#16a34a'}
                   strokeWidth={3}
                   strokeDasharray="6 4"
                   dot={{ r: 3 }}
@@ -638,8 +732,8 @@ export default function ForecastSimulator({
                   <thead>
                     <tr>
                       <th>Month</th>
-                      {isHeldOutTestOutput ? <th>Actual {targetDefinition.label}</th> : null}
-                      <th>{isHeldOutTestOutput ? 'Predicted' : 'Forecasted'} {targetDefinition.label}</th>
+                      {isHeldOutTestOutput ? <th>Actual {displayTargetLabel}</th> : null}
+                      <th>{isHeldOutTestOutput ? 'Predicted' : 'Forecasted'} {displayTargetLabel}</th>
                       {hasBounds ? <th>Lower bound</th> : null}
                       {hasBounds ? <th>Upper bound</th> : null}
                       <th>Unit</th>
@@ -649,10 +743,10 @@ export default function ForecastSimulator({
                     {forecast.forecastRows.map((row) => (
                       <tr key={row.date}>
                         <td>{row.month}</td>
-                        {isHeldOutTestOutput ? <td>{compactNumber(row.actual, outputUnit === 'ppm' ? 6 : 2)}</td> : null}
-                        <td>{compactNumber(row.forecast, outputUnit === 'ppm' ? 6 : 2)}</td>
-                        {hasBounds ? <td>{compactNumber(row.lowerBound, outputUnit === 'ppm' ? 6 : 2)}</td> : null}
-                        {hasBounds ? <td>{compactNumber(row.upperBound, outputUnit === 'ppm' ? 6 : 2)}</td> : null}
+                        {isHeldOutTestOutput ? <td>{compactNumber(row.actual)}</td> : null}
+                        <td>{compactNumber(row.forecast)}</td>
+                        {hasBounds ? <td>{compactNumber(row.lowerBound)}</td> : null}
+                        {hasBounds ? <td>{compactNumber(row.upperBound)}</td> : null}
                         <td>{row.unit || outputUnit}</td>
                       </tr>
                     ))}
@@ -665,6 +759,7 @@ export default function ForecastSimulator({
               <span>{isHeldOutTestOutput ? 'Test performance interpretation' : 'Forecast interpretation'}</span>
               <h2>{isHeldOutTestOutput ? 'Held-out evaluation result' : `Trend direction: ${forecast.trendDirection}`}</h2>
               <p>{interpretation}</p>
+              {isTransformedOutput ? <p>{modelForecast.caveat}</p> : null}
               {connectedMetric ? (
                 <p>
                   MAE: {formatMetric(connectedMetric.mae)} {connectedMetric.unit || outputUnit}; RMSE:{' '}

@@ -4,12 +4,45 @@ import { readFileSync } from 'node:fs';
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
 const readText = (path) => readFileSync(path, 'utf8');
 
+const parseCsvLine = (line) => {
+  const values = [];
+  let current = '';
+  let quoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    const next = line[index + 1];
+
+    if (char === '"' && quoted && next === '"') {
+      current += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      quoted = !quoted;
+      continue;
+    }
+
+    if (char === ',' && !quoted) {
+      values.push(current);
+      current = '';
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current);
+  return values;
+};
+
 const parseCsv = (path) => {
   const lines = readFileSync(path, 'utf8').trim().split(/\r?\n/);
-  const headers = lines[0].split(',');
+  const headers = parseCsvLine(lines[0]);
 
   return lines.slice(1).map((line) => {
-    const values = line.split(',');
+    const values = parseCsvLine(line);
     return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? '']));
   });
 };
@@ -25,19 +58,7 @@ const isValidDate = (value) => {
   return Boolean(value) && !Number.isNaN(date.getTime());
 };
 
-const isConnectedForecastRow = (row, connectedArtifactKeys) => {
-  const key = [row.model.toLowerCase(), row.target, row.scenario_id, row.source_notebook].join('|');
-
-  return (
-    row.integration_status === 'connected_output' &&
-    isValidDate(row.date) &&
-    Number.isFinite(Number(row.forecast_value)) &&
-    Boolean(row.unit) &&
-    Boolean(row.result_type) &&
-    Boolean(row.source_notebook) &&
-    connectedArtifactKeys.has(key)
-  );
-};
+const isNumeric = (value) => Number.isFinite(Number(value));
 
 const hashRows = (rows, columns) => {
   const hash = createHash('sha256');
@@ -60,86 +81,132 @@ const countByStatus = artifacts.reduce((acc, artifact) => {
   return acc;
 }, {});
 
-assert(countByStatus.ready_for_export === 8, 'Expected 8 ready_for_export entries.');
-assert(countByStatus.branch_only === 5, 'Expected 5 SARIMA branch_only entries.');
-assert(countByStatus.notebook_only === 3, 'Expected 3 VAR notebook_only entries.');
+assert(countByStatus.official_scale_row_output === 6, 'Expected 6 official-scale row-output entries.');
+assert(countByStatus.transformed_scale_row_output === 2, 'Expected 2 transformed VAR row-output entries.');
+assert(countByStatus.metrics_and_plot_only === 8, 'Expected 8 metrics-and-plot-only entries.');
+assert(!countByStatus.branch_only, 'SARIMA must no longer be branch_only after merge.');
+assert(!countByStatus.notebook_only, 'VAR must no longer be notebook_only after VarOnly output inspection.');
+
 assert(
-  artifacts.filter((artifact) => artifact.model === 'LSTM').every((artifact) => artifact.integration_status === 'ready_for_export'),
-  'Every LSTM entry must be ready_for_export.',
+  artifacts.filter((artifact) => artifact.model === 'SARIMA').every(
+    (artifact) =>
+      artifact.integration_status === 'official_scale_row_output' &&
+      artifact.row_level_output_available &&
+      artifact.output_scale === 'official_scale',
+  ),
+  'Every SARIMA entry must be official-scale row output.',
 );
 assert(
-  artifacts.filter((artifact) => artifact.model === 'SARIMA').every((artifact) => artifact.integration_status === 'branch_only'),
-  'Every SARIMA entry must be branch_only.',
+  artifacts.filter((artifact) => artifact.model === 'LSTM').every(
+    (artifact) =>
+      artifact.integration_status === 'metrics_and_plot_only' &&
+      artifact.metrics_available &&
+      !artifact.row_level_output_available,
+  ),
+  'Every LSTM entry must be metrics-and-plot-only with no row export.',
 );
 assert(
-  artifacts
-    .filter((artifact) => artifact.model === 'XGBoost' && artifact.analysis_type === 'multivariate')
-    .every((artifact) => artifact.integration_status === 'ready_for_export'),
-  'Every official multivariate XGBoost entry must be ready_for_export.',
+  artifacts.filter((artifact) => artifact.model === 'XGBoost').every(
+    (artifact) =>
+      artifact.integration_status === 'metrics_and_plot_only' &&
+      artifact.metrics_available &&
+      !artifact.row_level_output_available,
+  ),
+  'Every official multivariate XGBoost entry must be metrics-and-plot-only.',
 );
 assert(
-  artifacts.filter((artifact) => artifact.model === 'VAR').every((artifact) => artifact.integration_status === 'notebook_only'),
-  'Every VAR entry must be notebook_only.',
+  artifacts.filter((artifact) => artifact.model === 'VAR' && artifact.notebook_target !== 'air_pm_25').every(
+    (artifact) =>
+      artifact.integration_status === 'transformed_scale_row_output' &&
+      artifact.output_scale === 'transformed_differenced' &&
+      artifact.caveat.includes('not official-scale'),
+  ),
+  'VAR1 and VAR2 must be transformed-scale outputs with explicit caveats.',
+);
+assert(
+  artifacts.some(
+    (artifact) =>
+      artifact.model === 'VAR' &&
+      artifact.target === 'air_pm_25' &&
+      artifact.integration_status === 'official_scale_row_output',
+  ),
+  'VAR3 PM2.5 must be present as an official-scale row output.',
 );
 
-const connectedArtifactKeys = new Set(
-  artifacts
-    .filter((artifact) => artifact.integration_status === 'connected_output' && artifact.gui_connected)
-    .flatMap((artifact) =>
-      (artifact.source_files ?? []).map((sourceFile) =>
-        [artifact.model.toLowerCase(), artifact.target, artifact.scenario_id, sourceFile].join('|'),
-      ),
-    ),
+const metrics = readJson('public/model_outputs/model_metrics.json').metrics;
+assert(metrics.length === 16, `Expected 16 official metric entries, found ${metrics.length}.`);
+assert(
+  metrics.filter((metric) => metric.model === 'XGBoost').every(
+    (metric) => metric.source_notebook === 'XGBoost_Multivariate/xgboost_multivariate_models.ipynb',
+  ),
+  'Official XGBoost metrics must come from the multivariate notebook.',
+);
+assert(
+  metrics.filter((metric) => metric.model === 'VAR').every(
+    (metric) => metric.source_notebook === 'var/varOnly(Brandon).ipynb',
+  ),
+  'Official VAR metrics must come from varOnly(Brandon).ipynb.',
+);
+
+const sarimaRows = parseCsv('public/model_outputs/sarima_forecast.csv');
+assert(sarimaRows.length === 60, 'Expected 60 normalized SARIMA forecast rows.');
+assert(
+  sarimaRows.every(
+    (row) =>
+      row.integration_status === 'official_scale_row_output' &&
+      row.output_scale === 'official_scale' &&
+      isValidDate(row.date) &&
+      isNumeric(row.forecast_value) &&
+      isNumeric(row.actual_value) &&
+      isNumeric(row.lower_bound) &&
+      isNumeric(row.upper_bound) &&
+      row.result_type === 'test_prediction',
+  ),
+  'Every SARIMA row must be official-scale test prediction output with actuals and intervals.',
+);
+assert(
+  sarimaRows.filter((row) => row.target === 'air_so2').every((row) => row.unit === 'ppm') &&
+    sarimaRows.filter((row) => row.target === 'air_no2').every((row) => row.unit === 'ppm'),
+  'SARIMA NO2/SO2 rows must use ppm units.',
+);
+
+const varRows = parseCsv('public/model_outputs/var_forecast.csv');
+assert(varRows.length === 72, 'Expected 72 normalized VAR forecast rows.');
+assert(
+  varRows.filter((row) => row.notebook_target === 'd_air_no2').every(
+    (row) =>
+      row.integration_status === 'transformed_scale_row_output' &&
+      row.unit === 'ppm change' &&
+      row.actual_value === '' &&
+      row.caveat.includes('not official-scale NO2'),
+  ),
+  'VAR1 rows must remain differenced NO2 output, not official NO2.',
+);
+assert(
+  varRows.filter((row) => row.notebook_target === 'd_air_so2').every(
+    (row) =>
+      row.integration_status === 'transformed_scale_row_output' &&
+      row.unit === 'ppm change' &&
+      row.actual_value === '' &&
+      row.caveat.includes('not official-scale SO2'),
+  ),
+  'VAR2 rows must remain differenced SO2 output, not official SO2.',
+);
+assert(
+  varRows.filter((row) => row.notebook_target === 'air_pm_25').every(
+    (row) =>
+      row.integration_status === 'official_scale_row_output' &&
+      row.unit === 'ug/m3' &&
+      row.result_type === 'future_forecast',
+  ),
+  'VAR3 rows must be PM2.5 future forecast rows.',
 );
 
 const xgboostRows = parseCsv('public/model_outputs/xgboost_forecast.csv');
 assert(xgboostRows.length === 12, 'Expected 12 retained XGBoost audit rows.');
 assert(
   xgboostRows.every((row) => row.integration_status === 'stale_or_mismatched'),
-  'Every retained XGBoost row must be marked stale_or_mismatched.',
-);
-assert(
-  xgboostRows.every((row) => !isConnectedForecastRow(row, connectedArtifactKeys)),
-  'Stale XGBoost rows must not validate as connected forecast rows.',
-);
-
-const invalidOutputRow = {
-  date: '2022-01-01',
-  target: 'air_so2',
-  model: 'XGBoost',
-  forecast_value: '0.001',
-  unit: 'ppm',
-  result_type: 'test_prediction',
-  source_notebook: 'XGBoost/xgboost_car_forecast.ipynb',
-  scenario_id: 'ipi_electricity_to_so2',
-  integration_status: 'stale_or_mismatched',
-};
-assert(
-  !isConnectedForecastRow(invalidOutputRow, connectedArtifactKeys),
-  'Invalid or stale metadata must not validate as a connected output.',
-);
-
-const metrics = readJson('public/model_outputs/model_metrics.json').metrics;
-assert(
-  metrics.filter((metric) => metric.integration_status === 'connected_output').length === 0,
-  'No metric entry should currently be connected_output.',
-);
-assert(
-  metrics.some(
-    (metric) =>
-      metric.model === 'XGBoost' &&
-      metric.target === 'air_so2' &&
-      metric.integration_status === 'stale_or_mismatched',
-  ),
-  'The stale XGBoost SO2 metric must be marked stale_or_mismatched.',
-);
-assert(
-  metrics.some(
-    (metric) =>
-      metric.target === 'car_registration' &&
-      metric.source_notebook === 'XGBoost/xgboost_car_forecast.ipynb',
-  ),
-  'Vehicle-registration metric must point to XGBoost/xgboost_car_forecast.ipynb.',
+  'Retained old XGBoost rows must remain stale_or_mismatched.',
 );
 
 const canonicalRows = parseCsv('COS40007DataCleaning/combined_air_electricity_ipi_cleaned.csv');
@@ -154,67 +221,54 @@ assert(
   'Canonical and public datasets must match on shared columns.',
 );
 
-const productionForecastFiles = [
-  'sarima_forecast.csv',
-  'lstm_forecast.csv',
-  'xgboost_forecast.csv',
-  'var_forecast.csv',
-  'prophet_forecast.csv',
-];
-assert(
-  productionForecastFiles.every((fileName) => !fileName.startsWith('sample_')),
-  'Sample or template files must not be treated as production forecast files.',
-);
-
-const sidebarSource = readText('src/components/Sidebar.jsx');
-const expectedNavOrder = [
-  'overview',
-  'model-readiness',
-  'forecast-simulator',
-  'model-comparison',
-  'upload-regional-dataset',
-  'data-explorer',
-  'regional-comparison',
-  'policy-insight',
-];
-expectedNavOrder.reduce((lastIndex, sectionId) => {
-  const index = sidebarSource.indexOf(`id: '${sectionId}'`);
-  assert(index > lastIndex, `Sidebar navigation order must place ${sectionId} after the previous recommended section.`);
-  return index;
-}, -1);
+const constantsSource = readText('src/utils/constants.js');
+assert(constantsSource.includes("key: 'air_no2', label: 'NO2', shortLabel: 'NO2', category: 'pollution', unit: 'ppm'"), 'NO2 unit must be ppm.');
+assert(constantsSource.includes("key: 'air_so2', label: 'SO2', shortLabel: 'SO2', category: 'pollution', unit: 'ppm'"), 'SO2 unit must be ppm.');
 
 const forecastSimulatorSource = readText('src/pages/ForecastSimulator.jsx');
 assert(
-  forecastSimulatorSource.includes('Prototype forecast · No verified connected output'),
-  'Forecast Simulator must label pending states as unverified prototype output.',
+  forecastSimulatorSource.includes('Metrics and plot only') &&
+    forecastSimulatorSource.includes('No forecast line is drawn.'),
+  'Forecast Simulator must show metrics-only state without fake forecast lines.',
 );
 assert(
-  forecastSimulatorSource.includes('Pending verified model export'),
-  'Forecast Simulator must show pending verified model export as the source when no connected output exists.',
+  forecastSimulatorSource.includes('<Legend') &&
+    forecastSimulatorSource.includes('<ReferenceLine') &&
+    forecastSimulatorSource.includes('Historical / Actual') &&
+    forecastSimulatorSource.includes('Predicted / Forecast'),
+  'Forecast charts must include legend, boundary, and distinct actual/predicted labels.',
 );
 assert(
-  forecastSimulatorSource.includes('getOfficialModelOptions(selectedAnalysisType)'),
-  'Forecast Simulator model selector must be filtered by official analysis type.',
+  forecastSimulatorSource.includes('transformed-scale output') &&
+    forecastSimulatorSource.includes('not official-scale'),
+  'Forecast Simulator must label transformed-scale VAR output.',
 );
 assert(
-  !forecastSimulatorSource.includes('Using connected XGBoost output'),
+  !forecastSimulatorSource.includes('Connected XGBoost held-out test predictions'),
   'Forecast Simulator must not present stale XGBoost rows as connected output.',
 );
 
 const overviewSource = readText('src/pages/Overview.jsx');
 assert(
-  overviewSource.includes('Official GUI-connected outputs: <strong>currently none</strong>'),
-  'Overview must state that no official outputs are currently connected.',
+  overviewSource.includes('Notebook-confirmed') &&
+    overviewSource.includes('Transformed row outputs') &&
+    overviewSource.includes('Ranking stays disabled'),
+  'Overview must explain the notebook-confirmed model-results concept.',
 );
+
+const readinessSource = readText('src/pages/ModelReadiness.jsx');
 assert(
-  !overviewSource.includes('Verified connected rows'),
-  'Overview must not show stale forecast rows as verified connected rows.',
+  readinessSource.includes('Model Results & Readiness') &&
+    readinessSource.includes('Transformed-scale rows') &&
+    readinessSource.includes('Metrics and plot only'),
+  'Model Results page must expose new display modes.',
 );
 
 const comparisonSource = readText('src/pages/ModelComparison.jsx');
 assert(
-  comparisonSource.includes('Ranking is hidden until two verified outputs share'),
-  'Model Comparison must explain why rankings are hidden.',
+  comparisonSource.includes('Notebook-reported metric summary') &&
+    comparisonSource.includes('not forced rankings'),
+  'Model Comparison must be result-summary-first, not ranking-first.',
 );
 
 const uploadSource = readText('src/pages/UploadRegionalDataset.jsx');
@@ -225,4 +279,14 @@ assert(
   'Upload page must show scenario-specific required-column instructions.',
 );
 
-console.log('Model readiness validation passed.');
+const searchedSources = [
+  readText('src/pages/Overview.jsx'),
+  readText('src/pages/ForecastSimulator.jsx'),
+  readText('src/pages/ModelComparison.jsx'),
+  readText('src/pages/ModelReadiness.jsx'),
+  readText('README.md'),
+  readText('public/model_outputs/README.md'),
+].join('\n');
+assert(!/cluster|clustering/i.test(searchedSources), 'Dashboard/docs must not include clustering wording.');
+
+console.log('Model results validation passed.');

@@ -3,10 +3,10 @@ export const DATA_PATH = '/data/combined_air_electricity_ipi_cleaned.csv';
 export const targetOptions = [
   { key: 'air_pm_25', label: 'PM2.5', shortLabel: 'PM2.5', category: 'pollution', unit: 'µg/m³' },
   { key: 'air_pm_10', label: 'PM10', shortLabel: 'PM10', category: 'pollution', unit: 'µg/m³' },
-  { key: 'air_no2', label: 'NO2', shortLabel: 'NO2', category: 'pollution', unit: 'µg/m³' },
+  { key: 'air_no2', label: 'NO2', shortLabel: 'NO2', category: 'pollution', unit: 'ppm' },
   { key: 'air_o3', label: 'O3', shortLabel: 'O3', category: 'pollution', unit: 'ppm' },
   { key: 'air_co', label: 'CO', shortLabel: 'CO', category: 'pollution', unit: 'ppm' },
-  { key: 'air_so2', label: 'SO2', shortLabel: 'SO2', category: 'pollution', unit: 'µg/m³' },
+  { key: 'air_so2', label: 'SO2', shortLabel: 'SO2', category: 'pollution', unit: 'ppm' },
   {
     key: 'ipi_abs_index',
     label: 'Industrial Production Index',
@@ -95,8 +95,8 @@ export const predictorOptions = [
     category: 'electricity',
     unit: 'GWh',
   },
-  { key: 'air_no2', label: 'NO2', category: 'pollution', unit: 'µg/m³' },
-  { key: 'air_so2', label: 'SO2', category: 'pollution', unit: 'µg/m³' },
+  { key: 'air_no2', label: 'NO2', category: 'pollution', unit: 'ppm' },
+  { key: 'air_so2', label: 'SO2', category: 'pollution', unit: 'ppm' },
   {
     key: 'ipi_abs_index',
     label: 'Industrial Production Index',

@@ -1,4 +1,5 @@
 import { formatPredictorList, getScenarioDefinition, getTargetDefinition } from './constants';
+import { precisionForValue } from './data';
 
 export const prototypeFallbackNotice =
   'Prototype fallback uses the target variable’s recent historical trend. The selected predictors represent the intended final model inputs and are not used by the frontend fallback algorithm.';
@@ -14,7 +15,7 @@ const formatMonth = (dateValue) =>
 
 const safeRound = (value) => {
   if (!Number.isFinite(value)) return null;
-  return Number(value.toFixed(Math.abs(value) < 1 ? 4 : 2));
+  return Number(value.toFixed(precisionForValue(value)));
 };
 
 const dampenForecastStep = ({ trendStep, fallbackStep, lastActual, horizonMonths }) => {
@@ -96,28 +97,40 @@ export const generatePrototypeForecast = (rows, targetKey, horizonMonths) => {
 
 export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
   const hasActualOutputRows = forecastRows.some((row) => Number.isFinite(row.actualValue));
+  const firstOutputRow = forecastRows[0];
+  const outputScale = firstOutputRow?.outputScale ?? '';
+  const isTransformedScale = outputScale.includes('transformed');
+  const mapOutputRow = (row) => ({
+    date: row.date,
+    month: row.month,
+    actual: Number.isFinite(row.actualValue) ? safeRound(row.actualValue) : null,
+    forecast: safeRound(row.forecast),
+    lowerBound: safeRound(row.lowerBound),
+    upperBound: safeRound(row.upperBound),
+    unit: row.unit,
+    type: row.type,
+    resultType: row.resultType,
+    resultTypeLabel: row.resultTypeLabel,
+    sourceNotebook: row.sourceNotebook,
+    scenarioVariant: row.scenarioVariant,
+    scenarioVariantLabel: row.scenarioVariantLabel,
+    predictors: row.predictors,
+    engineeredFeatures: row.engineeredFeatures,
+    evaluationStart: row.evaluationStart,
+    evaluationEnd: row.evaluationEnd,
+    frequency: row.frequency,
+    displayTarget: row.displayTarget,
+    notebookTarget: row.notebookTarget,
+    officialTarget: row.officialTarget,
+    outputScale: row.outputScale,
+    displayMode: row.displayMode,
+    caveat: row.caveat,
+    integrationStatus: row.integrationStatus,
+    phase: row.resultType === 'test_prediction' ? 'Held-out test' : 'Forecast',
+  });
 
   if (hasActualOutputRows) {
-    const modelForecastRows = forecastRows.map((row) => ({
-      date: row.date,
-      month: row.month,
-      actual: safeRound(row.actualValue),
-      forecast: safeRound(row.forecast),
-      lowerBound: safeRound(row.lowerBound),
-      upperBound: safeRound(row.upperBound),
-      unit: row.unit,
-      type: row.type,
-      resultType: row.resultType,
-      resultTypeLabel: row.resultTypeLabel,
-      sourceNotebook: row.sourceNotebook,
-      scenarioVariant: row.scenarioVariant,
-      scenarioVariantLabel: row.scenarioVariantLabel,
-      predictors: row.predictors,
-      engineeredFeatures: row.engineeredFeatures,
-      evaluationStart: row.evaluationStart,
-      evaluationEnd: row.evaluationEnd,
-      frequency: row.frequency,
-    }));
+    const modelForecastRows = forecastRows.map(mapOutputRow);
     const firstActual = modelForecastRows.find((row) => Number.isFinite(row.actual))?.actual ?? null;
     const lastForecast = modelForecastRows[modelForecastRows.length - 1]?.forecast ?? null;
     const change =
@@ -143,6 +156,52 @@ export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
       evaluationEnd: modelForecastRows[0]?.evaluationEnd ?? '',
       frequency: modelForecastRows[0]?.frequency ?? '',
       unit: modelForecastRows[0]?.unit ?? '',
+      displayTarget: modelForecastRows[0]?.displayTarget ?? '',
+      notebookTarget: modelForecastRows[0]?.notebookTarget ?? '',
+      officialTarget: modelForecastRows[0]?.officialTarget ?? '',
+      outputScale: modelForecastRows[0]?.outputScale ?? '',
+      displayMode: modelForecastRows[0]?.displayMode ?? '',
+      caveat: modelForecastRows[0]?.caveat ?? '',
+      integrationStatus: modelForecastRows[0]?.integrationStatus ?? '',
+    };
+  }
+
+  if (isTransformedScale) {
+    const modelForecastRows = forecastRows.map(mapOutputRow);
+    const firstForecast = modelForecastRows[0]?.forecast ?? null;
+    const lastForecast = modelForecastRows[modelForecastRows.length - 1]?.forecast ?? null;
+    const change =
+      Number.isFinite(firstForecast) && Number.isFinite(lastForecast) ? lastForecast - firstForecast : 0;
+    const directionThreshold = Number.isFinite(firstForecast)
+      ? Math.max(Math.abs(firstForecast) * 0.02, 0.000001)
+      : 0;
+    const trendDirection =
+      Math.abs(change) <= directionThreshold ? 'stable' : change > 0 ? 'increasing' : 'decreasing';
+
+    return {
+      chartRows: modelForecastRows,
+      forecastRows: modelForecastRows,
+      trendDirection,
+      lastActual: null,
+      lastForecast: safeRound(lastForecast),
+      resultType: modelForecastRows[0]?.resultType ?? '',
+      resultTypeLabel: modelForecastRows[0]?.resultTypeLabel ?? '',
+      sourceNotebook: modelForecastRows[0]?.sourceNotebook ?? '',
+      scenarioVariant: modelForecastRows[0]?.scenarioVariant ?? '',
+      scenarioVariantLabel: modelForecastRows[0]?.scenarioVariantLabel ?? '',
+      predictors: modelForecastRows[0]?.predictors ?? [],
+      engineeredFeatures: modelForecastRows[0]?.engineeredFeatures ?? [],
+      evaluationStart: modelForecastRows[0]?.evaluationStart ?? '',
+      evaluationEnd: modelForecastRows[0]?.evaluationEnd ?? '',
+      frequency: modelForecastRows[0]?.frequency ?? '',
+      unit: modelForecastRows[0]?.unit ?? '',
+      displayTarget: modelForecastRows[0]?.displayTarget ?? '',
+      notebookTarget: modelForecastRows[0]?.notebookTarget ?? '',
+      officialTarget: modelForecastRows[0]?.officialTarget ?? '',
+      outputScale: modelForecastRows[0]?.outputScale ?? '',
+      displayMode: modelForecastRows[0]?.displayMode ?? '',
+      caveat: modelForecastRows[0]?.caveat ?? '',
+      integrationStatus: modelForecastRows[0]?.integrationStatus ?? '',
     };
   }
 
@@ -171,6 +230,24 @@ export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
     upperBound: safeRound(row.upperBound),
     unit: row.unit,
     type: 'Final model output',
+    resultType: row.resultType,
+    resultTypeLabel: row.resultTypeLabel,
+    sourceNotebook: row.sourceNotebook,
+    scenarioVariant: row.scenarioVariant,
+    scenarioVariantLabel: row.scenarioVariantLabel,
+    predictors: row.predictors,
+    engineeredFeatures: row.engineeredFeatures,
+    evaluationStart: row.evaluationStart,
+    evaluationEnd: row.evaluationEnd,
+    frequency: row.frequency,
+    displayTarget: row.displayTarget,
+    notebookTarget: row.notebookTarget,
+    officialTarget: row.officialTarget,
+    outputScale: row.outputScale,
+    displayMode: row.displayMode,
+    caveat: row.caveat,
+    integrationStatus: row.integrationStatus,
+    phase: 'Forecast',
   }));
   const lastForecast = modelForecastRows[modelForecastRows.length - 1]?.forecast ?? lastActual;
   const directionThreshold = Math.max(Math.abs(lastActual) * 0.02, 0.001);
@@ -188,6 +265,24 @@ export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
     trendDirection,
     lastActual: safeRound(lastActual),
     lastForecast: safeRound(lastForecast),
+    resultType: modelForecastRows[0]?.resultType ?? '',
+    resultTypeLabel: modelForecastRows[0]?.resultTypeLabel ?? '',
+    sourceNotebook: modelForecastRows[0]?.sourceNotebook ?? '',
+    scenarioVariant: modelForecastRows[0]?.scenarioVariant ?? '',
+    scenarioVariantLabel: modelForecastRows[0]?.scenarioVariantLabel ?? '',
+    predictors: modelForecastRows[0]?.predictors ?? [],
+    engineeredFeatures: modelForecastRows[0]?.engineeredFeatures ?? [],
+    evaluationStart: modelForecastRows[0]?.evaluationStart ?? '',
+    evaluationEnd: modelForecastRows[0]?.evaluationEnd ?? '',
+    frequency: modelForecastRows[0]?.frequency ?? '',
+    unit: modelForecastRows[0]?.unit ?? '',
+    displayTarget: modelForecastRows[0]?.displayTarget ?? '',
+    notebookTarget: modelForecastRows[0]?.notebookTarget ?? '',
+    officialTarget: modelForecastRows[0]?.officialTarget ?? '',
+    outputScale: modelForecastRows[0]?.outputScale ?? '',
+    displayMode: modelForecastRows[0]?.displayMode ?? '',
+    caveat: modelForecastRows[0]?.caveat ?? '',
+    integrationStatus: modelForecastRows[0]?.integrationStatus ?? '',
   };
 };
 
@@ -243,6 +338,10 @@ export const createForecastInterpretation = ({
   const trendText = directionPhrase(trendDirection, targetLabel);
 
   if (isFinalOutput) {
+    if (trendDirection === 'transformed') {
+      return `The ${modelLabel} output is shown in the notebook's transformed target scale. It should not be interpreted as official concentration values.`;
+    }
+
     if (scenarioId === 'ipi_electricity_to_so2') {
       return `The connected ${modelLabel} output reproduces ${targetLabel} values over the held-out test period. It is not a projection beyond the fixed evaluation period.`;
     }

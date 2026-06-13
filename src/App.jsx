@@ -25,7 +25,7 @@ const sectionTitles = {
   overview: 'Overview',
   'data-explorer': 'Data Explorer',
   'forecast-simulator': 'Forecast Simulator',
-  'model-readiness': 'Model Readiness',
+  'model-readiness': 'Model Results & Readiness',
   'model-comparison': 'Model Comparison',
   'regional-comparison': 'Regional Comparison',
   'upload-regional-dataset': 'Upload Regional Dataset',

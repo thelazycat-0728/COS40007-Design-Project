@@ -10,6 +10,7 @@ import {
   getMatchingMetricRows,
   getMatchingMetricsOnlyRows,
 } from '../utils/modelOutputs';
+import { formatNumericValue, precisionForValue } from '../utils/data';
 
 const buildCountryOptions = (uploadedDataset) =>
   uploadedDataset
@@ -29,11 +30,7 @@ const formatMetric = (value) => {
     return '-';
   }
 
-  if (Math.abs(value) < 0.01) {
-    return value.toPrecision(4);
-  }
-
-  return value.toFixed(3);
+  return formatNumericValue(value, precisionForValue(value));
 };
 
 const comparisonGroups = [
@@ -53,6 +50,12 @@ const comparisonGroups = [
 
 const statusLabels = {
   connected_output: 'Connected output',
+  official_scale_row_output: 'Official-scale rows',
+  transformed_scale_row_output: 'Transformed-scale rows',
+  metrics_and_plot_only: 'Metrics and plot only',
+  summary_metrics_only: 'Summary metrics only',
+  artifact_only: 'Artifact only',
+  branch_or_pending: 'Branch or pending',
   ready_for_export: 'Ready for export',
   metrics_only: 'Metrics only',
   artifact_found: 'Artifact found',
@@ -107,8 +110,8 @@ const ComparisonReadinessTable = ({ group, artifacts }) => {
               <th>Status</th>
               <th>Metrics</th>
               <th>Rows</th>
-              <th>GUI</th>
-              <th>Required next handoff</th>
+              <th>Output scale</th>
+              <th>Caveat</th>
             </tr>
           </thead>
           <tbody>
@@ -127,8 +130,8 @@ const ComparisonReadinessTable = ({ group, artifacts }) => {
                 </td>
                 <td>{artifact.metricsAvailable ? 'Available' : 'Not exported'}</td>
                 <td>{artifact.rowLevelOutputAvailable ? 'Available' : 'Not verified on main'}</td>
-                <td>{artifact.guiConnected ? 'Connected' : 'Not connected'}</td>
-                <td>{artifact.nextHandoff || artifact.statusMessage}</td>
+                <td>{artifact.outputScale || 'Not specified'}</td>
+                <td>{artifact.caveat || artifact.nextHandoff || artifact.statusMessage}</td>
               </tr>
             ))}
           </tbody>
@@ -161,6 +164,9 @@ export default function ModelComparison({
     modelOutputs,
     selectedCountry: countryForModelOutputs,
   });
+  const allNotebookMetrics = (modelOutputs.metrics?.rows ?? []).filter(
+    (metric) => metric.countryKey === (countryForModelOutputs || 'malaysia'),
+  );
   const artifacts = modelOutputs.artifacts?.rows ?? [];
 
   return (
@@ -168,10 +174,11 @@ export default function ModelComparison({
       <div className="section-heading">
         <div>
           <p className="eyebrow">Model Comparison</p>
-          <h1>Comparison is gated by verified matching outputs</h1>
+          <h1>Notebook-reported model results, not forced rankings</h1>
           <p>
-            The dashboard does not rank models until at least two connected outputs share the same task,
-            period, frequency, unit, metric definition, and result type.
+            The dashboard shows each official model result as reported by its notebook. Rankings remain
+            hidden unless at least two outputs share the same task, period, scale, frequency, unit, metric
+            definition, and result type.
           </p>
         </div>
       </div>
@@ -181,8 +188,8 @@ export default function ModelComparison({
       </div>
 
       <div className="description-band">
-        Ranking is hidden until two verified outputs share the same target/scenario, period, unit,
-        frequency, metric definition, and result type.
+        Ranking is hidden until two notebook-confirmed outputs share the same target/scenario, period,
+        output scale, unit, frequency, metric definition, and result type.
       </div>
 
       <ModelIntegrationStatus
@@ -237,11 +244,56 @@ export default function ModelComparison({
         <div className="text-panel">
           <h2>No model ranking yet</h2>
           <p>
-            Current repository data has zero fully verified connected official outputs. Readiness and
-            individual metrics can be reviewed, but comparison bars and winner labels are hidden.
+            Current repository data has mixed scales and export formats. Individual metrics can be reviewed,
+            but comparison bars and winner labels are hidden until the strict comparability rule is satisfied.
           </p>
         </div>
       )}
+
+      {allNotebookMetrics.length ? (
+        <div className="table-panel">
+          <div className="panel-heading">
+            <h2>Notebook-reported metric summary</h2>
+            <span>Displayed without ranking because outputs are not all directly comparable</span>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Target</th>
+                  <th>Scenario</th>
+                  <th>Display mode</th>
+                  <th>Scale</th>
+                  <th>MSE</th>
+                  <th>MAE</th>
+                  <th>RMSE</th>
+                  <th>R2</th>
+                  <th>Unit</th>
+                  <th>Caveat</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allNotebookMetrics.map((metric) => (
+                  <tr key={`${metric.modelKey}-${metric.targetKey}-${metric.scenarioId}-${metric.sourceNotebook}`}>
+                    <td>{metric.model}</td>
+                    <td>{metric.notebookTarget || metric.target}</td>
+                    <td>{metric.scenarioLabel || metric.scenarioId || 'Univariate'}</td>
+                    <td>{statusLabels[metric.integrationStatus] || metric.integrationStatus}</td>
+                    <td>{metric.outputScale || 'Not specified'}</td>
+                    <td>{formatMetric(metric.mse)}</td>
+                    <td>{formatMetric(metric.mae)}</td>
+                    <td>{formatMetric(metric.rmse)}</td>
+                    <td>{formatMetric(metric.r2)}</td>
+                    <td>{metric.unit || 'Not specified'}</td>
+                    <td>{metric.caveat || metric.metricNote || 'No caveat supplied'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
 
       {nonConnectedMetricRows.length ? (
         <div className="table-panel">

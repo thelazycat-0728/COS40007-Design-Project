@@ -11,7 +11,7 @@ import {
 
 const navItems = [
   { id: 'overview', label: 'Overview', icon: Gauge },
-  { id: 'model-readiness', label: 'Model Readiness', icon: ClipboardCheck },
+  { id: 'model-readiness', label: 'Model Results', icon: ClipboardCheck },
   { id: 'forecast-simulator', label: 'Forecast Simulator', icon: BarChart3 },
   { id: 'model-comparison', label: 'Model Comparison', icon: Factory },
   { id: 'upload-regional-dataset', label: 'Upload Regional Dataset', icon: UploadCloud },

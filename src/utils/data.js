@@ -87,7 +87,40 @@ export const loadMalaysiaData = () =>
     });
   });
 
-export const compactNumber = (value, digits = 2) => {
+export const precisionForValue = (value) => {
+  const absValue = Math.abs(Number(value));
+
+  if (!Number.isFinite(absValue)) {
+    return 2;
+  }
+
+  if (absValue >= 100) {
+    return 2;
+  }
+
+  if (absValue >= 1) {
+    return 2;
+  }
+
+  if (absValue >= 0.01) {
+    return 4;
+  }
+
+  return 6;
+};
+
+export const formatNumericValue = (value, digits = precisionForValue(value)) => {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return 'No data';
+  }
+
+  return new Intl.NumberFormat('en', {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: Math.abs(value) < 1 ? digits : 0,
+  }).format(value);
+};
+
+export const compactNumber = (value, digits = precisionForValue(value)) => {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return 'No data';
   }
@@ -95,14 +128,11 @@ export const compactNumber = (value, digits = 2) => {
   if (Math.abs(value) >= 1000) {
     return new Intl.NumberFormat('en', {
       notation: 'compact',
-      maximumFractionDigits: 2,
+      maximumFractionDigits: digits,
     }).format(value);
   }
 
-  return new Intl.NumberFormat('en', {
-    maximumFractionDigits: digits,
-    minimumFractionDigits: Math.abs(value) < 1 ? Math.min(digits, 3) : 0,
-  }).format(value);
+  return formatNumericValue(value, digits);
 };
 
 export const tableColumns = [
