@@ -197,7 +197,7 @@ export default function App() {
             <span>Regional time-series forecasting prototype</span>
             <strong>{sectionTitles[activeSection]}</strong>
           </div>
-          <div className="dataset-pill">OpenDOSM Malaysia monthly dataset</div>
+          <div className="dataset-pill">Dataset: Malaysia monthly, OpenDOSM-based</div>
         </header>
         {renderSection()}
       </main>

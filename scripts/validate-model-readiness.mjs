@@ -285,10 +285,12 @@ assert(constantsSource.includes("key: 'air_so2', label: 'SO2', shortLabel: 'SO2'
 const forecastSimulatorSource = readText('src/pages/ForecastSimulator.jsx');
 assert(
   forecastSimulatorSource.includes('Forecast Results') &&
+    forecastSimulatorSource.includes('Choose saved result') &&
+    forecastSimulatorSource.includes('Advanced filters') &&
   forecastSimulatorSource.includes('Metrics and plot only') &&
     forecastSimulatorSource.includes('No forecast line is drawn.') &&
     forecastSimulatorSource.includes('XGBoost Univariate'),
-  'Forecast Results must show metrics-only state without fake forecast lines.',
+  'Forecast Results must use a saved-result selector and show metrics-only state without fake forecast lines.',
 );
 assert(
   forecastSimulatorSource.includes('<Legend') &&
@@ -309,23 +311,29 @@ assert(
 
 const overviewSource = readText('src/pages/Overview.jsx');
 assert(
-  overviewSource.includes('Forecast Results') &&
+  overviewSource.includes('Regional Forecasting Dashboard') &&
+    overviewSource.includes('Forecast Results') &&
     overviewSource.includes('Upload dataset') &&
     overviewSource.includes('Check model evidence') &&
-    overviewSource.includes('Uploaded CSVs are used for validation') &&
-    overviewSource.includes('Model ranking') &&
-    overviewSource.includes('Univariate SARIMA, LSTM, and XGBoost') &&
-    overviewSource.includes('multivariate XGBoost and VAR'),
+    overviewSource.includes('Saved notebook results') &&
+    overviewSource.includes('Upload checks compatibility') &&
+    overviewSource.includes('No real-time model inference') &&
+    overviewSource.includes('Ranking only when comparable') &&
+    overviewSource.includes('Available forecast paths') &&
+    overviewSource.includes('SARIMA, LSTM, XGBoost') &&
+    overviewSource.includes('XGBoost, VAR'),
   'Overview must stay focused on the simplified user-facing forecasting-results flow.',
 );
 
 const readinessSource = readText('src/pages/ModelReadiness.jsx');
 assert(
   readinessSource.includes('Model Evidence') &&
-    readinessSource.includes('Transformed-scale rows') &&
-    readinessSource.includes('Metrics and plot only') &&
+    readinessSource.includes('Chart-ready outputs') &&
+    readinessSource.includes('Transformed outputs') &&
+    readinessSource.includes('Metrics-only results') &&
     readinessSource.includes('XGBoost Univariate') &&
-    readinessSource.includes('XGBoost Multivariate'),
+    readinessSource.includes('XGBoost Multivariate') &&
+    readinessSource.includes('Audit note'),
   'Model Evidence page must expose display modes.',
 );
 

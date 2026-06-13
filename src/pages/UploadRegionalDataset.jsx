@@ -51,6 +51,21 @@ const ScenarioCompatibilityCard = ({ label, compatible, children }) => (
   </article>
 );
 
+const uploadTypes = [
+  {
+    title: 'Full regional dataset',
+    body: 'Air quality, electricity, IPI, and vehicle columns in one monthly CSV.',
+  },
+  {
+    title: 'Univariate target history',
+    body: 'Date, country, and one supported target such as SO2, NO2, electricity, IPI, or vehicles.',
+  },
+  {
+    title: 'Scenario-specific CSV',
+    body: 'Only the target and predictors needed for one forecast scenario.',
+  },
+];
+
 const requiredColumnGroups = [
   {
     title: 'Univariate target history',
@@ -99,6 +114,39 @@ export default function UploadRegionalDataset({
       ? getRecommendedPredictors(uploadedDataset, recommendedScenarioId)
       : [];
   const detectedUnivariateTargets = uploadedDataset ? getDetectedUnivariateTargets(uploadedDataset) : [];
+  const missingValueCount = uploadedDataset
+    ? uploadedDataset.missingSummary.reduce((total, item) => total + item.missing, 0)
+    : 0;
+  const compatiblePathCards = uploadedDataset
+    ? [
+        {
+          id: 'univariate',
+          label: 'Univariate target history',
+          compatible: detectedUnivariateTargets.length > 0,
+          body: detectedUnivariateTargets.length
+            ? `Detected ${detectedUnivariateTargets.map((target) => target.label).join(', ')}. Compatible models: SARIMA, LSTM, and XGBoost Univariate.`
+            : 'Requires one supported target column.',
+        },
+        {
+          id: 'vehicle_electricity_to_no2',
+          label: 'Vehicle activity + local electricity → NO2',
+          compatible: uploadedDataset.scenarioCompatibility.vehicle_electricity_to_no2,
+          body: 'Requires NO2, local electricity, and a vehicle indicator.',
+        },
+        {
+          id: 'ipi_electricity_to_so2',
+          label: 'IPI + electricity → SO2',
+          compatible: uploadedDataset.scenarioCompatibility.ipi_electricity_to_so2,
+          body: 'Requires SO2, an IPI predictor, and an electricity predictor.',
+        },
+        {
+          id: 'no2_to_pm25',
+          label: 'NO2 → PM2.5',
+          compatible: uploadedDataset.scenarioCompatibility.no2_to_pm25,
+          body: 'Requires PM2.5 and NO2.',
+        },
+      ]
+    : [];
 
   const handleViewRecommendedResult = () => {
     if (!uploadedDataset || !recommendedScenario) return;
@@ -162,7 +210,6 @@ export default function UploadRegionalDataset({
     <section className="page-section">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Upload Regional Dataset</p>
           <h1>Upload Regional Dataset</h1>
           <p>
             Upload a cleaned CSV to check which saved forecast result your data can be matched with.
@@ -170,23 +217,7 @@ export default function UploadRegionalDataset({
         </div>
       </div>
 
-      <div className="table-panel requirement-panel">
-        <div className="panel-heading">
-          <h2>Required columns</h2>
-          <span>Match one path</span>
-        </div>
-        <div className="requirement-grid">
-          {requiredColumnGroups.map((group) => (
-            <article key={group.title}>
-              <h3>{group.title}</h3>
-              <p>{group.columns.join(', ')}</p>
-              <small>{group.note}</small>
-            </article>
-          ))}
-        </div>
-      </div>
-
-      <div className="upload-panel">
+      <div className="upload-panel primary-upload-panel">
         <div>
           <h2>Choose a CSV</h2>
           <p>
@@ -208,12 +239,39 @@ export default function UploadRegionalDataset({
         </div>
       </div>
 
+      <div className="table-panel upload-type-panel">
+        <div className="panel-heading">
+          <h2>What can I upload?</h2>
+          <span>Three useful CSV shapes</span>
+        </div>
+        <div className="path-grid upload-path-grid">
+          {uploadTypes.map((item) => (
+            <article key={item.title}>
+              <span>{item.title}</span>
+              <strong>{item.body}</strong>
+            </article>
+          ))}
+        </div>
+        <details className="inline-details">
+          <summary>View column requirements</summary>
+          <div className="requirement-grid">
+            {requiredColumnGroups.map((group) => (
+              <article key={group.title}>
+                <h3>{group.title}</h3>
+                <p>{group.columns.join(', ')}</p>
+                <small>{group.note}</small>
+              </article>
+            ))}
+          </div>
+        </details>
+      </div>
+
       {validationMessage ? (
         <div className={`upload-message ${validationErrors.length ? 'error' : 'success'}`}>
           <strong>{validationMessage}</strong>
           {validationErrors.length ? (
             <p className="validation-guidance">
-              Compare your CSV headers with the required-column guide above. Scenario testing is
+              Compare your CSV headers with the column requirements above. Scenario testing is
               disabled until the required target and predictor columns are detected.
             </p>
           ) : null}
@@ -228,7 +286,7 @@ export default function UploadRegionalDataset({
       ) : null}
 
       {!uploadedDataset ? (
-        <div className="text-panel">
+        <div className="text-panel quiet-empty-panel">
           <h2>No CSV uploaded yet</h2>
           <p>
             Upload a regional CSV to see compatible scenarios and open the matching saved result.
@@ -237,28 +295,8 @@ export default function UploadRegionalDataset({
         </div>
       ) : (
         <>
-          <div className="summary-grid">
-            <article className="summary-card">
-              <span>Detected country</span>
-              <strong>{uploadedDataset.countryName}</strong>
-            </article>
-            <article className="summary-card">
-              <span>Rows</span>
-              <strong>{uploadedDataset.rowCount}</strong>
-            </article>
-            <article className="summary-card">
-              <span>Date range</span>
-              <strong>{uploadedDataset.dateRange}</strong>
-            </article>
-            <article className="summary-card">
-              <span>Upload use</span>
-              <strong>Validation only</strong>
-              <small>No real-time model inference is run from the uploaded CSV.</small>
-            </article>
-          </div>
-
           <div className="recommendation-panel">
-            <span>Compatible result</span>
+            <span>Recommended result</span>
             {hasOfficialRecommendation ? (
               <>
                 <h2>This dataset is compatible with the {recommendedScenario.label} scenario.</h2>
@@ -303,100 +341,117 @@ export default function UploadRegionalDataset({
             )}
           </div>
 
-          <div className="summary-grid">
-            <ScenarioCompatibilityCard
-              label="Univariate target history"
-              compatible={detectedUnivariateTargets.length > 0}
-            >
-              {detectedUnivariateTargets.length
-                ? `Detected ${detectedUnivariateTargets.map((target) => target.label).join(', ')}. Compatible models: SARIMA, LSTM, and XGBoost Univariate.`
-                : 'Requires any supported target column such as air_so2, air_no2, electricity_local, ipi_abs_index_sa, or car_registration.'}
-            </ScenarioCompatibilityCard>
-            <ScenarioCompatibilityCard
-              label="Vehicle activity + local electricity → NO2"
-              compatible={uploadedDataset.scenarioCompatibility.vehicle_electricity_to_no2}
-            >
-              Requires `air_no2`, `electricity_local`, and at least one vehicle or transport predictor.
-            </ScenarioCompatibilityCard>
-            <ScenarioCompatibilityCard
-              label="IPI + electricity → SO2"
-              compatible={uploadedDataset.scenarioCompatibility.ipi_electricity_to_so2}
-            >
-              Requires `air_so2`, an IPI predictor, and an electricity predictor.
-            </ScenarioCompatibilityCard>
-            <ScenarioCompatibilityCard
-              label="NO2 → PM2.5"
-              compatible={uploadedDataset.scenarioCompatibility.no2_to_pm25}
-            >
-              Requires `air_pm_25` and `air_no2`.
-            </ScenarioCompatibilityCard>
+          <div className="summary-grid upload-summary-grid">
+            <article className="summary-card">
+              <span>Upload passed</span>
+              <strong>{uploadedDataset.countryName}</strong>
+              <small>{uploadedDataset.rowCount} rows · {uploadedDataset.dateRange}</small>
+            </article>
+            <article className="summary-card">
+              <span>Upload use</span>
+              <strong>Validation only</strong>
+              <small>No real-time model inference is run from the uploaded CSV.</small>
+            </article>
+            <article className="summary-card">
+              <span>Data quality</span>
+              <strong>{missingValueCount ? `${missingValueCount} missing` : 'No missing values'}</strong>
+              <small>
+                {missingValueCount
+                  ? 'Open the details below for the full field summary.'
+                  : `No missing values detected across ${uploadedDataset.rowCount} rows.`}
+              </small>
+            </article>
+          </div>
+
+          <div className="table-panel">
+            <div className="panel-heading">
+              <h2>Other compatible paths</h2>
+              <span>Based on detected columns</span>
+            </div>
+            <div className="summary-grid compatibility-grid">
+              {compatiblePathCards.map((card) => (
+                <ScenarioCompatibilityCard label={card.label} compatible={card.compatible} key={card.id}>
+                  {card.body}
+                </ScenarioCompatibilityCard>
+              ))}
+            </div>
           </div>
 
           <div className="split-grid">
-            <div className="text-panel">
+            <div className="text-panel chip-panel">
               <h2>Detected targets</h2>
-              <p>{uploadedDataset.detectedTargets.map((key) => getUploadedColumnLabel(key)).join(', ')}</p>
+              <div className="chip-row">
+                {uploadedDataset.detectedTargets.map((key) => (
+                  <span className="data-chip" key={key}>{getUploadedColumnLabel(key)}</span>
+                ))}
+              </div>
             </div>
-            <div className="text-panel">
+            <div className="text-panel chip-panel">
               <h2>Detected predictors</h2>
-              <p>{uploadedDataset.detectedPredictors.map((key) => getUploadedColumnLabel(key)).join(', ')}</p>
+              <div className="chip-row">
+                {uploadedDataset.detectedPredictors.map((key) => (
+                  <span className="data-chip" key={key}>{getUploadedColumnLabel(key)}</span>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="table-panel">
-            <div className="panel-heading">
-              <h2>Missing values summary</h2>
-              <span>Detected fields</span>
+          {uploadedDataset.aliasesMapped?.length ? (
+            <div className="scope-note">
+              <strong>Some columns were mapped to supported aliases:</strong>{' '}
+              {uploadedDataset.aliasesMapped.map((item) => item.label).join(', ')}.
             </div>
-            <div className="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Column</th>
-                    <th>Missing values</th>
-                    <th>Total rows</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {uploadedDataset.missingSummary.map((item) => (
-                    <tr key={item.column}>
-                      <td>{item.label}</td>
-                      <td>{item.missing}</td>
-                      <td>{item.total}</td>
+          ) : null}
+
+          <div className="table-panel">
+            <details className="inline-details">
+              <summary>View data quality details</summary>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Column</th>
+                      <th>Missing values</th>
+                      <th>Total rows</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="table-panel">
-            <div className="panel-heading">
-              <h2>Uploaded dataset preview</h2>
-              <span>First 10 rows</span>
-            </div>
-            <div className="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    {uploadedDataset.previewColumns.map((column) => (
-                      <th key={column}>{column}</th>
+                  </thead>
+                  <tbody>
+                    {uploadedDataset.missingSummary.map((item) => (
+                      <tr key={item.column}>
+                        <td>{item.label}</td>
+                        <td>{item.missing}</td>
+                        <td>{item.total}</td>
+                      </tr>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {uploadedDataset.rows.slice(0, 10).map((row) => (
-                    <tr key={`${row.date}-${row.country}`}>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+            <details className="inline-details">
+              <summary>View dataset preview</summary>
+              <div className="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
                       {uploadedDataset.previewColumns.map((column) => (
-                        <td key={column}>
-                          {column === 'date' || column === 'country' ? row[column] : compactNumber(row[column])}
-                        </td>
+                        <th key={column}>{column}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {uploadedDataset.rows.slice(0, 6).map((row) => (
+                      <tr key={`${row.date}-${row.country}`}>
+                        {uploadedDataset.previewColumns.map((column) => (
+                          <td key={column}>
+                            {column === 'date' || column === 'country' ? row[column] : compactNumber(row[column])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </div>
         </>
       )}
