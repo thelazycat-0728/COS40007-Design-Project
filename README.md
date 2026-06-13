@@ -40,11 +40,14 @@ Prophet, VECM, baselines, and univariate XGBoost are not counted in the official
 | XGBoost | Multivariate | metrics and plot only | Three official multivariate scenarios report metrics/artifacts/SHAP evidence; no dated row export is present. |
 | VAR | Multivariate | row output with caveats | VAR1/VAR2 are differenced target outputs; VAR3 is PM2.5-scale future forecast. |
 
-VAR caveat:
+VAR caveats:
 
-- VAR1 shows `d_air_no2` as Delta NO2 in `ppm change`, not official-scale NO2 concentration.
-- VAR2 shows `d_air_so2` as Delta SO2 in `ppm change`, not official-scale SO2 concentration.
-- VAR3 shows `air_pm_25`; the NO2 predictor is transformed as `d_air_no2`.
+- VAR1 shows `d_air_no2` as `ΔNO2` with display label `Forecasted change in NO2`.
+  Warning: `This VAR output is shown in differenced NO2 scale. It represents change in NO2, not official-scale NO2 concentration.`
+- VAR2 shows `d_air_so2` as `ΔSO2` with display label `Forecasted change in SO2`.
+  Warning: `This VAR output is shown in differenced SO2 scale. It represents change in SO2, not official-scale SO2 concentration.`
+- VAR3 shows `air_pm_25` as `PM2.5` with display label `Forecasted PM2.5` and unit `µg/m³`.
+  Note: `VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.`
 
 The old `public/model_outputs/xgboost_forecast.csv` SO2 rows remain as audit data only and are marked
 `stale_or_mismatched`.
@@ -117,6 +120,8 @@ Where row-level outputs exist:
 - the forecast/test start is marked with a vertical boundary
 - transformed outputs include a scale warning
 - small ppm values use enough decimals to avoid showing `0.00`
+- PM2.5/PM10 units use the canonical `µg/m³` spelling; NO2/SO2 use `ppm` where the
+  source notebooks report ppm.
 
 Metrics-only results never synthesize fake forecast lines.
 

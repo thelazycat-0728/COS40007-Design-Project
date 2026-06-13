@@ -116,7 +116,10 @@ const ReadinessTable = ({ title, rows }) => (
           {rows.map((artifact) => (
             <tr key={`${artifact.modelKey}-${artifact.scenarioId}-${artifact.targetKey}`}>
               <td>{artifact.model}</td>
-              <td>{getTaskLabel(artifact)}</td>
+              <td>
+                {getTaskLabel(artifact)}
+                {artifact.displayLabel ? <small>{artifact.displayLabel}</small> : null}
+              </td>
               <td>
                 <StatusBadge status={artifact.integrationStatus} />
               </td>

@@ -68,8 +68,8 @@
       "frequency": "monthly",
       "unit": "ppm",
       "metrics": {
-        "mse": 0.0,
-        "rmse": 8.2e-05,
+        "mse": 0,
+        "rmse": 0.000082,
         "mae": 0.04672194090754619,
         "r2": -1.784987
       },
@@ -115,7 +115,7 @@
       "evaluation_start": "2022-01-01",
       "evaluation_end": "2022-12-01",
       "frequency": "monthly",
-      "unit": "ug/m3",
+      "unit": "µg/m³",
       "metrics": {
         "mse": 3.833767,
         "rmse": 1.958001,
@@ -167,7 +167,7 @@
       "frequency": "monthly",
       "unit": "ppm",
       "metrics": {
-        "mse": 2e-06,
+        "mse": 0.000002,
         "rmse": 0.001301,
         "mae": 0.123282791899982,
         "r2": -8.000723
@@ -182,7 +182,7 @@
       "analysis_type": "multivariate",
       "target": "air_so2",
       "target_label": "SO2",
-      "display_target": "d_air_so2",
+      "display_target": "ΔSO2",
       "notebook_target": "d_air_so2",
       "official_target": "air_so2",
       "scenario_id": "ipi_electricity_to_so2",
@@ -217,17 +217,18 @@
       "frequency": "monthly",
       "unit": "ppm change",
       "metrics": {
-        "mse": 5.217892689434372e-09,
-        "rmse": 7.223498244918712e-05,
-        "mae": 5.227259057393017e-05,
+        "mse": 5.217892689434372e-9,
+        "rmse": 0.00007223498244918712,
+        "mae": 0.00005227259057393017,
         "r2": 0.05221430846343189,
         "aic": -3.186605975229403,
         "bic": -2.7603074213232475,
         "lag_order": 1
       },
       "status_message": "Notebook-confirmed result available for GUI display.",
-      "caveat": "This metric is for the d_air_so2 equation, not official-scale SO2 concentration.",
-      "next_handoff": "Review interpretation caveats before presentation."
+      "caveat": "This VAR output is shown in differenced SO2 scale. It represents change in SO2, not official-scale SO2 concentration.",
+      "next_handoff": "Review interpretation caveats before presentation.",
+      "display_label": "Forecasted change in SO2"
     },
     {
       "model": "VAR",
@@ -267,7 +268,7 @@
       "evaluation_start": "",
       "evaluation_end": "",
       "frequency": "monthly",
-      "unit": "ug/m3",
+      "unit": "µg/m³",
       "metrics": {
         "mse": 30.630532579917215,
         "rmse": 5.5344857556883476,
@@ -278,8 +279,10 @@
         "lag_order": 1
       },
       "status_message": "Notebook-confirmed result available for GUI display.",
-      "caveat": "PM2.5 equation is shown on the notebook scale; NO2 predictor was differenced in the VAR setup.",
-      "next_handoff": "Review interpretation caveats before presentation."
+      "caveat": "VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.",
+      "next_handoff": "Review interpretation caveats before presentation.",
+      "display_label": "Forecasted PM2.5",
+      "note": "VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor."
     },
     {
       "model": "VAR",
@@ -287,7 +290,7 @@
       "analysis_type": "multivariate",
       "target": "air_no2",
       "target_label": "NO2",
-      "display_target": "d_air_no2",
+      "display_target": "ΔNO2",
       "notebook_target": "d_air_no2",
       "official_target": "air_no2",
       "scenario_id": "vehicle_electricity_to_no2",
@@ -322,7 +325,7 @@
       "frequency": "monthly",
       "unit": "ppm change",
       "metrics": {
-        "mse": 3.8747887101086013e-07,
+        "mse": 3.8747887101086013e-7,
         "rmse": 0.0006224780084556082,
         "mae": 0.0004740614515497495,
         "r2": 0.29917562826954525,
@@ -331,8 +334,9 @@
         "lag_order": 2
       },
       "status_message": "Notebook-confirmed result available for GUI display.",
-      "caveat": "This metric is for the d_air_no2 equation, not official-scale NO2 concentration.",
-      "next_handoff": "Review interpretation caveats before presentation."
+      "caveat": "This VAR output is shown in differenced NO2 scale. It represents change in NO2, not official-scale NO2 concentration.",
+      "next_handoff": "Review interpretation caveats before presentation.",
+      "display_label": "Forecasted change in NO2"
     },
     {
       "model": "SARIMA",
@@ -613,7 +617,7 @@
       "frequency": "monthly",
       "unit": "ppm",
       "metrics": {
-        "mse": 2.1562340117439e-07,
+        "mse": 2.1562340117439e-7,
         "rmse": 0.0004643526689644292,
         "r2": -0.146594
       },
@@ -660,8 +664,8 @@
       "frequency": "monthly",
       "unit": "ppm",
       "metrics": {
-        "mse": 4.02694181476e-09,
-        "rmse": 6.345818950113366e-05,
+        "mse": 4.02694181476e-9,
+        "rmse": 0.00006345818950113366,
         "r2": -0.656799
       },
       "status_message": "Notebook-reported metrics and plot/artifact evidence available; row-level export not present.",

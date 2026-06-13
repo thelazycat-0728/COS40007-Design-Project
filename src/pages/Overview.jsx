@@ -37,13 +37,13 @@ const builtInScenarioCards = [
     id: 'ipi_electricity_to_so2',
     title: 'IPI + electricity → SO2',
     status: 'Supported by current Malaysia cleaned dataset',
-    body: 'The built-in Malaysia dataset includes SO2, seasonally adjusted IPI, and local electricity consumption. Final trained model output is still pending unless a matching model-output file is connected.',
+    body: 'The built-in Malaysia dataset includes SO2, seasonally adjusted IPI, and local electricity consumption. XGBoost is metrics-and-plot-only; VAR2 is a differenced SO2 change forecast, not official-scale SO2 concentration.',
   },
   {
     id: 'no2_to_pm25',
     title: 'NO2 → PM2.5',
     status: 'Optional extension',
-    body: 'The built-in Malaysia dataset includes PM2.5 and NO2, so this optional extension can be reviewed as a prototype fallback scenario.',
+    body: 'The built-in Malaysia dataset includes PM2.5 and NO2. VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.',
   },
 ];
 

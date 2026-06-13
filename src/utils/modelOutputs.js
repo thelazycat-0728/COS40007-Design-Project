@@ -157,6 +157,7 @@ const normalizeArtifactEntry = (entry) => ({
   analysisType: normalizeToken(entry.analysis_type),
   targetKey: normalizeTargetKey(entry.target),
   displayTarget: entry.display_target || entry.target_label || entry.target || '',
+  displayLabel: entry.display_label || entry.display_target || entry.target_label || entry.target || '',
   notebookTarget: entry.notebook_target || entry.target || '',
   officialTarget: entry.official_target || entry.target || '',
   scenarioId: entry.scenario_id || '',
@@ -284,6 +285,7 @@ const parseForecastRows = (csvText, modelKey, artifactRows = []) => {
       const displayMode = row.display_mode || integrationStatus;
       const outputScale = row.output_scale || '';
       const displayTarget = row.display_target || targetDefinition.label;
+      const displayLabel = row.display_label || displayTarget;
 
       if (!date || !Number.isFinite(forecast) || outputModelKey !== modelKey || !targetKey) {
         return null;
@@ -298,6 +300,7 @@ const parseForecastRows = (csvText, modelKey, artifactRows = []) => {
         targetKey,
         targetLabel: targetDefinition.label,
         displayTarget,
+        displayLabel,
         notebookTarget: row.notebook_target || row.target || targetKey,
         officialTarget: row.official_target || row.target || targetKey,
         pollutant: row.pollutant || '',
@@ -401,6 +404,8 @@ const parseMetrics = (text) => {
         countryKey: normalizeCountryKey(metric.country || 'Malaysia'),
         target: targetDefinition.label,
         targetKey,
+        displayTarget: metric.display_target || targetDefinition.label,
+        displayLabel: metric.display_label || metric.display_target || targetDefinition.label,
         scenarioId: metric.scenario_id || '',
         scenarioLabel: metric.scenario_id ? getScenarioDefinition(metric.scenario_id).label : '',
         scenarioVariant,

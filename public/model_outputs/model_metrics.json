@@ -49,8 +49,8 @@
         "stationarity_differencing",
         "MinMaxScaler"
       ],
-      "mse": 4.02694181476e-09,
-      "rmse": 6.345818950113366e-05,
+      "mse": 4.02694181476e-9,
+      "rmse": 0.00006345818950113366,
       "mae": null,
       "mape": null,
       "r2": -0.656799,
@@ -85,7 +85,7 @@
         "stationarity_differencing",
         "MinMaxScaler"
       ],
-      "mse": 2.1562340117439e-07,
+      "mse": 2.1562340117439e-7,
       "rmse": 0.0004643526689644292,
       "mae": null,
       "mape": null,
@@ -375,7 +375,7 @@
         "log_transform",
         "MinMaxScaler_inputs"
       ],
-      "mse": 2e-06,
+      "mse": 0.000002,
       "rmse": 0.001301,
       "mae": 0.123282791899982,
       "mape": null,
@@ -414,8 +414,8 @@
         "first_difference_air_so2",
         "MinMaxScaler_inputs"
       ],
-      "mse": 0.0,
-      "rmse": 8.2e-05,
+      "mse": 0,
+      "rmse": 0.000082,
       "mae": 0.04672194090754619,
       "mape": null,
       "r2": -1.784987,
@@ -460,7 +460,7 @@
       "evaluation_start": "2022-01-01",
       "evaluation_end": "2022-12-01",
       "frequency": "monthly",
-      "unit": "ug/m3",
+      "unit": "µg/m³",
       "integration_status": "metrics_and_plot_only",
       "display_mode": "metrics_and_plot_only",
       "row_level_output_available": false,
@@ -489,7 +489,7 @@
       "engineered_features": [
         "first_difference_air_no2"
       ],
-      "mse": 3.8747887101086013e-07,
+      "mse": 3.8747887101086013e-7,
       "rmse": 0.0006224780084556082,
       "mae": 0.0004740614515497495,
       "mape": null,
@@ -515,7 +515,9 @@
         "var/VarOnlyFileResults/var_models.json"
       ],
       "output_scale": "transformed_differenced",
-      "caveat": "This metric is for the d_air_no2 equation, not official-scale NO2 concentration."
+      "caveat": "This VAR output is shown in differenced NO2 scale. It represents change in NO2, not official-scale NO2 concentration.",
+      "display_target": "ΔNO2",
+      "display_label": "Forecasted change in NO2"
     },
     {
       "model": "VAR",
@@ -531,9 +533,9 @@
       "engineered_features": [
         "first_difference_air_so2"
       ],
-      "mse": 5.217892689434372e-09,
-      "rmse": 7.223498244918712e-05,
-      "mae": 5.227259057393017e-05,
+      "mse": 5.217892689434372e-9,
+      "rmse": 0.00007223498244918712,
+      "mae": 0.00005227259057393017,
       "mape": null,
       "r2": 0.05221430846343189,
       "aic": -3.186605975229403,
@@ -557,7 +559,9 @@
         "var/VarOnlyFileResults/var_models.json"
       ],
       "output_scale": "transformed_differenced",
-      "caveat": "This metric is for the d_air_so2 equation, not official-scale SO2 concentration."
+      "caveat": "This VAR output is shown in differenced SO2 scale. It represents change in SO2, not official-scale SO2 concentration.",
+      "display_target": "ΔSO2",
+      "display_label": "Forecasted change in SO2"
     },
     {
       "model": "VAR",
@@ -584,7 +588,7 @@
       "evaluation_start": "",
       "evaluation_end": "",
       "frequency": "monthly",
-      "unit": "ug/m3",
+      "unit": "µg/m³",
       "integration_status": "official_scale_row_output",
       "display_mode": "official_scale_row_output",
       "row_level_output_available": true,
@@ -598,7 +602,10 @@
         "var/VarOnlyFileResults/var_models.json"
       ],
       "output_scale": "official_scale",
-      "caveat": "PM2.5 equation is shown on the notebook scale; NO2 predictor was differenced in the VAR setup."
+      "caveat": "VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.",
+      "display_target": "PM2.5",
+      "display_label": "Forecasted PM2.5",
+      "note": "VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor."
     }
   ]
 }

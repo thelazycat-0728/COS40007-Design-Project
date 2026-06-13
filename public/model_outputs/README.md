@@ -42,7 +42,7 @@ Excluded from the final GUI scope:
   - Three VAR scenarios.
   - 2023-2024 future forecast rows.
   - VAR1/VAR2 are transformed differenced outputs.
-  - VAR3 is PM2.5-scale output.
+  - VAR3 is PM2.5-scale output with unit `µg/m³`.
 
 - `xgboost_forecast.csv`
   - Retained audit file only.
@@ -82,7 +82,7 @@ Use these status/display values:
 Normalized row-output CSVs use:
 
 ```text
-date,country,target,model,forecast_value,actual_value,lower_bound,upper_bound,scenario_id,scenario_variant,predictors,engineered_features,unit,result_type,source_notebook,evaluation_start,evaluation_end,frequency,integration_status,status_message,display_target,notebook_target,official_target,output_scale,display_mode,caveat
+date,country,target,model,forecast_value,actual_value,lower_bound,upper_bound,scenario_id,scenario_variant,predictors,engineered_features,unit,result_type,source_notebook,evaluation_start,evaluation_end,frequency,integration_status,status_message,display_target,notebook_target,official_target,output_scale,display_mode,caveat,display_label
 ```
 
 Rules:
@@ -91,6 +91,8 @@ Rules:
 - `actual_value` is required for held-out test prediction rows when available.
 - `actual_value` can be blank for future forecasts.
 - `unit` must match the notebook/source scale.
+- PM2.5/PM10 units must use `µg/m³`; NO2/SO2 notebook outputs use `ppm` or
+  `ppm change` for differenced VAR rows.
 - VAR1/VAR2 must stay as `ppm change` until the model owner provides official-scale inverse
   transformation.
 - Do not invent confidence intervals, actual values, dates, metrics, or inverse-transformed values.
@@ -123,9 +125,12 @@ VAR:
 - Source: `var/varOnly(Brandon).ipynb`.
 - Result folder: `var/VarOnlyFileResults/`.
 - Do not use `var/varAndVCEM(Brandon).ipynb` or `VarAndVCEMFileResults/` for official VAR display.
-- VAR1 displays `d_air_no2` as Delta NO2 in `ppm change`.
-- VAR2 displays `d_air_so2` as Delta SO2 in `ppm change`.
-- VAR3 displays `air_pm_25` with `d_air_no2` as a transformed predictor.
+- VAR1 displays `d_air_no2` as `ΔNO2` with label `Forecasted change in NO2`.
+  Warning: `This VAR output is shown in differenced NO2 scale. It represents change in NO2, not official-scale NO2 concentration.`
+- VAR2 displays `d_air_so2` as `ΔSO2` with label `Forecasted change in SO2`.
+  Warning: `This VAR output is shown in differenced SO2 scale. It represents change in SO2, not official-scale SO2 concentration.`
+- VAR3 displays `air_pm_25` as `PM2.5` with label `Forecasted PM2.5` and unit `µg/m³`.
+  Note: `VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.`
 
 ## Comparison Policy
 

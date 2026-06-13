@@ -120,6 +120,7 @@ export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
     evaluationEnd: row.evaluationEnd,
     frequency: row.frequency,
     displayTarget: row.displayTarget,
+    displayLabel: row.displayLabel,
     notebookTarget: row.notebookTarget,
     officialTarget: row.officialTarget,
     outputScale: row.outputScale,
@@ -157,6 +158,7 @@ export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
       frequency: modelForecastRows[0]?.frequency ?? '',
       unit: modelForecastRows[0]?.unit ?? '',
       displayTarget: modelForecastRows[0]?.displayTarget ?? '',
+      displayLabel: modelForecastRows[0]?.displayLabel ?? '',
       notebookTarget: modelForecastRows[0]?.notebookTarget ?? '',
       officialTarget: modelForecastRows[0]?.officialTarget ?? '',
       outputScale: modelForecastRows[0]?.outputScale ?? '',
@@ -196,6 +198,7 @@ export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
       frequency: modelForecastRows[0]?.frequency ?? '',
       unit: modelForecastRows[0]?.unit ?? '',
       displayTarget: modelForecastRows[0]?.displayTarget ?? '',
+      displayLabel: modelForecastRows[0]?.displayLabel ?? '',
       notebookTarget: modelForecastRows[0]?.notebookTarget ?? '',
       officialTarget: modelForecastRows[0]?.officialTarget ?? '',
       outputScale: modelForecastRows[0]?.outputScale ?? '',
@@ -241,6 +244,7 @@ export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
     evaluationEnd: row.evaluationEnd,
     frequency: row.frequency,
     displayTarget: row.displayTarget,
+    displayLabel: row.displayLabel,
     notebookTarget: row.notebookTarget,
     officialTarget: row.officialTarget,
     outputScale: row.outputScale,
@@ -277,6 +281,7 @@ export const generateModelOutputForecast = (rows, targetKey, forecastRows) => {
     frequency: modelForecastRows[0]?.frequency ?? '',
     unit: modelForecastRows[0]?.unit ?? '',
     displayTarget: modelForecastRows[0]?.displayTarget ?? '',
+    displayLabel: modelForecastRows[0]?.displayLabel ?? '',
     notebookTarget: modelForecastRows[0]?.notebookTarget ?? '',
     officialTarget: modelForecastRows[0]?.officialTarget ?? '',
     outputScale: modelForecastRows[0]?.outputScale ?? '',
@@ -343,10 +348,10 @@ export const createForecastInterpretation = ({
     }
 
     if (scenarioId === 'ipi_electricity_to_so2') {
-      return `The connected ${modelLabel} output reproduces ${targetLabel} values over the held-out test period. It is not a projection beyond the fixed evaluation period.`;
+      return `The ${modelLabel} row output reproduces ${targetLabel} values over the held-out test period. It is not a projection beyond the fixed evaluation period.`;
     }
 
-    return `The ${modelLabel} output indicates ${trendText} over the next ${horizonLabel} for the ${scenario.label} scenario. These values are loaded from final model output files connected to the dashboard.`;
+    return `The ${modelLabel} output indicates ${trendText} over the next ${horizonLabel} for the ${scenario.label} scenario. These values are loaded from notebook-confirmed row output files.`;
   }
 
   if (scenarioId === 'ipi_electricity_to_so2') {

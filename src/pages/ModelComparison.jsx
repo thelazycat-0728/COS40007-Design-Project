@@ -206,7 +206,7 @@ export default function ModelComparison({
       {strictComparableMetrics.length >= 2 ? (
         <div className="table-panel">
           <div className="panel-heading">
-            <h2>Comparable connected metrics</h2>
+            <h2>Comparable row-output metrics</h2>
             <span>Same task metadata confirmed</span>
           </div>
           <div className="table-scroll">
@@ -227,7 +227,7 @@ export default function ModelComparison({
                 {strictComparableMetrics.map((metric) => (
                   <tr key={`${metric.modelKey}-${metric.targetKey}-${metric.scenarioId}`}>
                     <td>{metric.model}</td>
-                    <td>{metric.target}</td>
+                    <td>{metric.displayLabel || metric.displayTarget || metric.target}</td>
                     <td>{metric.scenarioLabel || 'Not specified'}</td>
                     <td>{formatMetric(metric.mae)}</td>
                     <td>{formatMetric(metric.rmse)}</td>
@@ -277,7 +277,7 @@ export default function ModelComparison({
                 {allNotebookMetrics.map((metric) => (
                   <tr key={`${metric.modelKey}-${metric.targetKey}-${metric.scenarioId}-${metric.sourceNotebook}`}>
                     <td>{metric.model}</td>
-                    <td>{metric.notebookTarget || metric.target}</td>
+                    <td>{metric.displayLabel || metric.displayTarget || metric.notebookTarget || metric.target}</td>
                     <td>{metric.scenarioLabel || metric.scenarioId || 'Univariate'}</td>
                     <td>{statusLabels[metric.integrationStatus] || metric.integrationStatus}</td>
                     <td>{metric.outputScale || 'Not specified'}</td>
@@ -298,7 +298,7 @@ export default function ModelComparison({
       {nonConnectedMetricRows.length ? (
         <div className="table-panel">
           <div className="panel-heading">
-            <h2>Non-connected metric entries</h2>
+            <h2>Non-row-output metric entries</h2>
             <span>These entries are not eligible for ranking</span>
           </div>
           <div className="table-scroll">
@@ -318,7 +318,7 @@ export default function ModelComparison({
                 {nonConnectedMetricRows.map((metric) => (
                   <tr key={`${metric.modelKey}-${metric.targetKey}-${metric.scenarioId}-${metric.sourceNotebook}`}>
                     <td>{metric.model}</td>
-                    <td>{metric.target}</td>
+                    <td>{metric.displayLabel || metric.displayTarget || metric.target}</td>
                     <td>{statusLabels[metric.integrationStatus] || metric.integrationStatus}</td>
                     <td>{formatMetric(metric.rmse)}</td>
                     <td>{formatMetric(metric.r2)}</td>

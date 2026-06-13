@@ -254,7 +254,7 @@ export default function ForecastSimulator({
       return;
     }
 
-    if (scenario.id === 'vehicle_electricity_to_no2' && selectedCountry === 'uploaded') {
+    if (scenario.id === 'vehicle_electricity_to_no2') {
       const availableVehiclePredictors = vehiclePredictorKeys.filter((key) => hasNumericColumn(activeRows, key));
       const selectedAvailable = selectedPredictors.filter((key) => availableVehiclePredictors.includes(key));
       if (!selectedAvailable.length && availableVehiclePredictors.length) {
@@ -308,6 +308,7 @@ export default function ForecastSimulator({
   const isHeldOutTestOutput = modelForecast?.resultType === 'test_prediction';
   const isTransformedOutput = modelForecast?.outputScale?.includes('transformed');
   const displayTargetLabel = modelForecast?.displayTarget || targetDefinition.label;
+  const forecastValueLabel = modelForecast?.displayLabel || `Forecasted ${displayTargetLabel}`;
   const outputUnit = modelForecast?.unit || unit;
   const matchingMetrics = scenarioReady
     ? getMatchingMetricRows({
@@ -528,6 +529,10 @@ export default function ForecastSimulator({
                 <strong>{isTransformedOutput ? 'Transformed / differenced' : 'Official target scale'}</strong>
               </div>
               <div>
+                <span>Display label</span>
+                <strong>{forecastValueLabel}</strong>
+              </div>
+              <div>
                 <span>Notebook target</span>
                 <strong>{modelForecast.notebookTarget || displayTargetLabel}</strong>
               </div>
@@ -659,7 +664,7 @@ export default function ForecastSimulator({
                 {isHeldOutTestOutput
                   ? `Actual vs predicted ${displayTargetLabel}`
                   : isTransformedOutput
-                    ? `${displayTargetLabel} notebook forecast`
+                    ? forecastValueLabel
                     : `Historical and ${forecastKind} ${displayTargetLabel}`}
               </h2>
               <span>
@@ -733,7 +738,7 @@ export default function ForecastSimulator({
                     <tr>
                       <th>Month</th>
                       {isHeldOutTestOutput ? <th>Actual {displayTargetLabel}</th> : null}
-                      <th>{isHeldOutTestOutput ? 'Predicted' : 'Forecasted'} {displayTargetLabel}</th>
+                      <th>{isHeldOutTestOutput ? `Predicted ${displayTargetLabel}` : forecastValueLabel}</th>
                       {hasBounds ? <th>Lower bound</th> : null}
                       {hasBounds ? <th>Upper bound</th> : null}
                       <th>Unit</th>

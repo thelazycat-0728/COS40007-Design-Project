@@ -73,6 +73,12 @@ const hashRows = (rows, columns) => {
 
 const artifactsJson = readJson('public/model_outputs/model_artifacts.json');
 const artifacts = artifactsJson.artifacts;
+const var1Warning =
+  'This VAR output is shown in differenced NO2 scale. It represents change in NO2, not official-scale NO2 concentration.';
+const var2Warning =
+  'This VAR output is shown in differenced SO2 scale. It represents change in SO2, not official-scale SO2 concentration.';
+const var3Note =
+  'VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.';
 assert(Array.isArray(artifacts), 'model_artifacts.json must contain an artifacts array.');
 assert(artifacts.length === 16, `Expected 16 official model entries, found ${artifacts.length}.`);
 
@@ -119,18 +125,29 @@ assert(
     (artifact) =>
       artifact.integration_status === 'transformed_scale_row_output' &&
       artifact.output_scale === 'transformed_differenced' &&
-      artifact.caveat.includes('not official-scale'),
+      ((artifact.scenario_id === 'vehicle_electricity_to_no2' &&
+        artifact.display_target === 'ΔNO2' &&
+        artifact.display_label === 'Forecasted change in NO2' &&
+        artifact.caveat === var1Warning) ||
+        (artifact.scenario_id === 'ipi_electricity_to_so2' &&
+          artifact.display_target === 'ΔSO2' &&
+          artifact.display_label === 'Forecasted change in SO2' &&
+          artifact.caveat === var2Warning)),
   ),
-  'VAR1 and VAR2 must be transformed-scale outputs with explicit caveats.',
+  'VAR1 and VAR2 must be transformed-scale outputs with exact change labels and caveats.',
 );
 assert(
   artifacts.some(
     (artifact) =>
       artifact.model === 'VAR' &&
       artifact.target === 'air_pm_25' &&
-      artifact.integration_status === 'official_scale_row_output',
+      artifact.integration_status === 'official_scale_row_output' &&
+      artifact.display_target === 'PM2.5' &&
+      artifact.display_label === 'Forecasted PM2.5' &&
+      artifact.unit === 'µg/m³' &&
+      artifact.caveat === var3Note,
   ),
-  'VAR3 PM2.5 must be present as an official-scale row output.',
+  'VAR3 PM2.5 must be present as an official-scale row output with canonical unit and note.',
 );
 
 const metrics = readJson('public/model_outputs/model_metrics.json').metrics;
@@ -178,9 +195,11 @@ assert(
       row.integration_status === 'transformed_scale_row_output' &&
       row.unit === 'ppm change' &&
       row.actual_value === '' &&
-      row.caveat.includes('not official-scale NO2'),
+      row.display_target === 'ΔNO2' &&
+      row.display_label === 'Forecasted change in NO2' &&
+      row.caveat === var1Warning,
   ),
-  'VAR1 rows must remain differenced NO2 output, not official NO2.',
+  'VAR1 rows must remain differenced NO2 change output, not official NO2 concentration.',
 );
 assert(
   varRows.filter((row) => row.notebook_target === 'd_air_so2').every(
@@ -188,18 +207,23 @@ assert(
       row.integration_status === 'transformed_scale_row_output' &&
       row.unit === 'ppm change' &&
       row.actual_value === '' &&
-      row.caveat.includes('not official-scale SO2'),
+      row.display_target === 'ΔSO2' &&
+      row.display_label === 'Forecasted change in SO2' &&
+      row.caveat === var2Warning,
   ),
-  'VAR2 rows must remain differenced SO2 output, not official SO2.',
+  'VAR2 rows must remain differenced SO2 change output, not official SO2 concentration.',
 );
 assert(
   varRows.filter((row) => row.notebook_target === 'air_pm_25').every(
     (row) =>
       row.integration_status === 'official_scale_row_output' &&
-      row.unit === 'ug/m3' &&
-      row.result_type === 'future_forecast',
+      row.unit === 'µg/m³' &&
+      row.result_type === 'future_forecast' &&
+      row.display_target === 'PM2.5' &&
+      row.display_label === 'Forecasted PM2.5' &&
+      row.caveat === var3Note,
   ),
-  'VAR3 rows must be PM2.5 future forecast rows.',
+  'VAR3 rows must be PM2.5 future forecast rows with canonical PM unit.',
 );
 
 const xgboostRows = parseCsv('public/model_outputs/xgboost_forecast.csv');
@@ -287,6 +311,10 @@ const searchedSources = [
   readText('README.md'),
   readText('public/model_outputs/README.md'),
 ].join('\n');
-assert(!/cluster|clustering/i.test(searchedSources), 'Dashboard/docs must not include clustering wording.');
+const unrelatedModelTerm = ['clu', 'ster'].join('');
+assert(
+  !new RegExp(`${unrelatedModelTerm}|${unrelatedModelTerm}ing`, 'i').test(searchedSources),
+  'Dashboard/docs must not include unrelated model-family wording.',
+);
 
 console.log('Model results validation passed.');
