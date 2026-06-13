@@ -22,13 +22,7 @@ const quickActions = [
   },
 ];
 
-export default function Overview({ modelOutputs, setActiveSection }) {
-  const artifactRows = modelOutputs.artifacts?.rows ?? [];
-  const rowOutputCount = artifactRows.filter((artifact) => artifact.rowLevelOutputAvailable).length;
-  const metricsOnlyCount = artifactRows.filter(
-    (artifact) => artifact.integrationStatus === 'metrics_and_plot_only',
-  ).length;
-
+export default function Overview({ setActiveSection }) {
   return (
     <section className="page-section overview-page">
       <div className="section-heading compact-hero">
@@ -58,24 +52,7 @@ export default function Overview({ modelOutputs, setActiveSection }) {
       <div className="scope-note">
         <strong>Available model results:</strong> Univariate SARIMA, LSTM, and XGBoost; multivariate XGBoost and VAR.
         Uploaded CSVs are used for validation and compatibility checking only, not real-time model inference.
-      </div>
-
-      <div className="summary-grid compact-summary-grid">
-        <article className="summary-card">
-          <span>Chartable outputs</span>
-          <strong>{rowOutputCount}</strong>
-          <small>SARIMA and VAR have dated notebook row outputs.</small>
-        </article>
-        <article className="summary-card">
-          <span>Metrics-only outputs</span>
-          <strong>{metricsOnlyCount}</strong>
-          <small>LSTM and XGBoost results are shown without fake forecast rows.</small>
-        </article>
-        <article className="summary-card">
-          <span>Model ranking</span>
-          <strong>Off</strong>
-          <small>Ranking stays hidden unless results are directly comparable.</small>
-        </article>
+        Model ranking stays off unless results are directly comparable.
       </div>
     </section>
   );
