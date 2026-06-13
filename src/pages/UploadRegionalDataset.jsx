@@ -55,22 +55,22 @@ const requiredColumnGroups = [
   {
     title: 'Univariate target history',
     columns: ['date', 'country', 'one supported target column'],
-    note: 'Compatible target columns can be reviewed with SARIMA, LSTM, and XGBoost Univariate. Uploads validate compatibility only; they do not run live inference.',
+    note: 'Compatible models: SARIMA, LSTM, and XGBoost Univariate. Uploads validate compatibility only.',
   },
   {
     title: 'Vehicle + electricity -> NO2',
     columns: ['date', 'country', 'air_no2', 'electricity_local', 'car_registration'],
-    note: 'Use car_registration or another supported vehicle indicator. Compatible multivariate models: XGBoost Multivariate and VAR. vehicle_registrations is accepted as a legacy alias.',
+    note: 'Compatible models: XGBoost Multivariate and VAR. vehicle_registrations is accepted as a legacy alias.',
   },
   {
     title: 'IPI + electricity -> SO2',
     columns: ['date', 'country', 'air_so2', 'ipi_abs_index_sa', 'electricity_local'],
-    note: 'Compatible multivariate models: XGBoost Multivariate and VAR. Fallback columns ipi_abs_index and electricity_total are accepted when preferred columns are unavailable.',
+    note: 'Compatible models: XGBoost Multivariate and VAR. ipi_abs_index and electricity_total are accepted fallbacks.',
   },
   {
     title: 'NO2 -> PM2.5',
     columns: ['date', 'country', 'air_pm_25', 'air_no2'],
-    note: 'Compatible multivariate models: XGBoost Multivariate and VAR. Use monthly chronological rows with numeric values; blank cells are allowed for missing values.',
+    note: 'Compatible models: XGBoost Multivariate and VAR. Use monthly chronological rows with numeric values.',
   },
 ];
 
@@ -163,19 +163,17 @@ export default function UploadRegionalDataset({
       <div className="section-heading">
         <div>
           <p className="eyebrow">Upload Regional Dataset</p>
-          <h1>Browser-only scenario dataset testing</h1>
+          <h1>Upload Regional Dataset</h1>
           <p>
-            Upload a compatible cleaned CSV to validate target and predictor columns, check scenario
-            compatibility, then open the matching notebook-confirmed forecast result already produced
-            by the team.
+            Upload a cleaned CSV to check which saved forecast result your data can be matched with.
           </p>
         </div>
       </div>
 
       <div className="table-panel requirement-panel">
         <div className="panel-heading">
-          <h2>Required columns before upload</h2>
-          <span>Match one official scenario first</span>
+          <h2>Required columns</h2>
+          <span>Match one path</span>
         </div>
         <div className="requirement-grid">
           {requiredColumnGroups.map((group) => (
@@ -190,16 +188,13 @@ export default function UploadRegionalDataset({
 
       <div className="upload-panel">
         <div>
-          <h2>Upload instructions</h2>
+          <h2>Choose a CSV</h2>
           <p>
-            CSV must include date and country, at least one supported forecast target, and at least
-            one supported predictor. The template contains demo values only and should be replaced
-            with real regional observations for project analysis.
+            CSV must include date, country, and the columns for one supported scenario.
           </p>
           <p>
-            Uploaded CSVs are used for validation and compatibility checking only. If a target column is
-            present, the univariate-compatible models are SARIMA, LSTM, and XGBoost Univariate. The
-            dashboard does not run real-time model inference from uploaded files.
+            Uploaded CSVs are used for validation and compatibility checking only. The dashboard does
+            not run real-time model inference from uploaded files.
           </p>
         </div>
         <div className="upload-actions">
@@ -234,10 +229,10 @@ export default function UploadRegionalDataset({
 
       {!uploadedDataset ? (
         <div className="text-panel">
-          <h2>No uploaded dataset loaded</h2>
+          <h2>No CSV uploaded yet</h2>
           <p>
-            Upload a cleaned regional CSV to view validation results, scenario compatibility, target
-            and predictor summaries, and the recommended result scenario. The file is not saved permanently.
+            Upload a regional CSV to see compatible scenarios and open the matching saved result.
+            The file is not saved permanently.
           </p>
         </div>
       ) : (
@@ -263,14 +258,13 @@ export default function UploadRegionalDataset({
           </div>
 
           <div className="recommendation-panel">
-            <span>Recommended next step</span>
+            <span>Compatible result</span>
             {hasOfficialRecommendation ? (
               <>
                 <h2>This dataset is compatible with the {recommendedScenario.label} scenario.</h2>
                 <p>
-                  The upload confirms that the required columns are present. The dashboard will now show
-                  the notebook-confirmed XGBoost Multivariate and VAR evidence for this scenario using
-                  the team&apos;s existing model outputs, not a new browser-trained forecast.
+                  Required columns were found. Open the saved XGBoost Multivariate and VAR result
+                  states for this scenario.
                 </p>
                 <div className="inline-actions">
                   <button className="template-button" type="button" onClick={handleViewRecommendedResult}>
@@ -286,8 +280,7 @@ export default function UploadRegionalDataset({
                 </h2>
                 <p>
                   Detected targets: {detectedUnivariateTargets.map((target) => target.label).join(', ')}.
-                  Compatible models are SARIMA, LSTM, and XGBoost Univariate. The dashboard will show
-                  notebook-confirmed team results for the selected target, not live browser inference.
+                  Compatible models are SARIMA, LSTM, and XGBoost Univariate.
                 </p>
                 <div className="inline-actions">
                   <button
@@ -303,8 +296,7 @@ export default function UploadRegionalDataset({
               <>
                 <h2>No official scenario was detected from these columns.</h2>
                 <p>
-                  Add one of the required-column groups above, then upload again. The dashboard will not
-                  infer a model result from unsupported columns.
+                  Add one of the required-column groups above, then upload again.
                 </p>
               </>
               )

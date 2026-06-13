@@ -28,33 +28,6 @@ const officialModels = {
   multivariate: ['XGBoost Multivariate', 'VAR'],
 };
 
-const statusLegendItems = [
-  {
-    status: 'official_scale_row_output',
-    body: 'Dated notebook output exists in the official target scale and can be charted/table-rendered.',
-  },
-  {
-    status: 'transformed_scale_row_output',
-    body: 'Dated rows exist, but the target is differenced or transformed and must be interpreted in that scale.',
-  },
-  {
-    status: 'metrics_and_plot_only',
-    body: 'The notebook reports metrics and plot/artifact evidence, but no dated row export is present.',
-  },
-  {
-    status: 'summary_metrics_only',
-    body: 'Metrics exist without row output or a reusable plot.',
-  },
-  {
-    status: 'artifact_only',
-    body: 'A native saved model exists, but no result display is available.',
-  },
-  {
-    status: 'stale_or_mismatched',
-    body: 'Retained audit data conflicts with source evidence and is hidden from result displays.',
-  },
-];
-
 const formatBoolean = (value) => (value ? 'Yes' : 'No');
 
 const formatMetric = (value) => {
@@ -104,37 +77,37 @@ const ReadinessTable = ({ title, rows }) => (
             <th>Target / scenario</th>
             <th>Status</th>
             <th>Notebook/source</th>
-            <th>Output scale</th>
-            <th>Artifact</th>
             <th>Metrics</th>
             <th>Rows</th>
-            <th>Plot</th>
-            <th>Caveat / handoff</th>
+            <th>Note</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((artifact) => (
-            <tr key={`${artifact.modelKey}-${artifact.scenarioId}-${artifact.targetKey}`}>
-              <td>{artifact.model}</td>
-              <td>
-                {getTaskLabel(artifact)}
-                {artifact.displayLabel ? <small>{artifact.displayLabel}</small> : null}
-              </td>
-              <td>
-                <StatusBadge status={artifact.integrationStatus} />
-              </td>
-              <td>{artifact.location}</td>
-              <td>{artifact.outputScale || 'Not specified'}</td>
-              <td>{formatBoolean(artifact.artifactAvailable)}</td>
-              <td>
-                {artifact.metricsAvailable ? 'Yes' : 'No'}
-                {artifact.metrics ? ` - ${formatMetricSummary(artifact.metrics)}` : ''}
-              </td>
-              <td>{formatBoolean(artifact.rowLevelOutputAvailable)}</td>
-              <td>{formatBoolean(artifact.plotAvailable)}</td>
-              <td>{artifact.caveat || artifact.nextHandoff || artifact.statusMessage}</td>
-            </tr>
-          ))}
+          {rows.map((artifact) => {
+            const taskLabel = getTaskLabel(artifact);
+            const displayDetail =
+              artifact.displayLabel && artifact.displayLabel !== taskLabel ? artifact.displayLabel : '';
+
+            return (
+              <tr key={`${artifact.modelKey}-${artifact.scenarioId}-${artifact.targetKey}`}>
+                <td>{artifact.model}</td>
+                <td>
+                  {taskLabel}
+                  {displayDetail ? <small>{displayDetail}</small> : null}
+                </td>
+                <td>
+                  <StatusBadge status={artifact.integrationStatus} />
+                </td>
+                <td>{artifact.location}</td>
+                <td>
+                  {artifact.metricsAvailable ? 'Yes' : 'No'}
+                  {artifact.metrics ? ` - ${formatMetricSummary(artifact.metrics)}` : ''}
+                </td>
+                <td>{formatBoolean(artifact.rowLevelOutputAvailable)}</td>
+                <td>{artifact.caveat || artifact.nextHandoff || artifact.statusMessage}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -148,7 +121,6 @@ export default function ModelReadiness({ modelOutputs }) {
   const officialScaleRowCount = rows.filter((artifact) => artifact.integrationStatus === 'official_scale_row_output').length;
   const transformedRowCount = rows.filter((artifact) => artifact.integrationStatus === 'transformed_scale_row_output').length;
   const metricsPlotOnlyCount = rows.filter((artifact) => artifact.integrationStatus === 'metrics_and_plot_only').length;
-  const artifactCount = rows.filter((artifact) => artifact.artifactAvailable).length;
   const staleXgboostRows = modelOutputs.forecasts?.xgboost?.auditRows ?? [];
   const staleMetricRows = (modelOutputs.metrics?.rows ?? []).filter(
     (metric) => metric.integrationStatus === 'stale_or_mismatched',
@@ -159,56 +131,32 @@ export default function ModelReadiness({ modelOutputs }) {
       <div className="section-heading">
         <div>
           <p className="eyebrow">Model Evidence</p>
-          <h1>Notebook-confirmed model evidence</h1>
+          <h1>Model Evidence</h1>
           <p>
-            Advanced evidence for the official model families. This section keeps notebook sources,
-            metrics-only results, transformed targets, artifacts, and caveats available without making the
-            normal user flow depend on every model detail.
+            Source notebooks, result status, and metrics for the official forecasting models.
           </p>
         </div>
       </div>
 
-      <div className="description-band">
-        Official scope: SARIMA, LSTM, and XGBoost Univariate for univariate forecasting; XGBoost
-        Multivariate and VAR for multivariate forecasting. Prophet, VECM, and baselines remain outside
-        the final GUI scope.
+      <div className="scope-note">
+        <strong>Official scope:</strong> Univariate SARIMA, LSTM, and XGBoost; multivariate XGBoost and VAR.
       </div>
 
-      <div className="table-panel">
-        <div className="panel-heading">
-          <h2>Status legend</h2>
-          <span>Advanced interpretation guide</span>
-        </div>
-        <div className="status-legend-grid">
-          {statusLegendItems.map((item) => (
-            <article key={item.status}>
-              <StatusBadge status={item.status} />
-              <p>{item.body}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-
-      <div className="summary-grid">
+      <div className="summary-grid compact-summary-grid">
         <article className="summary-card">
           <span>Official-scale row outputs</span>
           <strong>{officialScaleRowCount}</strong>
-          <small>SARIMA targets and VAR PM2.5 have dated rows in the shown target scale.</small>
+          <small>Chartable rows in the shown target scale.</small>
         </article>
         <article className="summary-card">
           <span>Transformed row outputs</span>
           <strong>{transformedRowCount}</strong>
-          <small>VAR NO2 and SO2 rows are differenced outputs, not official concentrations.</small>
+          <small>VAR NO2 and SO2 are change forecasts.</small>
         </article>
         <article className="summary-card">
           <span>Metrics and plot only</span>
           <strong>{metricsPlotOnlyCount}</strong>
-          <small>LSTM, XGBoost Univariate, and XGBoost Multivariate notebooks report metrics without exported dated rows.</small>
-        </article>
-        <article className="summary-card">
-          <span>Native artifacts found</span>
-          <strong>{artifactCount}</strong>
-          <small>LSTM, XGBoost, and VAR include saved model/artifact files.</small>
+          <small>LSTM and XGBoost show scores without fake rows.</small>
         </article>
       </div>
 
@@ -216,33 +164,13 @@ export default function ModelReadiness({ modelOutputs }) {
         <div className="upload-message error">
           <strong>Integration paused · Source verification required.</strong>
           <p>
-            The exported XGBoost SO2 rows reference a notebook whose current target no longer matches the
-            output. The result is hidden from charts, connected counts, and comparisons until the model owner
-            provides a verified current export.
+            A stale XGBoost SO2 export is kept for audit only and hidden from result charts.
           </p>
         </div>
       ) : null}
 
       <ReadinessTable title={groupLabels.univariate} rows={univariateRows} />
       <ReadinessTable title={groupLabels.multivariate} rows={multivariateRows} />
-
-      <div className="text-panel">
-        <h2>How to use the dashboard</h2>
-        <p>
-          Normal users should start at Overview, validate or select a dataset, then open Forecast Results.
-          Use this evidence section when a presenter or marker needs to verify the source notebook,
-          output scale, metrics, or row-output status behind a result.
-        </p>
-        <p>
-          Held-out test predictions compare actual and predicted rows for a fixed evaluation period. Future
-          forecasts project beyond history. Transformed-scale outputs are notebook results but are not official
-          concentration values. Metrics-only entries show cards and summaries instead of fake forecast lines.
-        </p>
-        <p>
-          Upload datasets only when the required columns are present, and do not treat correlations or
-          significance tests as causal proof.
-        </p>
-      </div>
     </section>
   );
 }

@@ -331,9 +331,9 @@ export default function ForecastSimulator({
   const interpretation = !forecast
     ? ''
     : isTransformedOutput
-      ? `The ${modelLabel} notebook output is displayed in transformed ${displayTargetLabel} scale. It should not be interpreted as official concentration values.`
+      ? `This is a change forecast from the ${modelLabel} notebook, not official-scale concentration.`
       : isHeldOutTestOutput
-        ? `The ${modelLabel} notebook result compares actual and predicted ${displayTargetLabel} values for a fixed held-out test period. It is not a future projection.`
+        ? `The ${modelLabel} notebook compares actual and predicted ${displayTargetLabel} values for a fixed test period.`
         : createForecastInterpretation({
             targetKey: selectedTarget,
             targetDefinition,
@@ -372,25 +372,25 @@ export default function ForecastSimulator({
   const scenarioLimitation = isVehicleUnavailableBuiltIn
     ? unavailableVehicleMessage
     : scenarioReady && !isFinalOutput && selectedMetric
-      ? 'This model has notebook-reported metrics and plot evidence, but no dated row-level export. No forecast line is drawn.'
+      ? 'This model has notebook metrics but no dated row export. No forecast line is drawn.'
       : scenarioReady && !isFinalOutput
-        ? 'No notebook-confirmed row output or metric result is available for this selected task.'
+        ? 'No saved row output or metric result is available for this selection.'
         : isTransformedOutput
           ? modelForecast.caveat
-          : isHeldOutTestOutput
-            ? 'Held-out test predictions are shown for the fixed evaluation period. They are not a projection beyond that period.'
+        : isHeldOutTestOutput
+            ? 'Held-out test predictions are shown for the fixed evaluation period.'
             : scenarioReady
-              ? 'Notebook-confirmed model output is shown for this selected task.'
-              : 'Upload or select a dataset with the required target and predictor columns.';
+              ? 'Saved notebook output is shown for this selection.'
+              : 'Upload or select a dataset with the required columns.';
   const outputHeading = isFinalOutput
     ? isTransformedOutput
-      ? `Notebook row output · transformed ${displayTargetLabel}`
+      ? `Transformed row output · ${displayTargetLabel}`
       : isHeldOutTestOutput
-        ? 'Notebook test prediction rows'
-        : 'Notebook forecast rows'
+        ? 'Test prediction rows'
+        : 'Forecast rows'
     : selectedMetric
-      ? 'Notebook metrics and plot only'
-      : 'Notebook result pending';
+      ? 'Metrics and plot only'
+      : 'Result pending';
   const firstForecastMonth = forecast?.forecastRows[0]?.month;
   const boundaryNote = firstForecastMonth
     ? isHeldOutTestOutput
@@ -405,14 +405,13 @@ export default function ForecastSimulator({
           <p className="eyebrow">Forecast Results</p>
           <h1>Forecast Results</h1>
           <p>
-            View the notebook-confirmed result for the selected official scenario. If row-level
-            output exists, the chart and table are shown. If a model only produced notebook metrics,
-            the page shows those metrics without drawing fake forecast rows.
+            Choose a model result. Charts appear only when the team exported dated rows; otherwise
+            this page shows the notebook metrics.
           </p>
         </div>
       </div>
 
-      <div className="status-note">Current result status: {outputHeading}</div>
+      <div className="status-note">Showing: {outputHeading}</div>
 
       <div className="control-grid forecast-control-grid">
         <SegmentedControl
@@ -484,7 +483,7 @@ export default function ForecastSimulator({
       </div>
 
       <div className="text-panel scenario-definition-card">
-        <h2>{isUnivariate ? 'Univariate task definition' : 'Scenario definition'}</h2>
+        <h2>Result setup</h2>
         <div className="definition-grid">
           <div>
             <span>Target</span>
@@ -499,7 +498,7 @@ export default function ForecastSimulator({
             <strong>{datasetReadiness}</strong>
           </div>
           <div>
-            <span>Current output source</span>
+            <span>Source</span>
             <strong>{outputSource}</strong>
           </div>
           {isHeldOutTestOutput ? (
@@ -553,12 +552,6 @@ export default function ForecastSimulator({
             : `${predictorSetLabel}: ${predictorSummary}.`}{' '}
           {scenarioLimitation}
         </p>
-        {isHeldOutTestOutput ? (
-          <p>
-            External predictors: {formatPredictorList(modelForecast.predictors)}. Engineered inputs:{' '}
-            {modelForecast.engineeredFeatures.join(', ')}.
-          </p>
-        ) : null}
       </div>
 
       {!scenarioReady || isFinalOutput || isVehicleUnavailableBuiltIn ? (
@@ -598,8 +591,7 @@ export default function ForecastSimulator({
           <span>Result pending</span>
           <h2>No notebook-confirmed row or metric result is available for this task.</h2>
           <p>
-            Current output source: pending notebook result export. The dashboard is intentionally not
-            drawing forecast charts, comparison bars, or rankings from fallback values.
+            No chart is drawn until the team provides a saved result for this selection.
           </p>
           <div className="inline-actions">
             <button
@@ -618,8 +610,8 @@ export default function ForecastSimulator({
           <span>Metrics and plot only</span>
           <h2>{modelLabel} has notebook-reported metrics, but no row-level export.</h2>
           <p>
-            Source notebook: {selectedMetric.sourceNotebook}. The notebook reports metrics and plot/artifact
-            evidence, so this page shows the result summary instead of synthesizing a forecast line.
+            Source: {selectedMetric.sourceNotebook}. This page shows metrics only and does not
+            synthesize a forecast chart.
           </p>
           <div className="metric-chip-grid">
             {Number.isFinite(selectedMetric.mse) ? (
@@ -642,21 +634,18 @@ export default function ForecastSimulator({
       {scenarioReady && forecast ? (
         <>
           <div className="text-panel">
-            <h2>Selected forecasting task</h2>
+            <h2>Result note</h2>
             {isHeldOutTestOutput ? (
               <p>
-                Notebook variant: {modelForecast.scenarioVariantLabel}. Target: {displayTargetLabel}.
-                Unit: {outputUnit}. These rows are held-out test predictions for the fixed evaluation period.
+                Held-out test prediction rows from {modelForecast.scenarioVariantLabel}. Unit: {outputUnit}.
               </p>
             ) : isTransformedOutput ? (
               <p>
                 This transformed-scale chart is not official-scale concentration. {modelForecast.caveat}
-                Notebook target: {modelForecast.notebookTarget}. Official scenario target: {targetDefinition.label}.
-                Predictor metadata: {formatPredictorList(modelForecast.predictors)}.
               </p>
             ) : (
               <p>
-                {scenario.description} Active target: {displayTargetLabel}. Intended predictors:{' '}
+                Saved notebook rows for {displayTargetLabel}. Intended predictors:{' '}
                 {formatPredictorList(effectivePredictors)}.
               </p>
             )}

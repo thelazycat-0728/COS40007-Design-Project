@@ -310,12 +310,13 @@ assert(
 const overviewSource = readText('src/pages/Overview.jsx');
 assert(
   overviewSource.includes('Forecast Results') &&
+    overviewSource.includes('Upload dataset') &&
+    overviewSource.includes('Check model evidence') &&
     overviewSource.includes('Uploaded CSVs are used for validation') &&
-    overviewSource.includes('Transformed row outputs') &&
-    overviewSource.includes('Model ranking is disabled') &&
-    overviewSource.includes('XGBoost Univariate') &&
-    overviewSource.includes('XGBoost Multivariate'),
-  'Overview must explain the simplified user-facing forecasting-results flow.',
+    overviewSource.includes('Model ranking') &&
+    overviewSource.includes('Univariate SARIMA, LSTM, and XGBoost') &&
+    overviewSource.includes('multivariate XGBoost and VAR'),
+  'Overview must stay focused on the simplified user-facing forecasting-results flow.',
 );
 
 const readinessSource = readText('src/pages/ModelReadiness.jsx');

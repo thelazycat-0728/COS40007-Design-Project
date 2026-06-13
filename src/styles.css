@@ -227,6 +227,11 @@ button {
   line-height: 1.6;
 }
 
+.compact-hero p {
+  max-width: 760px;
+  font-size: 1.05rem;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: #0891b2;
@@ -269,6 +274,65 @@ button {
   padding: 18px 20px;
   color: #425565;
   line-height: 1.6;
+}
+
+.quick-start-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.action-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 230px;
+  padding: 22px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
+}
+
+.action-card span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: #075985;
+  background: #dff7fb;
+  font-weight: 900;
+}
+
+.action-card h2 {
+  margin: 4px 0 0;
+  color: #0d2736;
+  font-size: 1.2rem;
+}
+
+.action-card p {
+  margin: 0;
+  color: #526779;
+  line-height: 1.55;
+}
+
+.action-card .template-button {
+  justify-self: start;
+  margin-top: auto;
+}
+
+.scope-note {
+  padding: 16px 18px;
+  border: 1px solid #cfe7ef;
+  border-radius: 8px;
+  color: #425565;
+  background: #f8fbfc;
+  line-height: 1.55;
+}
+
+.scope-note strong {
+  color: #0d2736;
 }
 
 .definition-grid {
@@ -471,6 +535,10 @@ button {
   display: grid;
   grid-template-columns: repeat(4, minmax(160px, 1fr));
   gap: 14px;
+}
+
+.compact-summary-grid {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
 }
 
 .kpi-card,
@@ -998,7 +1066,18 @@ td {
 }
 
 .readiness-table table {
-  min-width: 1120px;
+  min-width: 920px;
+}
+
+.readiness-table th,
+.readiness-table td {
+  white-space: normal;
+}
+
+.readiness-table td small {
+  display: block;
+  margin-top: 4px;
+  color: #6b7f8d;
 }
 
 .risk-card {
@@ -1042,6 +1121,7 @@ td {
 
   .control-grid,
   .forecast-control-grid,
+  .quick-start-grid,
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,
@@ -1084,6 +1164,7 @@ td {
   .control-grid.two-column,
   .control-grid.single-control,
   .forecast-control-grid,
+  .quick-start-grid,
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,
