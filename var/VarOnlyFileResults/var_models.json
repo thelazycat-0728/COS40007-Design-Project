@@ -1,0 +1,107 @@
+{
+  "VAR1_Car_Elec_NO2": {
+    "name": "VAR1: Car Reg + Elec -> NO2",
+    "lag_order": 2,
+    "variables": [
+      "car_registration",
+      "electricity_local",
+      "d_air_no2"
+    ],
+    "coefficients": {
+      "car_registration": {
+        "const": -21873.180563164053,
+        "L1.car_registration": 0.6475473813224778,
+        "L1.electricity_local": -6.458736783054894,
+        "L1.d_air_no2": 8329324.279155121,
+        "L2.car_registration": -0.2706228750077384,
+        "L2.electricity_local": 10.811136931898204,
+        "L2.d_air_no2": -993605.5099913063
+      },
+      "electricity_local": {
+        "const": 4302.430144293413,
+        "L1.car_registration": 0.01696296050778942,
+        "L1.electricity_local": 0.031371814544049054,
+        "L1.d_air_no2": 227034.4209645234,
+        "L2.car_registration": -0.016259271501505322,
+        "L2.electricity_local": 0.6216398244703093,
+        "L2.d_air_no2": -116724.74418189224
+      },
+      "d_air_no2": {
+        "const": 0.002434545107854369,
+        "L1.car_registration": 2.0524343988583822e-08,
+        "L1.electricity_local": -3.393931577730641e-07,
+        "L1.d_air_no2": -0.24233801177611014,
+        "L2.car_registration": -3.071254658612583e-08,
+        "L2.electricity_local": 1.823058859483055e-07,
+        "L2.d_air_no2": -0.11400104898593529
+      }
+    },
+    "aic": 15.918156403274352,
+    "bic": 16.67085950195024,
+    "hqic": 16.21068247680486,
+    "fpe": 8218469.2889780095,
+    "nobs": 57,
+    "k_ar": 2
+  },
+  "VAR2_IPI_Elec_SO2": {
+    "name": "VAR2: IPI + Elec -> SO2",
+    "lag_order": 1,
+    "variables": [
+      "ipi_abs_index",
+      "electricity_local",
+      "d_air_so2"
+    ],
+    "coefficients": {
+      "ipi_abs_index": {
+        "const": 26.589125387009016,
+        "L1.ipi_abs_index": 0.4789126033682173,
+        "L1.electricity_local": 0.002773534506959854,
+        "L1.d_air_so2": 7130.977208971003
+      },
+      "electricity_local": {
+        "const": 6487.845659935638,
+        "L1.ipi_abs_index": 13.078248209355904,
+        "L1.electricity_local": 0.35701715608909795,
+        "L1.d_air_so2": 1272563.7736649523
+      },
+      "d_air_so2": {
+        "const": -4.891032361295136e-07,
+        "L1.ipi_abs_index": 7.751786485364327e-07,
+        "L1.electricity_local": -6.8771562476506246e-09,
+        "L1.d_air_so2": -0.22894467228327192
+      }
+    },
+    "aic": -3.186605975229403,
+    "bic": -2.7603074213232475,
+    "hqic": -3.0205540785842717,
+    "fpe": 0.04133903519739107,
+    "nobs": 58,
+    "k_ar": 1
+  },
+  "VAR3_NO2_PM25": {
+    "name": "VAR3: NO2 -> PM2.5",
+    "lag_order": 1,
+    "variables": [
+      "d_air_no2",
+      "air_pm_25"
+    ],
+    "coefficients": {
+      "d_air_no2": {
+        "const": 9.867561331431237e-05,
+        "L1.d_air_no2": -0.10697810389619378,
+        "L1.air_pm_25": -7.542752388226294e-06
+      },
+      "air_pm_25": {
+        "const": 7.610701367140658,
+        "L1.d_air_no2": 425.82440464134925,
+        "L1.air_pm_25": 0.4854768187422405
+      }
+    },
+    "aic": -10.85043316177687,
+    "bic": -10.637283884823793,
+    "hqic": -10.767407213454305,
+    "fpe": 1.939978924489267e-05,
+    "nobs": 58,
+    "k_ar": 1
+  }
+}
