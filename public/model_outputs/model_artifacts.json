@@ -3,7 +3,8 @@
   "official_scope": {
     "univariate": [
       "SARIMA",
-      "LSTM"
+      "LSTM",
+      "XGBoost"
     ],
     "multivariate": [
       "XGBoost",
@@ -12,8 +13,7 @@
     "ignored": [
       "Prophet",
       "VECM",
-      "baselines",
-      "univariate XGBoost"
+      "baselines"
     ]
   },
   "display_mode_definitions": {
@@ -27,7 +27,7 @@
   },
   "artifacts": [
     {
-      "model": "XGBoost",
+      "model": "XGBoost Multivariate",
       "model_key": "xgboost",
       "analysis_type": "multivariate",
       "target": "air_so2",
@@ -78,7 +78,7 @@
       "next_handoff": "No retraining required for display; provide normalized row export only if the team wants actual-vs-predicted tables."
     },
     {
-      "model": "XGBoost",
+      "model": "XGBoost Multivariate",
       "model_key": "xgboost",
       "analysis_type": "multivariate",
       "target": "air_pm_25",
@@ -127,7 +127,7 @@
       "next_handoff": "No retraining required for display; provide normalized row export only if the team wants actual-vs-predicted tables."
     },
     {
-      "model": "XGBoost",
+      "model": "XGBoost Multivariate",
       "model_key": "xgboost",
       "analysis_type": "multivariate",
       "target": "air_no2",
@@ -812,6 +812,284 @@
       "status_message": "Notebook-reported metrics and plot/artifact evidence available; row-level export not present.",
       "caveat": "original-scale metrics after inverse scaling/log differencing over a 64-month test period.",
       "next_handoff": "No retraining required for display; provide normalized row export only if the team wants actual-vs-predicted tables."
+    },
+    {
+      "model": "XGBoost Univariate",
+      "model_key": "xgboost",
+      "analysis_type": "univariate",
+      "target": "electricity_local",
+      "target_label": "Local electricity",
+      "display_target": "Local electricity",
+      "notebook_target": "electricity_local",
+      "official_target": "electricity_local",
+      "scenario_id": "univariate_electricity_local",
+      "scenario_label": "Local electricity consumption",
+      "predictors": [],
+      "engineered_features": [
+        "log_transform",
+        "first_difference",
+        "MinMaxScaler",
+        "lag1",
+        "lag2",
+        "lag3",
+        "lag4",
+        "roll_mean3",
+        "roll_std3",
+        "month"
+      ],
+      "location": "XGBoost/xgboost_forecast_electricity_local.ipynb",
+      "source_files": [
+        "XGBoost/xgboost_forecast_electricity_local.ipynb",
+        "XGBoost/xgboost_model_forecast_electricity_local.json",
+        "XGBoost/xgboost_model_forecast_electricity_local.pkl"
+      ],
+      "branch": "main",
+      "artifact_available": true,
+      "metrics_available": true,
+      "row_level_output_available": false,
+      "plot_available": true,
+      "gui_connected": false,
+      "gui_displayed": true,
+      "integration_status": "metrics_and_plot_only",
+      "display_mode": "metrics_and_plot_only",
+      "output_scale": "official_scale_metrics",
+      "result_type": "test_prediction",
+      "evaluation_start": "2022-01-01",
+      "evaluation_end": "2022-12-01",
+      "frequency": "monthly",
+      "unit": "GWh",
+      "metrics": {
+        "mse": 89687.46470360922,
+        "rmse": 299.47865483805225,
+        "mae": 261.843,
+        "r2": 0.393488
+      },
+      "status_message": "Notebook-reported metrics and inline plot/artifact evidence available; row-level export not present.",
+      "caveat": "Notebook reports original-scale metrics after inverse scaling/log differencing and an inline plot; no dated row-level export is present.",
+      "next_handoff": "Provide a normalized dated row export only if the team wants XGBoost Univariate actual-vs-predicted charts or tables."
+    },
+    {
+      "model": "XGBoost Univariate",
+      "model_key": "xgboost",
+      "analysis_type": "univariate",
+      "target": "air_so2",
+      "target_label": "SO2",
+      "display_target": "SO2",
+      "notebook_target": "air_so2",
+      "official_target": "air_so2",
+      "scenario_id": "univariate_air_so2",
+      "scenario_label": "SO2",
+      "predictors": [],
+      "engineered_features": [
+        "log_transform",
+        "first_difference",
+        "MinMaxScaler",
+        "lag1",
+        "lag2",
+        "lag3",
+        "roll_mean3",
+        "roll_std3",
+        "month"
+      ],
+      "location": "XGBoost/xgboost_forecast_air_so2.ipynb",
+      "source_files": [
+        "XGBoost/xgboost_forecast_air_so2.ipynb",
+        "XGBoost/xgboost_model_air_so2_forecast.json",
+        "XGBoost/xgboost_model_air_so2_forecast.pkl"
+      ],
+      "branch": "main",
+      "artifact_available": true,
+      "metrics_available": true,
+      "row_level_output_available": false,
+      "plot_available": true,
+      "gui_connected": false,
+      "gui_displayed": true,
+      "integration_status": "metrics_and_plot_only",
+      "display_mode": "metrics_and_plot_only",
+      "output_scale": "official_scale_metrics",
+      "result_type": "test_prediction",
+      "evaluation_start": "2022-01-01",
+      "evaluation_end": "2022-12-01",
+      "frequency": "monthly",
+      "unit": "ppm",
+      "metrics": {
+        "mse": 4.08388041942e-9,
+        "rmse": 0.00006390524563303795,
+        "mae": 0.0000457977,
+        "r2": -0.680225
+      },
+      "status_message": "Notebook-reported metrics and inline plot/artifact evidence available; row-level export not present.",
+      "caveat": "Notebook reports original-scale metrics after inverse scaling/log differencing and an inline plot; no dated row-level export is present.",
+      "next_handoff": "Provide a normalized dated row export only if the team wants XGBoost Univariate actual-vs-predicted charts or tables."
+    },
+    {
+      "model": "XGBoost Univariate",
+      "model_key": "xgboost",
+      "analysis_type": "univariate",
+      "target": "air_no2",
+      "target_label": "NO2",
+      "display_target": "NO2",
+      "notebook_target": "air_no2",
+      "official_target": "air_no2",
+      "scenario_id": "univariate_air_no2",
+      "scenario_label": "NO2",
+      "predictors": [],
+      "engineered_features": [
+        "log_transform",
+        "first_difference",
+        "MinMaxScaler",
+        "lag1",
+        "lag2",
+        "lag3",
+        "roll_mean3",
+        "roll_std3",
+        "month"
+      ],
+      "location": "XGBoost/xgboost_forecast_air_no2.ipynb",
+      "source_files": [
+        "XGBoost/xgboost_forecast_air_no2.ipynb",
+        "XGBoost/xgboost_model_air_no2_forecast.json",
+        "XGBoost/xgboost_model_air_no2_forecast.pkl"
+      ],
+      "branch": "main",
+      "artifact_available": true,
+      "metrics_available": true,
+      "row_level_output_available": false,
+      "plot_available": true,
+      "gui_connected": false,
+      "gui_displayed": true,
+      "integration_status": "metrics_and_plot_only",
+      "display_mode": "metrics_and_plot_only",
+      "output_scale": "official_scale_metrics",
+      "result_type": "test_prediction",
+      "evaluation_start": "2022-01-01",
+      "evaluation_end": "2022-12-01",
+      "frequency": "monthly",
+      "unit": "ppm",
+      "metrics": {
+        "mse": 2.2427499234106e-7,
+        "rmse": 0.00047357680722461665,
+        "mae": 0.000370148,
+        "r2": -0.1926
+      },
+      "status_message": "Notebook-reported metrics and inline plot/artifact evidence available; row-level export not present.",
+      "caveat": "Notebook reports original-scale metrics after inverse scaling/log differencing and an inline plot; no dated row-level export is present.",
+      "next_handoff": "Provide a normalized dated row export only if the team wants XGBoost Univariate actual-vs-predicted charts or tables."
+    },
+    {
+      "model": "XGBoost Univariate",
+      "model_key": "xgboost",
+      "analysis_type": "univariate",
+      "target": "ipi_abs_index_sa",
+      "target_label": "SA IPI",
+      "display_target": "Seasonally adjusted IPI",
+      "notebook_target": "ipi_abs_index_sa",
+      "official_target": "ipi_abs_index_sa",
+      "scenario_id": "univariate_ipi_abs_index_sa",
+      "scenario_label": "Seasonally adjusted IPI absolute index",
+      "predictors": [],
+      "engineered_features": [
+        "log_transform",
+        "first_difference",
+        "MinMaxScaler",
+        "lag1",
+        "lag2",
+        "lag3",
+        "roll_mean3",
+        "roll_std3",
+        "roll_mean6",
+        "month"
+      ],
+      "location": "XGBoost/xgboost_forecast_ipi_abs_index_sa.ipynb",
+      "source_files": [
+        "XGBoost/xgboost_forecast_ipi_abs_index_sa.ipynb",
+        "XGBoost/xgboost_model_forecast_ipi_abs_index_sa.json",
+        "XGBoost/xgboost_model_forecast_ipi_abs_index_sa.pkl"
+      ],
+      "branch": "main",
+      "artifact_available": true,
+      "metrics_available": true,
+      "row_level_output_available": false,
+      "plot_available": true,
+      "gui_connected": false,
+      "gui_displayed": true,
+      "integration_status": "metrics_and_plot_only",
+      "display_mode": "metrics_and_plot_only",
+      "output_scale": "official_scale_metrics",
+      "result_type": "test_prediction",
+      "evaluation_start": "2022-01-01",
+      "evaluation_end": "2022-12-01",
+      "frequency": "monthly",
+      "unit": "index points",
+      "metrics": {
+        "mse": 5.563323074461782,
+        "rmse": 2.358669767996737,
+        "mae": 1.93829,
+        "r2": 0.158265
+      },
+      "status_message": "Notebook-reported metrics and inline plot/artifact evidence available; row-level export not present.",
+      "caveat": "Notebook reports original-scale metrics after inverse scaling/log differencing and an inline plot; no dated row-level export is present.",
+      "next_handoff": "Provide a normalized dated row export only if the team wants XGBoost Univariate actual-vs-predicted charts or tables."
+    },
+    {
+      "model": "XGBoost Univariate",
+      "model_key": "xgboost",
+      "analysis_type": "univariate",
+      "target": "car_registration",
+      "target_label": "Vehicle registrations",
+      "display_target": "Vehicle registrations",
+      "notebook_target": "car_registration",
+      "official_target": "car_registration",
+      "scenario_id": "univariate_vehicle_registrations",
+      "scenario_label": "Vehicle registrations",
+      "predictors": [],
+      "engineered_features": [
+        "outlier_smoothing",
+        "log_transform",
+        "first_difference",
+        "MinMaxScaler",
+        "lag1",
+        "lag2",
+        "lag3",
+        "lag4",
+        "lag5",
+        "lag6",
+        "roll_mean12",
+        "roll_std12",
+        "roll_mean3",
+        "month",
+        "quarter"
+      ],
+      "location": "XGBoost/xgboost_car_forecast.ipynb",
+      "source_files": [
+        "XGBoost/xgboost_car_forecast.ipynb",
+        "XGBoost/xgboost_model_car_forecast.json",
+        "XGBoost/xgboost_model_car_forecast.pkl"
+      ],
+      "branch": "main",
+      "artifact_available": true,
+      "metrics_available": true,
+      "row_level_output_available": false,
+      "plot_available": true,
+      "gui_connected": false,
+      "gui_displayed": true,
+      "integration_status": "metrics_and_plot_only",
+      "display_mode": "metrics_and_plot_only",
+      "output_scale": "official_scale_metrics",
+      "result_type": "test_prediction",
+      "evaluation_start": "2021-01-01",
+      "evaluation_end": "2026-04-01",
+      "frequency": "monthly",
+      "unit": "registrations",
+      "metrics": {
+        "mse": 132944833.31,
+        "rmse": 11530.17,
+        "mae": 8963.46,
+        "r2": 0.375661
+      },
+      "status_message": "Notebook-reported metrics and inline plot/artifact evidence available; row-level export not present.",
+      "caveat": "Notebook uses the longer vehicle-registration source range through Apr 2026 and reports original-scale metrics plus an inline plot; no dated row-level export is present.",
+      "next_handoff": "Provide a normalized dated row export only if the team wants XGBoost Univariate actual-vs-predicted charts or tables."
     }
   ]
 }

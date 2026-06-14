@@ -24,10 +24,11 @@ No model retraining was done for this GUI update.
 
 ## Official Scope
 
-- Univariate: SARIMA and LSTM
+- Univariate: SARIMA, LSTM, and XGBoost
 - Multivariate: XGBoost and VAR
 
-Prophet, VECM, baselines, and univariate XGBoost are not counted in the official final GUI scope.
+XGBoost Univariate and XGBoost Multivariate are shown as separate result groups. Prophet, VECM, and
+baselines are not counted in the official final GUI scope.
 
 ## Repository State Used
 
@@ -42,7 +43,8 @@ Prophet, VECM, baselines, and univariate XGBoost are not counted in the official
 | --- | --- | --- | --- |
 | SARIMA | Univariate | official-scale row output | Five 2022 held-out test CSVs with actual, predicted, confidence interval, and metrics. |
 | LSTM | Univariate | metrics and plot only | Five notebooks report original-scale metrics and saved artifacts; no dated row export is present. |
-| XGBoost | Multivariate | metrics and plot only | Three official multivariate scenarios report metrics/artifacts/SHAP evidence; no dated row export is present. |
+| XGBoost Univariate | Univariate | metrics and plot only | Five target-history notebooks report original-scale metrics, inline plots, and JSON/PKL artifacts; no dated row export is present. |
+| XGBoost Multivariate | Multivariate | metrics and plot only | Three official multivariate scenarios report metrics/artifacts/SHAP evidence; no dated row export is present. |
 | VAR | Multivariate | row output with caveats | VAR1/VAR2 are differenced target outputs; VAR3 is PM2.5-scale future forecast. |
 
 VAR caveats:
@@ -81,8 +83,8 @@ public/model_outputs/
 
 Current normalized files:
 
-- `model_artifacts.json`: official 16-entry model-result registry.
-- `model_metrics.json`: notebook-reported metrics for all 16 official model results.
+- `model_artifacts.json`: official 21-entry model-result registry.
+- `model_metrics.json`: notebook-reported metrics for all 21 official model results.
 - `sarima_forecast.csv`: 60 official-scale SARIMA held-out test rows.
 - `var_forecast.csv`: 72 VAR future forecast rows, including transformed VAR1/VAR2 outputs.
 - `xgboost_forecast.csv`: stale/mismatched audit rows only.
@@ -161,9 +163,9 @@ npm run build
 npm run validate:model-readiness
 ```
 
-`validate:model-readiness` checks the 16 official model results, SARIMA/VAR row exports, transformed
-VAR caveats, stale XGBoost exclusion, vehicle-data sync, chart clarity hooks, unit consistency, and
-sample-file exclusion.
+`validate:model-readiness` checks the 21 official model results, SARIMA/VAR row exports, transformed
+VAR caveats, XGBoost Univariate and XGBoost Multivariate separation, stale XGBoost exclusion,
+vehicle-data sync, chart clarity hooks, unit consistency, and sample-file exclusion.
 
 ## Presentation Flow
 

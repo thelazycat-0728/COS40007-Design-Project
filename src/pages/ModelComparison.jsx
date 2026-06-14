@@ -36,15 +36,17 @@ const formatMetric = (value) => {
 const comparisonGroups = [
   {
     title: 'Univariate comparison',
-    models: ['sarima', 'lstm'],
+    analysisType: 'univariate',
+    models: ['sarima', 'lstm', 'xgboost'],
     description:
-      'SARIMA and LSTM can only be compared when they share the same target, dataset, test period, frequency, unit, metric definition, and result type.',
+      'SARIMA, LSTM, and XGBoost Univariate can only be compared when they share the same target, dataset, test period, frequency, unit, metric definition, and result type.',
   },
   {
     title: 'Multivariate comparison',
+    analysisType: 'multivariate',
     models: ['xgboost', 'var'],
     description:
-      'XGBoost and VAR can only be compared when they share the same scenario, target, predictor setup, dataset, test period, frequency, unit, metric definition, and result type.',
+      'XGBoost Multivariate and VAR can only be compared when they share the same scenario, target, predictor setup, dataset, test period, frequency, unit, metric definition, and result type.',
   },
 ];
 
@@ -90,7 +92,9 @@ const getStrictComparableMetrics = (metrics) => {
 };
 
 const getArtifactRowsForGroup = (artifacts, group) =>
-  artifacts.filter((artifact) => group.models.includes(artifact.modelKey));
+  artifacts.filter(
+    (artifact) => artifact.analysisType === group.analysisType && group.models.includes(artifact.modelKey),
+  );
 
 const ComparisonReadinessTable = ({ group, artifacts }) => {
   const rows = getArtifactRowsForGroup(artifacts, group);

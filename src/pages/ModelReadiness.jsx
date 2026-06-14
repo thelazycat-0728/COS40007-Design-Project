@@ -2,58 +2,50 @@ import { getScenarioDefinition, getTargetDefinition } from '../utils/constants';
 
 const statusLabels = {
   connected_output: 'Connected output',
-  official_scale_row_output: 'Official-scale rows',
-  transformed_scale_row_output: 'Transformed-scale rows',
-  metrics_and_plot_only: 'Metrics and plot only',
-  summary_metrics_only: 'Summary metrics only',
+  official_scale_row_output: 'Chart-ready rows',
+  transformed_scale_row_output: 'Transformed rows',
+  metrics_and_plot_only: 'Metrics and plots',
+  summary_metrics_only: 'Summary metrics',
   artifact_only: 'Artifact only',
-  branch_or_pending: 'Branch or pending',
+  branch_or_pending: 'Pending',
   ready_for_export: 'Ready for export',
   metrics_only: 'Metrics only',
   artifact_found: 'Artifact found',
   notebook_only: 'Notebook only',
   branch_only: 'Branch only',
-  stale_or_mismatched: 'Verification required',
+  stale_or_mismatched: 'Hidden from results',
   missing: 'Missing',
-  metrics_pending_verification: 'Metrics pending verification',
+  metrics_pending_verification: 'Metrics pending review',
 };
 
-const groupLabels = {
-  univariate: 'Univariate',
-  multivariate: 'Multivariate',
-};
-
-const officialModels = {
-  univariate: ['SARIMA', 'LSTM'],
-  multivariate: ['XGBoost', 'VAR'],
-};
-
-const statusLegendItems = [
+const officialModelGroups = [
   {
-    status: 'official_scale_row_output',
-    body: 'Dated notebook output exists in the official target scale and can be charted/table-rendered.',
+    analysisType: 'univariate',
+    title: 'Univariate',
+    models: ['SARIMA', 'LSTM', 'XGBoost Univariate'],
   },
   {
-    status: 'transformed_scale_row_output',
-    body: 'Dated rows exist, but the target is differenced or transformed and must be interpreted in that scale.',
-  },
-  {
-    status: 'metrics_and_plot_only',
-    body: 'The notebook reports metrics and plot/artifact evidence, but no dated row export is present.',
-  },
-  {
-    status: 'summary_metrics_only',
-    body: 'Metrics exist without row output or a reusable plot.',
-  },
-  {
-    status: 'artifact_only',
-    body: 'A native saved model exists, but no result display is available.',
-  },
-  {
-    status: 'stale_or_mismatched',
-    body: 'Retained audit data conflicts with source evidence and is hidden from result displays.',
+    analysisType: 'multivariate',
+    title: 'Multivariate',
+    models: ['XGBoost Multivariate', 'VAR'],
   },
 ];
+
+const modelNotes = {
+  SARIMA: 'SARIMA rows are shown as exported by the notebook. Some R² values are weak.',
+  LSTM: 'LSTM notebooks provide metrics and plots, but no dated row export.',
+  'XGBoost Univariate': 'XGBoost notebooks provide metrics and plots, but no dated row export.',
+  'XGBoost Multivariate': 'XGBoost notebooks provide metrics and plots, but no dated row export.',
+  VAR: 'VAR1 and VAR2 are differenced change forecasts; VAR3 is PM2.5 scale.',
+};
+
+const sourceLabels = {
+  SARIMA: 'SARIMA notebook',
+  LSTM: 'LSTM notebook',
+  'XGBoost Univariate': 'XGBoost Univariate notebook',
+  'XGBoost Multivariate': 'XGBoost Multivariate notebook',
+  VAR: 'VAR notebook',
+};
 
 const formatBoolean = (value) => (value ? 'Yes' : 'No');
 
@@ -72,10 +64,15 @@ const formatMetricSummary = (metrics) => {
     Number.isFinite(metrics.mse) ? `MSE ${formatMetric(metrics.mse)}` : '',
     Number.isFinite(metrics.mae) ? `MAE ${formatMetric(metrics.mae)}` : '',
     Number.isFinite(metrics.rmse) ? `RMSE ${formatMetric(metrics.rmse)}` : '',
-    Number.isFinite(metrics.r2) ? `R2 ${formatMetric(metrics.r2)}` : '',
+    Number.isFinite(metrics.r2) ? `R² ${formatMetric(metrics.r2)}` : '',
   ].filter(Boolean);
 
-  return parts.length ? `${parts.join(', ')}${metrics.scale ? ` (${metrics.scale})` : ''}` : 'Available';
+  return parts.length ? `${parts.join(' · ')}${metrics.scale ? ` (${metrics.scale})` : ''}` : 'Available';
+};
+
+const formatPredictors = (artifact) => {
+  const predictors = Array.isArray(artifact.predictors) ? artifact.predictors : [];
+  return predictors.length ? predictors.join(', ') : 'None / target history only';
 };
 
 const getTaskLabel = (artifact) => {
@@ -90,65 +87,128 @@ const StatusBadge = ({ status }) => (
   <span className={`status-badge status-${status}`}>{statusLabels[status] || status}</span>
 );
 
-const ReadinessTable = ({ title, rows }) => (
-  <div className="table-panel readiness-table">
-    <div className="panel-heading">
-      <h2>{title}</h2>
-      <span>{officialModels[title.toLowerCase()]?.join(' vs ')}</span>
+const EvidenceRow = ({ artifact }) => {
+  const taskLabel = getTaskLabel(artifact);
+  const displayDetail =
+    artifact.displayLabel && artifact.displayLabel !== taskLabel ? artifact.displayLabel : '';
+  const outputLabel =
+    artifact.rowLevelOutputAvailable && displayDetail
+      ? displayDetail
+      : statusLabels[artifact.integrationStatus] || artifact.integrationStatus;
+
+  return (
+    <details className="evidence-row">
+      <summary>
+        <span>{taskLabel}</span>
+        <span>{outputLabel}</span>
+        <span>{artifact.metricsAvailable ? 'Metrics available' : 'No metrics'}</span>
+        <span>{artifact.rowLevelOutputAvailable ? 'Rows available' : 'No dated rows'}</span>
+      </summary>
+      <div className="evidence-row-body">
+        <div className="definition-grid compact-definition-grid">
+          <div>
+            <span>Output</span>
+            <strong><StatusBadge status={artifact.integrationStatus} /></strong>
+          </div>
+          <div>
+            <span>Metrics</span>
+            <strong>{formatMetricSummary(artifact.metrics)}</strong>
+          </div>
+          <div>
+            <span>Rows</span>
+            <strong>{formatBoolean(artifact.rowLevelOutputAvailable)}</strong>
+          </div>
+          <div>
+            <span>Source</span>
+            <strong>{sourceLabels[artifact.model] || 'Notebook'}</strong>
+          </div>
+        </div>
+        <dl className="evidence-detail-list">
+          <div>
+            <dt>Exact source path</dt>
+            <dd>{artifact.location}</dd>
+          </div>
+          <div>
+            <dt>Notebook target</dt>
+            <dd>{artifact.notebookTarget || artifact.targetKey}</dd>
+          </div>
+          <div>
+            <dt>Official target</dt>
+            <dd>{artifact.officialTarget || artifact.targetKey}</dd>
+          </div>
+          <div>
+            <dt>Predictors</dt>
+            <dd>{formatPredictors(artifact)}</dd>
+          </div>
+          <div>
+            <dt>Output scale</dt>
+            <dd>{artifact.outputScale || 'Notebook-reported scale'}</dd>
+          </div>
+          <div>
+            <dt>Result type</dt>
+            <dd>{artifact.resultType || 'Notebook result'}</dd>
+          </div>
+          {(artifact.caveat || artifact.nextHandoff || artifact.statusMessage) ? (
+            <div>
+              <dt>Note</dt>
+              <dd>{artifact.caveat || artifact.nextHandoff || artifact.statusMessage}</dd>
+            </div>
+          ) : null}
+        </dl>
+      </div>
+    </details>
+  );
+};
+
+const ModelEvidenceCard = ({ model, rows }) => (
+  <article className="model-evidence-card">
+    <div className="model-evidence-header">
+      <div>
+        <h3>{model}</h3>
+        <p>{modelNotes[model]}</p>
+      </div>
+      <span>{rows.length} result{rows.length === 1 ? '' : 's'}</span>
     </div>
-    <div className="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Model</th>
-            <th>Target / scenario</th>
-            <th>Status</th>
-            <th>Notebook/source</th>
-            <th>Output scale</th>
-            <th>Artifact</th>
-            <th>Metrics</th>
-            <th>Rows</th>
-            <th>Plot</th>
-            <th>Caveat / handoff</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((artifact) => (
-            <tr key={`${artifact.modelKey}-${artifact.scenarioId}-${artifact.targetKey}`}>
-              <td>{artifact.model}</td>
-              <td>
-                {getTaskLabel(artifact)}
-                {artifact.displayLabel ? <small>{artifact.displayLabel}</small> : null}
-              </td>
-              <td>
-                <StatusBadge status={artifact.integrationStatus} />
-              </td>
-              <td>{artifact.location}</td>
-              <td>{artifact.outputScale || 'Not specified'}</td>
-              <td>{formatBoolean(artifact.artifactAvailable)}</td>
-              <td>
-                {artifact.metricsAvailable ? 'Yes' : 'No'}
-                {artifact.metrics ? ` - ${formatMetricSummary(artifact.metrics)}` : ''}
-              </td>
-              <td>{formatBoolean(artifact.rowLevelOutputAvailable)}</td>
-              <td>{formatBoolean(artifact.plotAvailable)}</td>
-              <td>{artifact.caveat || artifact.nextHandoff || artifact.statusMessage}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="evidence-column-headings" aria-hidden="true">
+      <span>Target</span>
+      <span>Output</span>
+      <span>Metrics</span>
+      <span>Rows</span>
+    </div>
+    <div className="evidence-row-list">
+      {rows.map((artifact) => (
+        <EvidenceRow
+          artifact={artifact}
+          key={`${artifact.modelKey}-${artifact.scenarioId}-${artifact.targetKey}`}
+        />
+      ))}
+    </div>
+  </article>
+);
+
+const EvidenceSection = ({ group, rows }) => (
+  <div className="evidence-section">
+    <div className="panel-heading">
+      <h2>{group.title}</h2>
+      <span>{group.models.join(' · ')}</span>
+    </div>
+    <div className="evidence-section-grid">
+      {group.models.map((model) => (
+        <ModelEvidenceCard
+          key={model}
+          model={model}
+          rows={rows.filter((artifact) => artifact.model === model)}
+        />
+      ))}
     </div>
   </div>
 );
 
 export default function ModelReadiness({ modelOutputs }) {
   const rows = modelOutputs.artifacts?.rows ?? [];
-  const univariateRows = rows.filter((artifact) => artifact.analysisType === 'univariate');
-  const multivariateRows = rows.filter((artifact) => artifact.analysisType === 'multivariate');
   const officialScaleRowCount = rows.filter((artifact) => artifact.integrationStatus === 'official_scale_row_output').length;
   const transformedRowCount = rows.filter((artifact) => artifact.integrationStatus === 'transformed_scale_row_output').length;
   const metricsPlotOnlyCount = rows.filter((artifact) => artifact.integrationStatus === 'metrics_and_plot_only').length;
-  const artifactCount = rows.filter((artifact) => artifact.artifactAvailable).length;
   const staleXgboostRows = modelOutputs.forecasts?.xgboost?.auditRows ?? [];
   const staleMetricRows = (modelOutputs.metrics?.rows ?? []).filter(
     (metric) => metric.integrationStatus === 'stale_or_mismatched',
@@ -158,90 +218,49 @@ export default function ModelReadiness({ modelOutputs }) {
     <section className="page-section">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Model Evidence</p>
-          <h1>Notebook-confirmed model evidence</h1>
+          <h1>Model Evidence</h1>
           <p>
-            Advanced evidence for the four official model families. This section keeps notebook sources,
-            metrics-only results, transformed targets, artifacts, and caveats available without making the
-            normal user flow depend on every model detail.
+            This page records the source notebooks and output type for each official model. It is mainly
+            for evidence and review.
           </p>
         </div>
       </div>
 
-      <div className="description-band">
-        Official scope: SARIMA and LSTM for univariate forecasting; XGBoost and VAR for multivariate
-        forecasting. Prophet, univariate XGBoost, VECM, and baselines remain outside the final GUI scope.
-      </div>
-
-      <div className="table-panel">
-        <div className="panel-heading">
-          <h2>Status legend</h2>
-          <span>Advanced interpretation guide</span>
-        </div>
-        <div className="status-legend-grid">
-          {statusLegendItems.map((item) => (
-            <article key={item.status}>
-              <StatusBadge status={item.status} />
-              <p>{item.body}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-
-      <div className="summary-grid">
+      <div className="summary-grid compact-summary-grid">
         <article className="summary-card">
-          <span>Official-scale row outputs</span>
+          <span>Chart-ready outputs</span>
           <strong>{officialScaleRowCount}</strong>
-          <small>SARIMA targets and VAR PM2.5 have dated rows in the shown target scale.</small>
+          <small>Dated rows in the shown target scale.</small>
         </article>
         <article className="summary-card">
-          <span>Transformed row outputs</span>
+          <span>Transformed outputs</span>
           <strong>{transformedRowCount}</strong>
-          <small>VAR NO2 and SO2 rows are differenced outputs, not official concentrations.</small>
+          <small>VAR NO2 and SO2 are change forecasts.</small>
         </article>
         <article className="summary-card">
-          <span>Metrics and plot only</span>
+          <span>Metrics-only results</span>
           <strong>{metricsPlotOnlyCount}</strong>
-          <small>LSTM and XGBoost notebooks report metrics without exported dated rows.</small>
-        </article>
-        <article className="summary-card">
-          <span>Native artifacts found</span>
-          <strong>{artifactCount}</strong>
-          <small>LSTM, XGBoost, and VAR include saved model/artifact files.</small>
+          <small>LSTM and XGBoost scores without fake rows.</small>
         </article>
       </div>
 
       {staleXgboostRows.length || staleMetricRows.length ? (
-        <div className="upload-message error">
-          <strong>Integration paused · Source verification required.</strong>
+        <details className="audit-note">
+          <summary>Audit note</summary>
           <p>
-            The exported XGBoost SO2 rows reference a notebook whose current target no longer matches the
-            output. The result is hidden from charts, connected counts, and comparisons until the model owner
-            provides a verified current export.
+            A stale XGBoost SO2 export is retained for audit only. It is hidden from Forecast Results
+            and is not treated as a connected output.
           </p>
-        </div>
+        </details>
       ) : null}
 
-      <ReadinessTable title={groupLabels.univariate} rows={univariateRows} />
-      <ReadinessTable title={groupLabels.multivariate} rows={multivariateRows} />
-
-      <div className="text-panel">
-        <h2>How to use the dashboard</h2>
-        <p>
-          Normal users should start at Overview, validate or select a dataset, then open Forecast Results.
-          Use this evidence section when a presenter or marker needs to verify the source notebook,
-          output scale, metrics, or row-output status behind a result.
-        </p>
-        <p>
-          Held-out test predictions compare actual and predicted rows for a fixed evaluation period. Future
-          forecasts project beyond history. Transformed-scale outputs are notebook results but are not official
-          concentration values. Metrics-only entries show cards and summaries instead of fake forecast lines.
-        </p>
-        <p>
-          Upload datasets only when the required columns are present, and do not treat correlations or
-          significance tests as causal proof.
-        </p>
-      </div>
+      {officialModelGroups.map((group) => (
+        <EvidenceSection
+          group={group}
+          key={group.analysisType}
+          rows={rows.filter((artifact) => artifact.analysisType === group.analysisType)}
+        />
+      ))}
     </section>
   );
 }

@@ -197,6 +197,15 @@ export const modelOptions = [
   { key: 'prophet', label: 'Prophet' },
 ];
 
+const modelLabelsByAnalysis = {
+  univariate: {
+    xgboost: 'XGBoost Univariate',
+  },
+  multivariate: {
+    xgboost: 'XGBoost Multivariate',
+  },
+};
+
 export const analysisTypeOptions = [
   { key: 'multivariate', label: 'Multivariate' },
   { key: 'univariate', label: 'Univariate' },
@@ -207,13 +216,19 @@ export const defaultAnalysisType = 'multivariate';
 export const officialModelKeys = ['sarima', 'lstm', 'xgboost', 'var'];
 
 export const officialModelKeysByAnalysis = {
-  univariate: ['sarima', 'lstm'],
+  univariate: ['sarima', 'lstm', 'xgboost'],
   multivariate: ['xgboost', 'var'],
 };
 
 export const getOfficialModelOptions = (analysisType) => {
   const keys = officialModelKeysByAnalysis[analysisType] ?? officialModelKeys;
-  return modelOptions.filter((model) => keys.includes(model.key));
+  const labelOverrides = modelLabelsByAnalysis[analysisType] ?? {};
+  return modelOptions
+    .filter((model) => keys.includes(model.key))
+    .map((model) => ({
+      ...model,
+      label: labelOverrides[model.key] ?? model.label,
+    }));
 };
 
 export const getDefaultModelForAnalysis = (analysisType) =>

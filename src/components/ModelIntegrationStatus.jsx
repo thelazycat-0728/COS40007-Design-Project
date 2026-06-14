@@ -5,12 +5,14 @@ export default function ModelIntegrationStatus({
   selectedTarget,
   selectedScenario,
   selectedCountry,
+  selectedAnalysisType,
 }) {
   const statuses = getModelIntegrationStatuses({
     modelOutputs,
     selectedTarget,
     selectedScenario,
     selectedCountry,
+    selectedAnalysisType,
   });
 
   return (

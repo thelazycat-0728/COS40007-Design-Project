@@ -80,7 +80,12 @@ const var2Warning =
 const var3Note =
   'VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.';
 assert(Array.isArray(artifacts), 'model_artifacts.json must contain an artifacts array.');
-assert(artifacts.length === 16, `Expected 16 official model entries, found ${artifacts.length}.`);
+assert(artifacts.length === 21, `Expected 21 official model entries, found ${artifacts.length}.`);
+assert(
+  artifactsJson.official_scope?.univariate?.includes('XGBoost') &&
+    artifactsJson.official_scope?.multivariate?.includes('XGBoost'),
+  'Official scope must include XGBoost in both univariate and multivariate groups.',
+);
 
 const countByStatus = artifacts.reduce((acc, artifact) => {
   acc[artifact.integration_status] = (acc[artifact.integration_status] ?? 0) + 1;
@@ -89,7 +94,7 @@ const countByStatus = artifacts.reduce((acc, artifact) => {
 
 assert(countByStatus.official_scale_row_output === 6, 'Expected 6 official-scale row-output entries.');
 assert(countByStatus.transformed_scale_row_output === 2, 'Expected 2 transformed VAR row-output entries.');
-assert(countByStatus.metrics_and_plot_only === 8, 'Expected 8 metrics-and-plot-only entries.');
+assert(countByStatus.metrics_and_plot_only === 13, 'Expected 13 metrics-and-plot-only entries.');
 assert(!countByStatus.branch_only, 'SARIMA must no longer be branch_only after merge.');
 assert(!countByStatus.notebook_only, 'VAR must no longer be notebook_only after VarOnly output inspection.');
 
@@ -112,13 +117,28 @@ assert(
   'Every LSTM entry must be metrics-and-plot-only with no row export.',
 );
 assert(
-  artifacts.filter((artifact) => artifact.model === 'XGBoost').every(
+  artifacts.filter((artifact) => artifact.model === 'XGBoost Multivariate').every(
     (artifact) =>
+      artifact.analysis_type === 'multivariate' &&
       artifact.integration_status === 'metrics_and_plot_only' &&
       artifact.metrics_available &&
       !artifact.row_level_output_available,
   ),
-  'Every official multivariate XGBoost entry must be metrics-and-plot-only.',
+  'Every XGBoost Multivariate entry must be metrics-and-plot-only.',
+);
+assert(
+  artifacts.filter((artifact) => artifact.model === 'XGBoost Univariate').length === 5 &&
+    artifacts.filter((artifact) => artifact.model === 'XGBoost Univariate').every(
+      (artifact) =>
+        artifact.analysis_type === 'univariate' &&
+        artifact.integration_status === 'metrics_and_plot_only' &&
+        artifact.metrics_available &&
+        artifact.artifact_available &&
+        !artifact.row_level_output_available &&
+        artifact.source_files.some((source) => source.startsWith('XGBoost/')) &&
+        artifact.source_files.some((source) => source.endsWith('.pkl')),
+    ),
+  'Every XGBoost Univariate entry must be metrics-and-plot-only with JSON/PKL artifacts and no row export.',
 );
 assert(
   artifacts.filter((artifact) => artifact.model === 'VAR' && artifact.notebook_target !== 'air_pm_25').every(
@@ -151,12 +171,25 @@ assert(
 );
 
 const metrics = readJson('public/model_outputs/model_metrics.json').metrics;
-assert(metrics.length === 16, `Expected 16 official metric entries, found ${metrics.length}.`);
+assert(metrics.length === 21, `Expected 21 official metric entries, found ${metrics.length}.`);
 assert(
-  metrics.filter((metric) => metric.model === 'XGBoost').every(
+  metrics.filter((metric) => metric.model === 'XGBoost Multivariate').every(
     (metric) => metric.source_notebook === 'XGBoost_Multivariate/xgboost_multivariate_models.ipynb',
   ),
-  'Official XGBoost metrics must come from the multivariate notebook.',
+  'XGBoost Multivariate metrics must come from the multivariate notebook.',
+);
+assert(
+  metrics.filter((metric) => metric.model === 'XGBoost Univariate').length === 5 &&
+    metrics.filter((metric) => metric.model === 'XGBoost Univariate').every(
+      (metric) =>
+        metric.analysis_type === 'univariate' &&
+        metric.integration_status === 'metrics_and_plot_only' &&
+        metric.source_notebook.startsWith('XGBoost/') &&
+        metric.source_files.some((source) => source.endsWith('.json')) &&
+        metric.source_files.some((source) => source.endsWith('.pkl')) &&
+        !metric.row_level_output_available,
+    ),
+  'XGBoost Univariate metrics must come from the XGBoost Univariate notebooks and remain non-row-output.',
 );
 assert(
   metrics.filter((metric) => metric.model === 'VAR').every(
@@ -252,9 +285,12 @@ assert(constantsSource.includes("key: 'air_so2', label: 'SO2', shortLabel: 'SO2'
 const forecastSimulatorSource = readText('src/pages/ForecastSimulator.jsx');
 assert(
   forecastSimulatorSource.includes('Forecast Results') &&
+    forecastSimulatorSource.includes('Choose saved result') &&
+    forecastSimulatorSource.includes('Advanced filters') &&
   forecastSimulatorSource.includes('Metrics and plot only') &&
-    forecastSimulatorSource.includes('No forecast line is drawn.'),
-  'Forecast Results must show metrics-only state without fake forecast lines.',
+    forecastSimulatorSource.includes('No forecast line is drawn.') &&
+    forecastSimulatorSource.includes('XGBoost Univariate'),
+  'Forecast Results must use a saved-result selector and show metrics-only state without fake forecast lines.',
 );
 assert(
   forecastSimulatorSource.includes('<Legend') &&
@@ -275,18 +311,29 @@ assert(
 
 const overviewSource = readText('src/pages/Overview.jsx');
 assert(
-  overviewSource.includes('Forecast Results') &&
-    overviewSource.includes('Uploaded CSVs are used for validation') &&
-    overviewSource.includes('Transformed row outputs') &&
-    overviewSource.includes('Model ranking is disabled'),
-  'Overview must explain the simplified user-facing forecasting-results flow.',
+  overviewSource.includes('Regional Forecasting Dashboard') &&
+    overviewSource.includes('Forecast Results') &&
+    overviewSource.includes('Upload dataset') &&
+    overviewSource.includes('Check model evidence') &&
+    overviewSource.includes('Saved notebook results') &&
+    overviewSource.includes('Upload checks compatibility') &&
+    overviewSource.includes('No real-time model inference') &&
+    overviewSource.includes('Ranking only when comparable') &&
+    overviewSource.includes('Available forecast paths') &&
+    overviewSource.includes('SARIMA, LSTM, XGBoost') &&
+    overviewSource.includes('XGBoost, VAR'),
+  'Overview must stay focused on the simplified user-facing forecasting-results flow.',
 );
 
 const readinessSource = readText('src/pages/ModelReadiness.jsx');
 assert(
   readinessSource.includes('Model Evidence') &&
-    readinessSource.includes('Transformed-scale rows') &&
-    readinessSource.includes('Metrics and plot only'),
+    readinessSource.includes('Chart-ready outputs') &&
+    readinessSource.includes('Transformed outputs') &&
+    readinessSource.includes('Metrics-only results') &&
+    readinessSource.includes('XGBoost Univariate') &&
+    readinessSource.includes('XGBoost Multivariate') &&
+    readinessSource.includes('Audit note'),
   'Model Evidence page must expose display modes.',
 );
 
@@ -300,6 +347,9 @@ assert(
 const uploadSource = readText('src/pages/UploadRegionalDataset.jsx');
 assert(
   uploadSource.includes('Vehicle + electricity -> NO2') &&
+    uploadSource.includes('Univariate target history') &&
+    uploadSource.includes('XGBoost Univariate') &&
+    uploadSource.includes('XGBoost Multivariate') &&
     uploadSource.includes('IPI + electricity -> SO2') &&
     uploadSource.includes('NO2 -> PM2.5') &&
     uploadSource.includes('No real-time model inference is run from the uploaded CSV') &&

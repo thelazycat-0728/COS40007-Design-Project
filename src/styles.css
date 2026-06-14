@@ -227,6 +227,11 @@ button {
   line-height: 1.6;
 }
 
+.compact-hero p {
+  max-width: 760px;
+  font-size: 1.05rem;
+}
+
 .eyebrow {
   margin: 0 0 8px;
   color: #0891b2;
@@ -269,6 +274,127 @@ button {
   padding: 18px 20px;
   color: #425565;
   line-height: 1.6;
+}
+
+.quick-start-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.action-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 230px;
+  padding: 22px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
+}
+
+.action-card span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  color: #075985;
+  background: #dff7fb;
+  font-weight: 900;
+}
+
+.action-card h2 {
+  margin: 4px 0 0;
+  color: #0d2736;
+  font-size: 1.2rem;
+}
+
+.action-card p {
+  margin: 0;
+  color: #526779;
+  line-height: 1.55;
+}
+
+.action-card .template-button {
+  justify-self: start;
+  margin-top: auto;
+}
+
+.primary-action-card {
+  border-color: #0891b2;
+  background: linear-gradient(180deg, #f0fbff 0%, #ffffff 100%);
+}
+
+.primary-action-card span {
+  color: #ffffff;
+  background: #0891b2;
+}
+
+.info-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.info-pill-row span,
+.data-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 10px;
+  border: 1px solid #cfe7ef;
+  border-radius: 999px;
+  color: #075985;
+  background: #f0fbff;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.path-grid article {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.path-grid span,
+.path-grid strong {
+  display: block;
+}
+
+.path-grid span {
+  color: #526779;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.path-grid strong {
+  margin-top: 8px;
+  color: #0d2736;
+  line-height: 1.35;
+}
+
+.scope-note {
+  padding: 16px 18px;
+  border: 1px solid #cfe7ef;
+  border-radius: 8px;
+  color: #425565;
+  background: #f8fbfc;
+  line-height: 1.55;
+}
+
+.scope-note strong {
+  color: #0d2736;
 }
 
 .definition-grid {
@@ -419,6 +545,61 @@ button {
   line-height: 1.35;
 }
 
+.result-picker-panel,
+.advanced-filter-panel {
+  padding: 18px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
+}
+
+.result-picker-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(220px, 1fr);
+  gap: 14px;
+  align-items: end;
+}
+
+.result-status-note {
+  margin: 0;
+}
+
+.advanced-filter-panel summary,
+.inline-details summary,
+.audit-note summary,
+.evidence-row summary {
+  cursor: pointer;
+  color: #075985;
+  font-weight: 800;
+}
+
+.advanced-filter-panel summary {
+  margin-bottom: 14px;
+}
+
+.inline-details {
+  margin-top: 14px;
+}
+
+.inline-details summary {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 5px 10px;
+  border: 1px solid #cfe7ef;
+  border-radius: 8px;
+  background: #f0fbff;
+}
+
+.inline-details[open] summary {
+  margin-bottom: 12px;
+}
+
+.compact-definition-grid {
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+}
+
 .checkbox-field {
   display: grid;
   gap: 10px;
@@ -471,6 +652,10 @@ button {
   display: grid;
   grid-template-columns: repeat(4, minmax(160px, 1fr));
   gap: 14px;
+}
+
+.compact-summary-grid {
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
 }
 
 .kpi-card,
@@ -540,6 +725,10 @@ button {
   gap: 18px;
   align-items: center;
   padding: 20px;
+}
+
+.primary-upload-panel {
+  border-color: #0891b2;
 }
 
 .upload-panel h2 {
@@ -648,6 +837,31 @@ button {
   margin: 10px 0 0;
   color: #526779;
   line-height: 1.6;
+}
+
+.quiet-empty-panel {
+  border-style: dashed;
+  background: #f8fbfc;
+}
+
+.upload-summary-grid,
+.compatibility-grid {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+.compatibility-grid {
+  margin-top: 4px;
+}
+
+.chip-panel {
+  min-height: 150px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .panel-heading {
@@ -997,8 +1211,135 @@ td {
   background: #ffedd5;
 }
 
-.readiness-table table {
-  min-width: 1120px;
+.evidence-section {
+  display: grid;
+  gap: 14px;
+}
+
+.evidence-section-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.model-evidence-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(7, 28, 43, 0.06);
+}
+
+.model-evidence-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.model-evidence-header h3 {
+  margin: 0;
+  color: #0d2736;
+  font-size: 1.1rem;
+}
+
+.model-evidence-header p {
+  margin: 8px 0 0;
+  color: #526779;
+  line-height: 1.5;
+}
+
+.model-evidence-header > span {
+  align-self: flex-start;
+  white-space: nowrap;
+  color: #075985;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.evidence-column-headings,
+.evidence-row summary {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.3fr) minmax(110px, 1fr) minmax(120px, 1fr) minmax(90px, 0.8fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.evidence-column-headings {
+  padding: 0 12px 8px;
+  color: #526779;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.evidence-row-list {
+  display: grid;
+  gap: 8px;
+}
+
+.evidence-row {
+  min-width: 0;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.evidence-row summary {
+  min-width: 0;
+  padding: 12px;
+  color: #243b4a;
+  list-style-position: outside;
+}
+
+.evidence-row summary span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.evidence-row-body {
+  display: grid;
+  gap: 14px;
+  padding: 0 12px 14px;
+}
+
+.evidence-detail-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.evidence-detail-list div {
+  min-width: 0;
+}
+
+.evidence-detail-list dt {
+  color: #526779;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.evidence-detail-list dd {
+  margin: 6px 0 0;
+  color: #0d2736;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.audit-note {
+  padding: 14px 16px;
+  border: 1px solid #d9e8ec;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.audit-note p {
+  margin: 12px 0 0;
+  color: #526779;
+  line-height: 1.6;
 }
 
 .risk-card {
@@ -1042,6 +1383,8 @@ td {
 
   .control-grid,
   .forecast-control-grid,
+  .quick-start-grid,
+  .path-grid,
   .kpi-grid,
   .policy-grid,
   .integration-status-grid,
@@ -1049,6 +1392,7 @@ td {
   .summary-grid,
   .status-legend-grid,
   .requirement-grid,
+  .evidence-section-grid,
   .definition-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1066,6 +1410,14 @@ td {
   .upload-actions {
     justify-content: flex-start;
   }
+
+  .result-picker-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .evidence-section-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 680px) {
@@ -1082,20 +1434,32 @@ td {
   .sidebar-nav,
   .control-grid,
   .control-grid.two-column,
-  .control-grid.single-control,
-  .forecast-control-grid,
-  .kpi-grid,
-  .policy-grid,
-  .integration-status-grid,
-  .metric-chip-grid,
-  .summary-grid,
-  .status-legend-grid,
-  .requirement-grid,
-  .definition-grid {
+    .control-grid.single-control,
+    .forecast-control-grid,
+    .quick-start-grid,
+    .path-grid,
+    .kpi-grid,
+    .policy-grid,
+    .integration-status-grid,
+    .metric-chip-grid,
+    .summary-grid,
+    .status-legend-grid,
+    .requirement-grid,
+    .evidence-section-grid,
+    .evidence-detail-list,
+    .definition-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .section-heading h1 {
     font-size: 2rem;
+  }
+
+  .evidence-column-headings {
+    display: none;
+  }
+
+  .evidence-row summary {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

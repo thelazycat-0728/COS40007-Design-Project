@@ -130,6 +130,13 @@ export const parseUploadedCsvFile = (file) =>
 export const validateAndNormalizeUploadedDataset = (parseResult) => {
   const fields = (parseResult.meta?.fields ?? []).map((field) => field.trim()).filter(Boolean);
   const normalizedFields = normalizeFieldSet(fields);
+  const aliasesMapped = Object.entries(columnAliases)
+    .filter(([alias]) => fields.includes(alias))
+    .map(([alias, canonical]) => ({
+      alias,
+      canonical,
+      label: `${alias} → ${canonical}`,
+    }));
   const rawRows = parseResult.data.filter((row) => Object.values(row).some((value) => String(value ?? '').trim()));
   const detectedTargets = getDetectedColumns(normalizedFields, targetKeys);
   const detectedPredictors = getDetectedColumns(normalizedFields, predictorKeys);
@@ -209,6 +216,7 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
       rows: normalizedRows,
       previewColumns: summaryColumns,
       missingSummary: buildMissingSummary(normalizedRows, summaryColumns),
+      aliasesMapped,
       scenarioCompatibility,
     },
   };
