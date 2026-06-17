@@ -153,7 +153,7 @@ export default function UploadRegionalDataset({
     if (!uploadedDataset || !recommendedScenario) return;
 
     setSelectedAnalysisType('multivariate');
-    setSelectedCountry('uploaded');
+    setSelectedCountry('malaysia');
     setSelectedScenario(recommendedScenario.id);
     setSelectedTarget(recommendedScenario.target);
     setSelectedPredictors(recommendedPredictors);
@@ -166,7 +166,7 @@ export default function UploadRegionalDataset({
     if (!targetKey) return;
 
     setSelectedAnalysisType('univariate');
-    setSelectedCountry('uploaded');
+    setSelectedCountry('malaysia');
     setSelectedScenario('custom');
     setSelectedTarget(targetKey);
     setSelectedPredictors([]);
@@ -198,7 +198,7 @@ export default function UploadRegionalDataset({
         ...validation.dataset,
         fileName: file.name,
       });
-      setSelectedCountry('uploaded');
+      setSelectedCountry('malaysia');
       setValidationMessage(
         `Upload validation passed. Detected country: ${validation.dataset.countryName}. Dataset is available for this browser session.`,
       );
@@ -249,7 +249,7 @@ export default function UploadRegionalDataset({
       <div className="sample-dataset-panel">
         <div>
           <span>Need test data?</span>
-          <strong>Download a dummy country CSV, then upload it here.</strong>
+          <strong>Download a sample country CSV, then upload it here.</strong>
         </div>
         <div className="inline-actions sample-dataset-actions">
           {uploadedExampleDatasets.map((sample) => (
@@ -322,8 +322,8 @@ export default function UploadRegionalDataset({
               <>
                 <h2>This dataset is compatible with the {recommendedScenario.label} scenario.</h2>
                 <p>
-                  Required columns were found. Open the saved notebook result that matches this
-                  scenario.
+                  Your uploaded dataset matches this scenario. Opening the saved notebook result
+                  for that scenario.
                 </p>
                 <div className="inline-actions">
                   <button className="template-button" type="button" onClick={handleViewRecommendedResult}>
