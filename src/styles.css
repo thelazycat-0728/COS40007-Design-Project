@@ -750,6 +750,42 @@ button {
   justify-content: flex-end;
 }
 
+.sample-dataset-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid #d8e9ef;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.sample-dataset-panel span {
+  display: block;
+  color: #6b7f90;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sample-dataset-panel strong {
+  display: block;
+  margin-top: 4px;
+  color: #0d2736;
+}
+
+.sample-dataset-actions {
+  margin-top: 0;
+  justify-content: flex-end;
+}
+
+.subtle-template-button {
+  border-color: #c7dce5;
+  background: #ffffff;
+}
+
 .template-button,
 .file-upload {
   display: inline-flex;
@@ -1224,6 +1260,7 @@ td {
 
 .model-evidence-card {
   min-width: 0;
+  overflow: hidden;
   padding: 18px;
   border: 1px solid #d9e8ec;
   border-radius: 8px;
@@ -1233,6 +1270,7 @@ td {
 
 .model-evidence-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 14px;
@@ -1261,7 +1299,7 @@ td {
 .evidence-column-headings,
 .evidence-row summary {
   display: grid;
-  grid-template-columns: minmax(130px, 1.3fr) minmax(110px, 1fr) minmax(120px, 1fr) minmax(90px, 0.8fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 0.8fr);
   gap: 10px;
   align-items: center;
 }
@@ -1346,6 +1384,68 @@ td {
   border-left: 5px solid #0891b2;
 }
 
+.live-inference-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  background: #ecfdf5;
+}
+
+.live-inference-card span,
+.live-forecast-panel .panel-heading span:first-child {
+  color: #047857;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.live-inference-card strong {
+  color: #064e3b;
+  font-size: 1.05rem;
+}
+
+.live-inference-card p,
+.live-inference-success,
+.live-inference-error {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.live-inference-success {
+  color: #047857;
+  font-weight: 800;
+}
+
+.live-inference-error {
+  color: #b42318;
+  font-weight: 800;
+}
+
+.live-forecast-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(15, 118, 110, 0.08);
+}
+
+.live-forecast-panel p {
+  margin: 0;
+  color: #526779;
+  line-height: 1.6;
+}
+
+.live-forecast-table {
+  padding: 0;
+  box-shadow: none;
+}
+
 .loading-panel,
 .error-panel {
   display: grid;
@@ -1408,6 +1508,15 @@ td {
   }
 
   .upload-actions {
+    justify-content: flex-start;
+  }
+
+  .sample-dataset-panel {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sample-dataset-actions {
     justify-content: flex-start;
   }
 

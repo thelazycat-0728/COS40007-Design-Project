@@ -6,9 +6,10 @@ Project.
 ## Current GUI Goal
 
 The dashboard is now a user-facing forecasting-results flow. Normal users start at Overview, upload or
-select a dataset, confirm which official scenario is compatible, then open Forecast Results. The browser
-does not run real-time model inference from uploaded CSVs; uploads are used for validation and
-compatibility checking only.
+select a dataset, confirm which official scenario is compatible, then open Forecast Results. Uploads are
+used for validation and compatibility checking only. The deployed dashboard does not run real-time
+model inference from uploaded files; Forecast Results presents saved notebook-confirmed outputs and
+metrics.
 
 The Model Evidence page keeps the research handoff available. It presents results produced by the team
 notebooks and output folders without requiring all models to use the same variables, transformations,
@@ -43,9 +44,9 @@ baselines are not counted in the official final GUI scope.
 | --- | --- | --- | --- |
 | SARIMA | Univariate | official-scale row output | Five 2022 held-out test CSVs with actual, predicted, confidence interval, and metrics. |
 | LSTM | Univariate | metrics and plot only | Five notebooks report original-scale metrics and saved artifacts; no dated row export is present. |
-| XGBoost Univariate | Univariate | metrics and plot only | Five target-history notebooks report original-scale metrics, inline plots, and JSON/PKL artifacts; no dated row export is present. |
+| XGBoost Univariate | Univariate | metrics and plot only | Five target-history notebooks report original-scale metrics, inline plots, and JSON/PKL artifacts; no dated row export is presented in the GUI. |
 | XGBoost Multivariate | Multivariate | metrics and plot only | Three official multivariate scenarios report metrics/artifacts/SHAP evidence; no dated row export is present. |
-| VAR | Multivariate | row output with caveats | VAR1/VAR2 are differenced target outputs; VAR3 is PM2.5-scale future forecast. |
+| VAR | Multivariate | row output with caveats | VAR1/VAR2 are differenced target outputs; VAR3 is PM2.5-scale future forecast. The GUI shows the saved VAR row outputs from Brandon's VarOnly results. |
 
 VAR caveats:
 
@@ -90,6 +91,26 @@ Current normalized files:
 - `xgboost_forecast.csv`: stale/mismatched audit rows only.
 
 Native JSON, PKL, H5, and weight files are not treated as browser forecast rows by themselves.
+
+## Demo And Test CSVs
+
+Root-level CSVs were organized into:
+
+- `data/demo/singapore_combined_2023_2024_demo.csv`
+  - Best real other-country upload demo.
+  - Includes `country`, `date`, air quality, electricity, IPI, and vehicle columns.
+  - Values are Singapore-scale, so use it to demonstrate compatibility detection rather than live
+    Malaysia-trained inference.
+- `data/test-fixtures/all_models_complete_test.csv`
+  - Best controlled fallback for interview testing.
+  - Includes all supported target and predictor columns.
+- `data/test-fixtures/multivariate_vehicle_alias_test.csv`
+  - Tests the legacy `vehicle_registrations` alias.
+- `data/test-fixtures/univariate_targets_test.csv`
+  - Tests univariate target-history uploads.
+- `data/raw/`
+  - Contains raw Malaysia and Singapore source CSVs that are not direct GUI uploads without
+    preprocessing.
 
 ## Display Modes
 

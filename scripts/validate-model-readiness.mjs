@@ -352,9 +352,15 @@ assert(
     uploadSource.includes('XGBoost Multivariate') &&
     uploadSource.includes('IPI + electricity -> SO2') &&
     uploadSource.includes('NO2 -> PM2.5') &&
-    uploadSource.includes('No real-time model inference is run from the uploaded CSV') &&
+    uploadSource.includes('does not run real-time model inference') &&
     uploadSource.includes('View forecast result'),
-  'Upload page must show scenario-specific requirements, validation-only wording, and result routing.',
+  'Upload page must show scenario-specific requirements, compatibility-only wording, and result routing.',
+);
+assert(
+  !uploadSource.includes('Run live XGBoost') &&
+    !uploadSource.includes('Run live VAR forecast') &&
+    !uploadSource.includes('verified live model paths'),
+  'Upload page must not expose unverified live-inference controls in the main flow.',
 );
 
 const searchedSources = [

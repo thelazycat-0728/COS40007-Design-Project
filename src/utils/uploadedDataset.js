@@ -14,10 +14,31 @@ import {
 export const uploadedTargetOptions = targetOptions;
 export const uploadedPredictorOptions = predictorOptions;
 export const uploadedTemplatePath = '/templates/regional_dataset_template.csv';
+export const uploadedExampleDatasets = [
+  {
+    label: 'Singapore full sample',
+    country: 'Singapore',
+    href: '/templates/dummy_singapore_full.csv',
+    description: 'Full air, electricity, IPI, and vehicle columns for compatibility checks.',
+  },
+  {
+    label: 'Thailand full sample',
+    country: 'Thailand',
+    href: '/templates/dummy_thailand_full.csv',
+    description: 'A second-country sample for checking country auto-detection and saved-result matching.',
+  },
+  {
+    label: 'Indonesia full sample',
+    country: 'Indonesia',
+    href: '/templates/dummy_indonesia_full.csv',
+    description: 'A third-country sample with the same supported column structure.',
+  },
+];
 
 const targetKeys = uploadedTargetOptions.map((option) => option.key);
 const predictorKeys = uploadedPredictorOptions.map((option) => option.key);
 const numericKeys = [...new Set([...targetKeys, ...predictorKeys])];
+const uniqueKeys = (keys) => [...new Set(keys.filter(Boolean))];
 const columnAliases = {
   vehicle_registrations: 'car_registration',
 };
@@ -51,6 +72,16 @@ const formatDate = (value) => {
   if (!date) return value || 'Unknown';
 
   return date.toISOString().slice(0, 10);
+};
+
+const formatCountryName = (value) => {
+  const text = String(value ?? '').trim();
+  if (!text) return 'Uploaded region';
+
+  return text
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
 };
 
 const getDetectedColumns = (fields, allowedKeys) => allowedKeys.filter((key) => fields.includes(key));
@@ -151,10 +182,10 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
     errors.push(`CSV must include at least one supported predictor column, such as ${predictorColumnGuide}.`);
   }
 
-  const invalidNumericEntries = getInvalidNumericEntries(rawRows, [
+  const invalidNumericEntries = getInvalidNumericEntries(rawRows, uniqueKeys([
     ...detectedTargets,
     ...detectedPredictors,
-  ]);
+  ]));
 
   if (invalidNumericEntries > 0) {
     errors.push(
@@ -197,19 +228,30 @@ export const validateAndNormalizeUploadedDataset = (parseResult) => {
     };
   }
 
-  const countryName = normalizedRows.find((row) => String(row.country ?? '').trim())?.country ?? 'Uploaded region';
+  const detectedCountries = [
+    ...new Set(
+      normalizedRows
+        .map((row) => formatCountryName(row.country))
+        .filter((country) => country && country !== 'Uploaded region'),
+    ),
+  ];
+  const countryName = detectedCountries[0] ?? 'Uploaded region';
   const dateValues = normalizedRows.map((row) => parseDateValue(row.date)).filter(Boolean);
   const firstDate = dateValues[0];
   const lastDate = dateValues[dateValues.length - 1];
-  const summaryColumns = ['date', 'country', ...detectedTargets, ...detectedPredictors];
+  const summaryColumns = uniqueKeys(['date', 'country', ...detectedTargets, ...detectedPredictors]);
   const scenarioCompatibility = getScenarioCompatibility(detectedTargets, detectedPredictors);
 
   return {
     ok: true,
     dataset: {
       countryName,
+      detectedCountries,
+      hasMixedCountries: detectedCountries.length > 1,
       rowCount: normalizedRows.length,
       dateRange: `${formatDate(firstDate)} to ${formatDate(lastDate)}`,
+      fileName: '',
+      rawCsvText: '',
       detectedTargets,
       detectedPollutants: detectedTargets.filter((key) => getTargetDefinition(key).category === 'pollution'),
       detectedPredictors,

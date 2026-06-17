@@ -45,8 +45,8 @@ export default function Overview({ setActiveSection }) {
         <div>
           <h1>Regional Forecasting Dashboard</h1>
           <p>
-            Upload a regional dataset, check compatible scenarios, and view saved forecasting results
-            from the COS40007 project.
+            Upload a regional dataset, check compatible scenarios, and view saved forecasting
+            results from the COS40007 project.
           </p>
         </div>
       </div>

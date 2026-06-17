@@ -49,7 +49,7 @@ const buildCountryOptions = (uploadedDataset) =>
         ...countryOptions,
         {
           key: 'uploaded',
-          label: uploadedDataset.countryName,
+          label: `Uploaded: ${uploadedDataset.countryName}`,
           status: 'Uploaded browser-session dataset',
           disabled: false,
         },
@@ -443,17 +443,52 @@ export default function ForecastSimulator({
       : selectedMetric?.evaluationStart || selectedMetric?.evaluationEnd
         ? formatShortPeriod(selectedMetric.evaluationStart, selectedMetric.evaluationEnd)
         : 'Not specified';
+  const rowOutputResultType = modelForecast?.resultType === 'future_forecast'
+    ? 'Future forecast'
+    : modelForecast?.resultTypeLabel || 'Forecast';
+  const setupResultType = isTransformedOutput
+      ? 'Change forecast'
+      : isHeldOutTestOutput
+        ? 'Test prediction'
+        : isFinalOutput
+          ? rowOutputResultType
+          : selectedMetric
+            ? 'Metrics only'
+            : 'Pending';
+  const setupTargetLabel = displayTargetLabel;
+  const setupModelLabel = modelLabel;
+  const setupSource = outputSource;
+  const setupDatasetReadiness = datasetReadiness;
+  const setupPeriodLabel =
+    isHeldOutTestOutput
+        ? 'Test period'
+        : 'Forecast period';
+  const setupPeriod = outputPeriod;
+  const setupPredictorSummary = predictorSummary;
+  const setupUnit = outputUnit;
+  const setupOutputScale = isTransformedOutput
+      ? 'Transformed / differenced'
+      : isFinalOutput
+        ? 'Official target scale'
+        : selectedMetric?.outputScale || 'Notebook metric scale';
+  const setupNotebookTarget = modelForecast?.notebookTarget || selectedMetric?.notebookTarget || targetDefinition.label;
+  const setupSourceNotebook = modelForecast?.sourceNotebook || selectedMetric?.sourceNotebook || 'Pending';
+  const setupScenario = isUnivariate
+      ? 'Univariate target history'
+      : scenario.label;
   const humanStatus = isVehicleUnavailableBuiltIn
     ? 'Needs uploaded vehicle data before this result can be viewed.'
     : isTransformedOutput
       ? 'Change forecast: output is shown in differenced scale.'
       : isHeldOutTestOutput
         ? 'Test prediction: chart compares actual vs predicted values.'
-        : selectedMetric
-          ? 'Metrics only: no dated rows were exported for this notebook.'
-          : scenarioReady
-            ? 'Saved result selected.'
-            : 'Select or upload compatible data for this result.';
+        : isFinalOutput
+          ? 'Forecast: notebook row output is available for this saved result.'
+          : selectedMetric
+            ? 'Metrics only: no dated rows were exported for this notebook.'
+            : scenarioReady
+              ? 'Saved result selected.'
+              : 'Select or upload compatible data for this result.';
   const yAxisLabel = isTransformedOutput && outputUnit ? `${displayTargetLabel} (${outputUnit})` : outputUnit;
 
   const handleSavedResultChange = (value) => {
@@ -556,29 +591,19 @@ export default function ForecastSimulator({
         <div className="definition-grid compact-definition-grid">
           <div>
             <span>Result type</span>
-            <strong>
-              {isTransformedOutput
-                ? 'Change forecast'
-                : isHeldOutTestOutput
-                  ? 'Test prediction'
-                  : selectedMetric
-                    ? 'Metrics only'
-                    : isFinalOutput
-                      ? modelForecast.resultTypeLabel || 'Forecast'
-                      : 'Pending'}
-            </strong>
+            <strong>{setupResultType}</strong>
           </div>
           <div>
             <span>Target</span>
-            <strong>{displayTargetLabel}</strong>
+            <strong>{setupTargetLabel}</strong>
           </div>
           <div>
             <span>Model</span>
-            <strong>{modelLabel}</strong>
+            <strong>{setupModelLabel}</strong>
           </div>
           <div>
             <span>Source/status</span>
-            <strong>{outputSource}</strong>
+            <strong>{setupSource}</strong>
           </div>
         </div>
         <details className="inline-details result-details">
@@ -586,35 +611,35 @@ export default function ForecastSimulator({
           <div className="definition-grid">
             <div>
               <span>Dataset readiness</span>
-              <strong>{datasetReadiness}</strong>
+              <strong>{setupDatasetReadiness}</strong>
             </div>
             <div>
-              <span>{isHeldOutTestOutput ? 'Test period' : 'Forecast period'}</span>
-              <strong>{outputPeriod}</strong>
+              <span>{setupPeriodLabel}</span>
+              <strong>{setupPeriod}</strong>
             </div>
             <div>
               <span>{predictorSetLabel}</span>
-              <strong>{predictorSummary}</strong>
+              <strong>{setupPredictorSummary}</strong>
             </div>
             <div>
               <span>Unit</span>
-              <strong>{outputUnit || 'Not specified'}</strong>
+              <strong>{setupUnit || 'Not specified'}</strong>
             </div>
             <div>
               <span>Output scale</span>
-              <strong>{isTransformedOutput ? 'Transformed / differenced' : isFinalOutput ? 'Official target scale' : selectedMetric?.outputScale || 'Notebook metric scale'}</strong>
+              <strong>{setupOutputScale}</strong>
             </div>
             <div>
               <span>Notebook target</span>
-              <strong>{modelForecast?.notebookTarget || selectedMetric?.notebookTarget || targetDefinition.label}</strong>
+              <strong>{setupNotebookTarget}</strong>
             </div>
             <div>
               <span>Source notebook</span>
-              <strong>{modelForecast?.sourceNotebook || selectedMetric?.sourceNotebook || 'Pending'}</strong>
+              <strong>{setupSourceNotebook}</strong>
             </div>
             <div>
               <span>Scenario</span>
-              <strong>{isUnivariate ? 'Univariate target history' : scenario.label}</strong>
+              <strong>{setupScenario}</strong>
             </div>
           </div>
         </details>

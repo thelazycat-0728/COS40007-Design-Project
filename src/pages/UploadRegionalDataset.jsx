@@ -9,6 +9,7 @@ import { compactNumber } from '../utils/data';
 import {
   getUploadedColumnLabel,
   parseUploadedCsvFile,
+  uploadedExampleDatasets,
   uploadedTemplatePath,
   validateAndNormalizeUploadedDataset,
 } from '../utils/uploadedDataset';
@@ -152,7 +153,7 @@ export default function UploadRegionalDataset({
     if (!uploadedDataset || !recommendedScenario) return;
 
     setSelectedAnalysisType('multivariate');
-    setSelectedCountry('malaysia');
+    setSelectedCountry('uploaded');
     setSelectedScenario(recommendedScenario.id);
     setSelectedTarget(recommendedScenario.target);
     setSelectedPredictors(recommendedPredictors);
@@ -165,7 +166,7 @@ export default function UploadRegionalDataset({
     if (!targetKey) return;
 
     setSelectedAnalysisType('univariate');
-    setSelectedCountry('malaysia');
+    setSelectedCountry('uploaded');
     setSelectedScenario('custom');
     setSelectedTarget(targetKey);
     setSelectedPredictors([]);
@@ -193,8 +194,14 @@ export default function UploadRegionalDataset({
         return;
       }
 
-      setUploadedDataset(validation.dataset);
-      setValidationMessage('Upload validation passed. Dataset is available for this browser session.');
+      setUploadedDataset({
+        ...validation.dataset,
+        fileName: file.name,
+      });
+      setSelectedCountry('uploaded');
+      setValidationMessage(
+        `Upload validation passed. Detected country: ${validation.dataset.countryName}. Dataset is available for this browser session.`,
+      );
       setValidationErrors([]);
     } catch (error) {
       setUploadedDataset(null);
@@ -224,8 +231,8 @@ export default function UploadRegionalDataset({
             CSV must include date, country, and the columns for one supported scenario.
           </p>
           <p>
-            Uploaded CSVs are used for validation and compatibility checking only. The dashboard does
-            not run real-time model inference from uploaded files.
+            Uploaded CSVs are used for validation and compatibility checking only. The dashboard
+            does not run real-time model inference from uploaded files.
           </p>
         </div>
         <div className="upload-actions">
@@ -236,6 +243,20 @@ export default function UploadRegionalDataset({
             <span>{isParsing ? 'Validating CSV...' : 'Choose CSV file'}</span>
             <input accept=".csv,text/csv" type="file" onChange={handleUpload} disabled={isParsing} />
           </label>
+        </div>
+      </div>
+
+      <div className="sample-dataset-panel">
+        <div>
+          <span>Need test data?</span>
+          <strong>Download a dummy country CSV, then upload it here.</strong>
+        </div>
+        <div className="inline-actions sample-dataset-actions">
+          {uploadedExampleDatasets.map((sample) => (
+            <a className="template-button subtle-template-button" href={sample.href} download key={sample.href}>
+              {sample.label}
+            </a>
+          ))}
         </div>
       </div>
 
@@ -301,8 +322,8 @@ export default function UploadRegionalDataset({
               <>
                 <h2>This dataset is compatible with the {recommendedScenario.label} scenario.</h2>
                 <p>
-                  Required columns were found. Open the saved XGBoost Multivariate and VAR result
-                  states for this scenario.
+                  Required columns were found. Open the saved notebook result that matches this
+                  scenario.
                 </p>
                 <div className="inline-actions">
                   <button className="template-button" type="button" onClick={handleViewRecommendedResult}>
@@ -345,12 +366,17 @@ export default function UploadRegionalDataset({
             <article className="summary-card">
               <span>Upload passed</span>
               <strong>{uploadedDataset.countryName}</strong>
-              <small>{uploadedDataset.rowCount} rows · {uploadedDataset.dateRange}</small>
+              <small>
+                {uploadedDataset.rowCount} rows · {uploadedDataset.dateRange}
+                {uploadedDataset.hasMixedCountries
+                  ? ` · Multiple countries detected: ${uploadedDataset.detectedCountries.join(', ')}`
+                  : ' · Country auto-detected'}
+              </small>
             </article>
             <article className="summary-card">
               <span>Upload use</span>
-              <strong>Validation only</strong>
-              <small>No real-time model inference is run from the uploaded CSV.</small>
+              <strong>Compatibility check only</strong>
+              <small>Open the matching saved notebook result after validation passes.</small>
             </article>
             <article className="summary-card">
               <span>Data quality</span>

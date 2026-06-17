@@ -8,8 +8,9 @@ fully normalized official-scale forecast to appear, but transformed-scale and me
 be labelled clearly.
 
 The main user flow is Overview -> Upload Regional Dataset -> Forecast Results -> Model Evidence.
-Uploaded CSV files are used for column validation and scenario compatibility checking only; the browser
-does not train or run the official SARIMA, LSTM, XGBoost, or VAR models in real time.
+Uploaded CSV files are used for column validation and scenario compatibility checking only. The
+deployed dashboard does not run real-time model inference from uploaded files. Forecast Results
+presents saved notebook-confirmed row outputs, metrics, and caveats.
 
 ## Official Scope
 
@@ -54,6 +55,22 @@ Excluded from the final GUI scope:
   - Retained audit file only.
   - Marked `stale_or_mismatched`.
   - Not used for charts, connected counts, or rankings.
+
+## Upload Test Data
+
+Use these organized project CSVs when checking upload behavior:
+
+- `data/demo/singapore_combined_2023_2024_demo.csv`
+  - Best real other-country demo upload.
+  - Demonstrates scenario compatibility detection.
+- `data/test-fixtures/all_models_complete_test.csv`
+  - Best controlled full-coverage regression upload.
+- `data/test-fixtures/multivariate_vehicle_alias_test.csv`
+  - Tests vehicle alias handling.
+- `data/test-fixtures/univariate_targets_test.csv`
+  - Tests univariate target-history compatibility.
+- `data/raw/`
+  - Source files only; not direct GUI upload fixtures.
 
 ## Display Modes
 
@@ -167,7 +184,9 @@ The validation script checks:
 - SARIMA rows are official-scale test predictions
 - VAR1/VAR2 remain transformed-scale row outputs
 - VAR3 is PM2.5-scale row output
-- LSTM, XGBoost Univariate, and XGBoost Multivariate remain metrics-and-plot-only
+- LSTM and XGBoost Multivariate remain metrics-and-plot-only in the saved frontend outputs
+- XGBoost Univariate remains metrics-and-plot-only in the deployed GUI until a production backend is
+  explicitly connected and verified
 - stale XGBoost audit rows stay hidden
 - NO2/SO2 units are ppm
 - chart code includes legend, forecast boundary, and no fake metrics-only forecast line
