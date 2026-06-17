@@ -44,11 +44,12 @@ const getDetectedUnivariateTargets = (dataset) => {
   return univariateTargets.filter((target) => detected.has(target.key));
 };
 
-const ScenarioCompatibilityCard = ({ label, compatible, children }) => (
+const ScenarioCompatibilityCard = ({ label, compatible, children, action }) => (
   <article className={`summary-card ${compatible ? 'compatible' : 'incompatible'}`}>
     <span>{compatible ? 'Compatible' : 'Not compatible'}</span>
     <strong>{label}</strong>
     <small>{children}</small>
+    {action}
   </article>
 );
 
@@ -167,7 +168,6 @@ export default function UploadRegionalDataset({
 
     setSelectedAnalysisType('univariate');
     setSelectedCountry('malaysia');
-    setSelectedScenario('custom');
     setSelectedTarget(targetKey);
     setSelectedPredictors([]);
     setSelectedModel('xgboost');
@@ -396,7 +396,24 @@ export default function UploadRegionalDataset({
             </div>
             <div className="summary-grid compatibility-grid">
               {compatiblePathCards.map((card) => (
-                <ScenarioCompatibilityCard label={card.label} compatible={card.compatible} key={card.id}>
+                <ScenarioCompatibilityCard
+                  label={card.label}
+                  compatible={card.compatible}
+                  key={card.id}
+                  action={
+                    card.id === 'univariate' && card.compatible ? (
+                      <div className="inline-actions">
+                        <button
+                          className="template-button subtle-template-button"
+                          type="button"
+                          onClick={() => handleViewUnivariateResult(detectedUnivariateTargets[0]?.key)}
+                        >
+                          View univariate result
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                >
                   {card.body}
                 </ScenarioCompatibilityCard>
               ))}
