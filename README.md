@@ -1,8 +1,6 @@
 # Regional Time-Series Forecasting Dashboard
 
-Finalized presentation dashboard for the COS40007 Artificial Intelligence for Engineering Design
-Project. The deployed GUI is complete for the agreed presentation scope: upload validation,
-scenario compatibility checking, saved model-result display, and model evidence review.
+Regional Time-Series Forecasting Dashboard is a COS40007 project for exploring saved air-pollution forecasting results from the team's notebooks. The app helps users upload a regional CSV, check which forecasting scenarios the dataset supports, view available model results, and inspect the source evidence behind each model.
 
 Production URL:
 
@@ -10,27 +8,46 @@ Production URL:
 https://regional-air-pollution-forecasting.vercel.app/
 ```
 
-## Finalized GUI Behavior
+## What This Project Does
 
-The dashboard is finalized as a user-facing forecasting-results flow. Normal users start at Overview,
-upload or select a dataset, confirm which official scenario is compatible, then open Forecast Results.
-Uploads are used for validation and compatibility checking only. The deployed dashboard does not run
-real-time model inference from uploaded files; Forecast Results presents saved notebook-confirmed
-outputs and metrics.
+The dashboard focuses on Malaysian air-pollution forecasting using OpenDOSM-based monthly time-series data. It brings together air quality, electricity, industrial production, and vehicle activity variables, then displays the model outputs produced by the project team.
 
-The Model Evidence page keeps the research handoff available. It presents results produced by the team
-notebooks and output folders without requiring all models to use the same variables, transformations,
-metrics, or export format. It labels what each official model actually produced:
+The app is designed for four main tasks:
 
-- official-scale row outputs
-- transformed-scale row outputs
-- metrics-and-plot-only notebook results
-- native artifacts without row exports
-- stale or mismatched audit outputs
+1. Upload a cleaned regional CSV.
+2. Validate required columns and detect compatible forecasting scenarios.
+3. View saved forecast results, charts, metrics, and caveats.
+4. Review model evidence, source notebooks, output status, and limitations.
 
-No model retraining was done for this GUI update.
+Uploaded CSV files are used for validation and compatibility checking only. The deployed website does not run real-time model inference from uploaded files. Forecast Results shows saved notebook outputs and metrics already produced by the team.
 
-The finalized main navigation is:
+## Main Features
+
+- Dataset upload and validation
+  - Checks for required columns such as `date`, `country`, air-quality targets, electricity, IPI, and vehicle activity.
+  - Detects compatible univariate and multivariate forecast paths.
+  - Supports `vehicle_registrations` as an alias for `car_registration`.
+
+- Forecast Results
+  - Shows row-level charts and tables when dated model outputs exist.
+  - Shows metrics-only cards when notebooks produced metrics but no dated row export.
+  - Keeps transformed VAR outputs clearly labelled as change forecasts.
+  - Prevents fake forecast rows for metrics-only models.
+
+- Model Evidence
+  - Lists official model groups, targets, scenarios, output type, source notebooks, metrics, row-output status, and caveats.
+  - Separates XGBoost Univariate from XGBoost Multivariate.
+  - Keeps stale or mismatched outputs out of the main result flow.
+
+- Advanced / Evidence pages
+  - Model Comparison
+  - Data Explorer
+  - Regional Comparison
+  - Policy Insight
+
+## Navigation
+
+The main user flow is:
 
 1. Overview
 2. Upload Regional Dataset
@@ -38,221 +55,193 @@ The finalized main navigation is:
 4. Model Evidence
 5. Advanced / Evidence
 
-## Official Scope
+## Official Model Scope
 
-- Univariate: SARIMA, LSTM, and XGBoost
-- Multivariate: XGBoost and VAR
+Univariate models:
 
-XGBoost Univariate and XGBoost Multivariate are shown as separate result groups. Prophet, VECM, and
-baselines are not counted in the official final GUI scope.
+- SARIMA
+- LSTM
+- XGBoost
 
-## Finalization Evidence
+Multivariate models:
 
-- Latest `origin/main` was fetched and pulled before implementation.
-- `origin/daryl-sarima` was merged into `main`.
-- Official notebooks and output folders were inspected before GUI changes.
-- The GUI uses notebook-confirmed outputs and metrics under `public/model_outputs/`.
-- Upload-to-results routing has been verified for Malaysia and Singapore demo/test CSVs.
-- The production deployment has been verified against the finalized GUI flow.
+- XGBoost
+- VAR
 
-## Finalized Model Result Truth
+XGBoost Univariate and XGBoost Multivariate are treated as separate result groups because they come from different notebooks and use different input assumptions.
 
-| Model | Analysis | Final display mode | Notes |
+Prophet, VECM, baselines, and other experimental models are not part of the main dashboard scope.
+
+## Available Model Results
+
+| Model | Analysis type | Dashboard output | Notes |
 | --- | --- | --- | --- |
-| SARIMA | Univariate | official-scale row output | Five 2022 held-out test CSVs with actual, predicted, confidence interval, and metrics. |
-| LSTM | Univariate | metrics and plot only | Five notebooks report original-scale metrics and saved artifacts; no dated row export is present. |
-| XGBoost Univariate | Univariate | metrics and plot only | Five target-history notebooks report original-scale metrics, inline plots, and JSON/PKL artifacts; no dated row export is presented in the GUI. |
-| XGBoost Multivariate | Multivariate | metrics and plot only | Three official multivariate scenarios report metrics/artifacts/SHAP evidence; no dated row export is present. |
-| VAR | Multivariate | row output with caveats | VAR1/VAR2 are differenced target outputs; VAR3 is PM2.5-scale future forecast. The GUI shows the saved VAR row outputs from Brandon's VarOnly results. |
-
-VAR caveats:
-
-- VAR1 shows `d_air_no2` as `ΔNO2` with display label `Forecasted change in NO2`.
-  Warning: `This VAR output is shown in differenced NO2 scale. It represents change in NO2, not official-scale NO2 concentration.`
-- VAR2 shows `d_air_so2` as `ΔSO2` with display label `Forecasted change in SO2`.
-  Warning: `This VAR output is shown in differenced SO2 scale. It represents change in SO2, not official-scale SO2 concentration.`
-- VAR3 shows `air_pm_25` as `PM2.5` with display label `Forecasted PM2.5` and unit `µg/m³`.
-  Note: `VAR3 forecasts PM2.5 in official target scale while using differenced NO2 as a transformed predictor.`
-
-The old `public/model_outputs/xgboost_forecast.csv` SO2 rows remain as audit data only and are marked
-`stale_or_mismatched`.
+| SARIMA | Univariate | Row-output chart and table | Five 2022 held-out test outputs with actual, predicted, confidence interval, and metrics. |
+| LSTM | Univariate | Metrics and plot summary | Five notebooks report metrics and saved artifacts; no dated row export is shown. |
+| XGBoost Univariate | Univariate | Metrics and plot summary | Five target-history notebooks report metrics and artifacts; no dated row export is shown. |
+| XGBoost Multivariate | Multivariate | Metrics and plot summary | Three scenario notebooks report metrics, artifacts, and feature evidence; no dated row export is shown. |
+| VAR | Multivariate | Row-output chart and table | VAR1 and VAR2 are differenced change forecasts; VAR3 is PM2.5-scale forecast output. |
 
 ## Forecast Scenarios
 
-1. Vehicle activity + local electricity -> NO2
-   - Target: `air_no2`
-   - Predictors: `car_registration`, `electricity_local`
+### Vehicle activity + local electricity -> NO2
 
-2. IPI + electricity -> SO2
-   - Target: `air_so2`
-   - Predictors used by official notebooks: `ipi_abs_index` or `ipi_abs_index_sa`, `electricity_local`
+- Target: `air_no2`
+- Predictors: `car_registration`, `electricity_local`
+- Used by: XGBoost Multivariate and VAR
 
-3. NO2 -> PM2.5
-   - Target: `air_pm_25`
-   - Predictor: `air_no2`
+### IPI + electricity -> SO2
 
-## Output Files
+- Target: `air_so2`
+- Predictors: `ipi_abs_index` or `ipi_abs_index_sa`, `electricity_local`
+- Used by: XGBoost Multivariate and VAR
 
-Frontend model-result files live in:
+### NO2 -> PM2.5
+
+- Target: `air_pm_25`
+- Predictor: `air_no2`
+- Used by: XGBoost Multivariate and VAR
+
+## VAR Output Notes
+
+VAR outputs require careful interpretation:
+
+- VAR1 shows `d_air_no2` as `ΔNO2` with the label `Forecasted change in NO2`.
+  - This is a differenced target output, not official-scale NO2 concentration.
+  - Unit shown: `ppm change`.
+
+- VAR2 shows `d_air_so2` as `ΔSO2` with the label `Forecasted change in SO2`.
+  - This is a differenced target output, not official-scale SO2 concentration.
+  - Unit shown: `ppm change`.
+
+- VAR3 shows `air_pm_25` as `PM2.5` with the label `Forecasted PM2.5`.
+  - This is shown in PM2.5 scale.
+  - Unit shown: `µg/m³`.
+
+## Upload Data
+
+A valid upload should include:
+
+- `date`
+- `country`
+- at least one supported target column
+- required predictor columns for multivariate scenarios, when applicable
+
+Useful project CSVs:
+
+- `data/test-fixtures/all_models_complete_test.csv`
+  - Full-coverage test file with all supported target and predictor columns.
+
+- Singapore regional example CSV
+  - Example non-Malaysia regional CSV for compatibility checking.
+  - The app detects compatible scenarios from this file, but the result chart still opens the saved notebook output for the matching scenario.
+
+- `data/test-fixtures/univariate_targets_test.csv`
+  - Tests univariate target-history compatibility.
+
+- `data/test-fixtures/multivariate_vehicle_alias_test.csv`
+  - Tests the `vehicle_registrations` alias.
+
+- `data/raw/`
+  - Source CSVs that require preprocessing before direct upload.
+
+## Model Output Files
+
+Frontend model result files live in:
 
 ```text
 public/model_outputs/
 ```
 
-Finalized normalized files:
+Important files:
 
-- `model_artifacts.json`: official 21-entry model-result registry.
-- `model_metrics.json`: notebook-reported metrics for all 21 official model results.
-- `sarima_forecast.csv`: 60 official-scale SARIMA held-out test rows.
-- `var_forecast.csv`: 72 VAR future forecast rows, including transformed VAR1/VAR2 outputs.
-- `xgboost_forecast.csv`: stale/mismatched audit rows only.
+- `model_artifacts.json`
+  - Registry for official model results, output type, source notebooks, row-output status, metrics status, and caveats.
 
-Native JSON, PKL, H5, and weight files are not treated as browser forecast rows by themselves.
+- `model_metrics.json`
+  - Notebook-reported metrics for the official model results.
 
-## Demo And Test CSVs
+- `sarima_forecast.csv`
+  - SARIMA held-out test prediction rows.
 
-Root-level CSVs were organized into:
+- `var_forecast.csv`
+  - VAR future forecast rows, including transformed VAR1 and VAR2 outputs.
 
-- `data/demo/singapore_combined_2023_2024_demo.csv`
-  - Best real other-country upload demo.
-  - Includes `country`, `date`, air quality, electricity, IPI, and vehicle columns.
-  - Values are Singapore-scale, so use it to demonstrate compatibility detection rather than live
-    Malaysia-trained inference.
-- `data/test-fixtures/all_models_complete_test.csv`
-  - Best controlled fallback for interview testing.
-  - Includes all supported target and predictor columns.
-- `data/test-fixtures/multivariate_vehicle_alias_test.csv`
-  - Tests the legacy `vehicle_registrations` alias.
-- `data/test-fixtures/univariate_targets_test.csv`
-  - Tests univariate target-history uploads.
-- `data/raw/`
-  - Contains raw Malaysia and Singapore source CSVs that are not direct GUI uploads without
-    preprocessing.
+- `xgboost_forecast.csv`
+  - Retained for audit only. It is marked stale or mismatched and is not used in the main result charts.
 
-## Final Demo Scenarios
-
-Use these two finalized GUI testing/demo scenarios.
-
-### Scenario 1: Malaysia Full Model Access Test
-
-- Dataset: `data/test-fixtures/all_models_complete_test.csv`
-- Purpose: controlled full-coverage test for all official model result groups.
-- Expected upload result: upload passes, country is detected as `Malaysia`, compatible paths are shown,
-  and `View forecast result` opens a saved notebook result rather than a pending state.
-- Expected model access:
-  - SARIMA: row-output chart/table.
-  - LSTM: metrics-and-plot-only summary, no fake forecast rows.
-  - XGBoost Univariate: metrics-and-plot-only summary, no fake forecast rows.
-  - XGBoost Multivariate: metrics-and-plot-only summary, no stale SO2 row output.
-  - VAR1: `ΔNO2` transformed forecast rows with `ppm change`.
-  - VAR2: `ΔSO2` transformed forecast rows with `ppm change`.
-  - VAR3: PM2.5 forecast rows with `µg/m³`.
-- Demo wording: "This fixture confirms every official model result can be reached from the GUI."
-- Do not claim: uploaded rows generate live forecasts.
-
-### Scenario 2: Singapore External-Country Compatibility Demo
-
-- Dataset: `data/demo/singapore_combined_2023_2024_demo.csv`
-- Purpose: external-country compatibility check.
-- Expected upload result: upload passes, country is detected as `singapore`, compatible scenarios are
-  shown, and `View forecast result` opens the saved notebook result for the matching scenario.
-- Demo wording: "The uploaded Singapore CSV is used for compatibility checking. The chart shown is the
-  saved notebook result for that scenario."
-- Do not claim: the dashboard generates a Singapore-trained or Singapore-specific live forecast.
+Native model files such as JSON, PKL, H5, and weight files are not treated as browser-ready forecast rows by themselves.
 
 ## Display Modes
 
-- `official_scale_row_output`: dated forecast/prediction rows in the notebook target scale.
-- `transformed_scale_row_output`: dated rows exist, but the target is differenced/transformed.
-- `metrics_and_plot_only`: metrics and plot/artifact evidence exist, but no dated row export exists.
-- `summary_metrics_only`: metrics exist without row output or reusable plot evidence.
-- `artifact_only`: native model file exists without result display.
-- `branch_or_pending`: reserved for future incomplete or not-inspectable handoffs.
-- `stale_or_mismatched`: retained audit data conflicts with source evidence and is hidden from results.
+The dashboard uses these result modes:
 
-## Model Comparison Rules
+- `official_scale_row_output`
+  - Dated forecast or prediction rows exist in the shown target scale.
 
-The dashboard shows notebook-reported metrics, but it does not rank models unless outputs share:
+- `transformed_scale_row_output`
+  - Dated rows exist, but the target is differenced or otherwise transformed.
 
-- same target or scenario
-- same dataset and period
-- same frequency
-- same unit
-- same output scale
-- same metric definition
-- same result type
-- compatible predictor setup for multivariate models
+- `metrics_and_plot_only`
+  - Metrics and plot or artifact evidence exist, but no dated row export exists.
 
-Mixed official-scale, transformed-scale, and metrics-only results are shown side by side without winner
-labels or RMSE ranking bars.
+- `summary_metrics_only`
+  - Metrics exist without row output or reusable plot evidence.
 
-## Chart Rules
+- `artifact_only`
+  - Native model artifact exists without a displayable result.
+
+- `branch_or_pending`
+  - Reserved for incomplete or not-inspectable handoffs.
+
+- `stale_or_mismatched`
+  - Retained audit output conflicts with source evidence and is hidden from result displays.
+
+## Chart And Comparison Rules
 
 Where row-level outputs exist:
 
-- historical/actual series uses a solid line
-- predicted/forecast series uses a dashed line
-- a legend labels "Historical / Actual" and "Predicted / Forecast"
-- the forecast/test start is marked with a vertical boundary
-- transformed outputs include a scale warning
-- small ppm values use enough decimals to avoid showing `0.00`
-- PM2.5/PM10 units use the canonical `µg/m³` spelling; NO2/SO2 use `ppm` where the
-  source notebooks report ppm.
+- actual or historical series use a solid line
+- predicted or forecast series use a dashed line
+- charts show a legend and forecast/test boundary
+- transformed outputs show a scale warning
+- small ppm values use enough precision to avoid rounding to `0.00`
 
-Metrics-only results never synthesize fake forecast lines.
+Metrics-only results do not synthesize forecast lines, tables, or row-level predictions.
 
-## Dataset Placement
+Model rankings are disabled unless outputs share the same target or scenario, dataset, period, frequency, unit, output scale, metric definition, result type, and compatible predictor setup.
 
-The browser loads the cleaned Malaysia dataset from:
+## Local Development
 
-```text
-public/data/combined_air_electricity_ipi_cleaned.csv
-```
-
-The canonical frontend vehicle column is:
-
-```text
-car_registration
-```
-
-The upload parser still accepts `vehicle_registrations` as a legacy alias and normalizes it to
-`car_registration`.
-
-## Local Run
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Run the local app:
+
+```bash
 npm run dev
 ```
 
-## Build And Validation
+Build the frontend:
 
 ```bash
 npm run build
+```
+
+Validate model-result metadata:
+
+```bash
 npm run validate:model-readiness
 ```
 
-`validate:model-readiness` checks the 21 official model results, SARIMA/VAR row exports, transformed
-VAR caveats, XGBoost Univariate and XGBoost Multivariate separation, stale XGBoost exclusion,
-vehicle-data sync, chart clarity hooks, unit consistency, and sample-file exclusion.
+## Important Limitations
 
-## Final Presentation Flow
-
-Recommended navigation order:
-
-1. Overview
-2. Upload Regional Dataset
-3. Forecast Results
-4. Model Evidence
-
-Advanced / Evidence pages remain available from the sidebar for report support:
-
-- Model Comparison
-- Data Explorer
-- Regional Comparison
-- Policy Insight
-
-Use Overview to explain the app, Upload Regional Dataset to validate columns and detect compatible
-scenarios, Forecast Results to show notebook-confirmed charts/tables/metrics, and Model Evidence only
-when a presenter needs source notebooks, caveats, output scale, or row-output status. Model ranking stays
-disabled unless outputs are directly comparable.
+- Uploaded CSVs do not trigger live model inference on the deployed website.
+- The dashboard displays saved outputs and metrics from team notebooks.
+- LSTM and XGBoost results are metrics-and-plot-only in the GUI unless dated row exports are added later.
+- VAR1 and VAR2 are transformed change forecasts, not official-scale pollutant concentrations.
+- Stale XGBoost SO2 audit rows remain disconnected from the main result flow.
+- Forecasts are academic project outputs, not official environmental or policy predictions.
