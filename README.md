@@ -1,15 +1,22 @@
 # Regional Time-Series Forecasting Dashboard
 
-Frontend GUI/dashboard prototype for the COS40007 Artificial Intelligence for Engineering Design
-Project.
+Finalized presentation dashboard for the COS40007 Artificial Intelligence for Engineering Design
+Project. The deployed GUI is complete for the agreed presentation scope: upload validation,
+scenario compatibility checking, saved model-result display, and model evidence review.
 
-## Current GUI Goal
+Production URL:
 
-The dashboard is now a user-facing forecasting-results flow. Normal users start at Overview, upload or
-select a dataset, confirm which official scenario is compatible, then open Forecast Results. Uploads are
-used for validation and compatibility checking only. The deployed dashboard does not run real-time
-model inference from uploaded files; Forecast Results presents saved notebook-confirmed outputs and
-metrics.
+```text
+https://regional-air-pollution-forecasting.vercel.app/
+```
+
+## Finalized GUI Behavior
+
+The dashboard is finalized as a user-facing forecasting-results flow. Normal users start at Overview,
+upload or select a dataset, confirm which official scenario is compatible, then open Forecast Results.
+Uploads are used for validation and compatibility checking only. The deployed dashboard does not run
+real-time model inference from uploaded files; Forecast Results presents saved notebook-confirmed
+outputs and metrics.
 
 The Model Evidence page keeps the research handoff available. It presents results produced by the team
 notebooks and output folders without requiring all models to use the same variables, transformations,
@@ -23,6 +30,14 @@ metrics, or export format. It labels what each official model actually produced:
 
 No model retraining was done for this GUI update.
 
+The finalized main navigation is:
+
+1. Overview
+2. Upload Regional Dataset
+3. Forecast Results
+4. Model Evidence
+5. Advanced / Evidence
+
 ## Official Scope
 
 - Univariate: SARIMA, LSTM, and XGBoost
@@ -31,16 +46,18 @@ No model retraining was done for this GUI update.
 XGBoost Univariate and XGBoost Multivariate are shown as separate result groups. Prophet, VECM, and
 baselines are not counted in the official final GUI scope.
 
-## Repository State Used
+## Finalization Evidence
 
 - Latest `origin/main` was fetched and pulled before implementation.
 - `origin/daryl-sarima` was merged into `main`.
 - Official notebooks and output folders were inspected before GUI changes.
-- The GUI now uses notebook-confirmed outputs and metrics under `public/model_outputs/`.
+- The GUI uses notebook-confirmed outputs and metrics under `public/model_outputs/`.
+- Upload-to-results routing has been verified for Malaysia and Singapore demo/test CSVs.
+- The production deployment has been verified against the finalized GUI flow.
 
-## Current Model Result Truth
+## Finalized Model Result Truth
 
-| Model | Analysis | Current display mode | Notes |
+| Model | Analysis | Final display mode | Notes |
 | --- | --- | --- | --- |
 | SARIMA | Univariate | official-scale row output | Five 2022 held-out test CSVs with actual, predicted, confidence interval, and metrics. |
 | LSTM | Univariate | metrics and plot only | Five notebooks report original-scale metrics and saved artifacts; no dated row export is present. |
@@ -82,7 +99,7 @@ Frontend model-result files live in:
 public/model_outputs/
 ```
 
-Current normalized files:
+Finalized normalized files:
 
 - `model_artifacts.json`: official 21-entry model-result registry.
 - `model_metrics.json`: notebook-reported metrics for all 21 official model results.
@@ -112,6 +129,37 @@ Root-level CSVs were organized into:
   - Contains raw Malaysia and Singapore source CSVs that are not direct GUI uploads without
     preprocessing.
 
+## Final Demo Scenarios
+
+Use these two finalized GUI testing/demo scenarios.
+
+### Scenario 1: Malaysia Full Model Access Test
+
+- Dataset: `data/test-fixtures/all_models_complete_test.csv`
+- Purpose: controlled full-coverage test for all official model result groups.
+- Expected upload result: upload passes, country is detected as `Malaysia`, compatible paths are shown,
+  and `View forecast result` opens a saved notebook result rather than a pending state.
+- Expected model access:
+  - SARIMA: row-output chart/table.
+  - LSTM: metrics-and-plot-only summary, no fake forecast rows.
+  - XGBoost Univariate: metrics-and-plot-only summary, no fake forecast rows.
+  - XGBoost Multivariate: metrics-and-plot-only summary, no stale SO2 row output.
+  - VAR1: `ΔNO2` transformed forecast rows with `ppm change`.
+  - VAR2: `ΔSO2` transformed forecast rows with `ppm change`.
+  - VAR3: PM2.5 forecast rows with `µg/m³`.
+- Demo wording: "This fixture confirms every official model result can be reached from the GUI."
+- Do not claim: uploaded rows generate live forecasts.
+
+### Scenario 2: Singapore External-Country Compatibility Demo
+
+- Dataset: `data/demo/singapore_combined_2023_2024_demo.csv`
+- Purpose: external-country compatibility check.
+- Expected upload result: upload passes, country is detected as `singapore`, compatible scenarios are
+  shown, and `View forecast result` opens the saved notebook result for the matching scenario.
+- Demo wording: "The uploaded Singapore CSV is used for compatibility checking. The chart shown is the
+  saved notebook result for that scenario."
+- Do not claim: the dashboard generates a Singapore-trained or Singapore-specific live forecast.
+
 ## Display Modes
 
 - `official_scale_row_output`: dated forecast/prediction rows in the notebook target scale.
@@ -119,7 +167,7 @@ Root-level CSVs were organized into:
 - `metrics_and_plot_only`: metrics and plot/artifact evidence exist, but no dated row export exists.
 - `summary_metrics_only`: metrics exist without row output or reusable plot evidence.
 - `artifact_only`: native model file exists without result display.
-- `branch_or_pending`: not merged or not inspectable yet.
+- `branch_or_pending`: reserved for future incomplete or not-inspectable handoffs.
 - `stale_or_mismatched`: retained audit data conflicts with source evidence and is hidden from results.
 
 ## Model Comparison Rules
@@ -188,7 +236,7 @@ npm run validate:model-readiness
 VAR caveats, XGBoost Univariate and XGBoost Multivariate separation, stale XGBoost exclusion,
 vehicle-data sync, chart clarity hooks, unit consistency, and sample-file exclusion.
 
-## Presentation Flow
+## Final Presentation Flow
 
 Recommended navigation order:
 

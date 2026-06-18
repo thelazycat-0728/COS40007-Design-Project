@@ -1,11 +1,11 @@
-# Model Output Integration Files
+# Finalized Model Output Integration Files
 
-This folder contains the frontend-facing model-result registry and normalized row outputs for the
-official COS40007 model families.
+This folder contains the finalized frontend-facing model-result registry and normalized row outputs for
+the official COS40007 model families.
 
-The current GUI goal is to present notebook-confirmed results honestly. A result does not have to be a
-fully normalized official-scale forecast to appear, but transformed-scale and metrics-only outputs must
-be labelled clearly.
+The finalized GUI presents notebook-confirmed results honestly. A result does not have to be a fully
+normalized official-scale forecast to appear, but transformed-scale and metrics-only outputs must be
+labelled clearly.
 
 The main user flow is Overview -> Upload Regional Dataset -> Forecast Results -> Model Evidence.
 Uploaded CSV files are used for column validation and scenario compatibility checking only. The
@@ -26,7 +26,7 @@ Excluded from the final GUI scope:
 - VECM
 - baselines
 
-## Current Files
+## Finalized Files
 
 - `model_artifacts.json`
   - 21 official model-result entries.
@@ -58,19 +58,22 @@ Excluded from the final GUI scope:
 
 ## Upload Test Data
 
-Use these organized project CSVs when checking upload behavior:
+Use these finalized organized project CSVs when checking upload behavior:
 
 - `data/demo/singapore_combined_2023_2024_demo.csv`
-  - Best real other-country demo upload.
+  - Final external-country demo upload.
   - Demonstrates scenario compatibility detection.
 - `data/test-fixtures/all_models_complete_test.csv`
-  - Best controlled full-coverage regression upload.
+  - Final controlled full-coverage regression upload.
 - `data/test-fixtures/multivariate_vehicle_alias_test.csv`
   - Tests vehicle alias handling.
 - `data/test-fixtures/univariate_targets_test.csv`
   - Tests univariate target-history compatibility.
 - `data/raw/`
   - Source files only; not direct GUI upload fixtures.
+
+Final demo rule: use `all_models_complete_test.csv` for Malaysia full model access testing and
+`singapore_combined_2023_2024_demo.csv` for external-country compatibility demonstration.
 
 ## Display Modes
 
@@ -95,7 +98,7 @@ Use these status/display values:
   - Native model artifact exists but no displayable result exists.
 
 - `branch_or_pending`
-  - Result is not merged or not inspectable.
+  - Reserved for future incomplete or not-inspectable handoffs.
 
 - `stale_or_mismatched`
   - Retained audit output conflicts with source evidence and must stay hidden from result displays.
@@ -120,7 +123,7 @@ Rules:
   transformation.
 - Do not invent confidence intervals, actual values, dates, metrics, or inverse-transformed values.
 
-## Current Model Notes
+## Finalized Model Notes
 
 SARIMA:
 
